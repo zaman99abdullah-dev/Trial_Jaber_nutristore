@@ -3444,49 +3444,79 @@ function camelizeRow(row) {
   return out;
 }
 
+// THE SECOND HALF OF THE SAME PROBLEM: the old API also WRAPPED its responses —
+// {products:[…]}, {expiring:[…]}, {batches:[…]}, {staff:[…]}, {logs:[…]} — while
+// PostgREST returns a bare array. The boot does `S.products = pd.products || []`,
+// so a bare array silently became an empty list: 119 rows fetched, nothing shown.
+// Renaming the fields alone was not enough; the envelope has to come back too.
+
+// uuid -> P### code, filled in by getAll (which always runs first at boot).
+// Batches reference products by uuid, but the UI keys everything by the code.
+const PRODUCT_BY_UUID = {};
+
+function reshapeProduct(r) {
+  const o = camelizeRow(r);
+  // The old API keyed products by the P### code, not the database uuid. Every
+  // pinned list, filter and picker compares against it. The uuid is kept as
+  // productUuid because the mutation RPCs genuinely need the real key.
+  o.productUuid = r.id;
+  o.id = r.product_code;
+  // POLARITY — the one field that must be INVERTED, not merely renamed.
+  //   Old: manualStatus TRUE = automation OFF
+  //   New: status_auto   TRUE = automation ON
+  // Renaming without inverting silently re-enables automation on every product
+  // a clinician deliberately pinned.
+  o.manualStatus = !r.status_auto;
+  // dfAuto is NOT inverted: false means "pinned" in BOTH schemas.
+  o.dfAuto = r.dispense_first_auto;
+  // The UI only ever reads batchSummary.totalValid.
+  o.batchSummary = { totalValid: r.units_on_hand ?? 0 };
+  return o;
+}
+
+// Batch rows carry a uuid product_id and no computed expiry helpers; the UI
+// expects the P### code plus `expired` / `daysLeft`.
+// ⚠ UNVERIFIED: there are zero batches in the database, so this mapping has
+// never seen a real row. Re-check it against the UI as soon as real stock is
+// entered — that is the first thing to suspect if the batch list misbehaves.
+function reshapeBatch(r) {
+  const o = camelizeRow(r);
+  o.batchId   = r.batch_code || r.id;
+  o.productId = PRODUCT_BY_UUID[r.product_id]?.id || r.product_id;
+  o.productName = PRODUCT_BY_UUID[r.product_id]?.name || '';
+  o.qty = r.quantity;
+  if (r.expiry_date) {
+    const ms = new Date(r.expiry_date + 'T00:00:00').getTime() - Date.now();
+    o.daysLeft = Math.ceil(ms / 86400000);
+    o.expired  = o.daysLeft < 0;
+  }
+  return o;
+}
+
 const RESHAPE = {
   getAll(rows) {
-    return (rows || []).map(r => {
-      const o = camelizeRow(r);
-      // The old API keyed products by the P### code, not the database uuid.
-      // Every pinned-product list, filter and picker in the UI compares against
-      // it, so this must be the code — the uuid is kept as productUuid for the
-      // mutation RPCs, which do want the real key.
-      o.productUuid = r.id;
-      o.id = r.product_code;
-      // POLARITY — the one field that must be INVERTED, not just renamed.
-      // Old: manualStatus TRUE  = automation OFF.
-      // New: status_auto   TRUE = automation ON.
-      // Renaming without inverting silently turns automation back on for every
-      // product a clinician deliberately pinned.
-      o.manualStatus = !r.status_auto;
-      // dfAuto is NOT inverted: false means "pinned" in BOTH schemas.
-      o.dfAuto = r.dispense_first_auto;
-      // The UI only ever reads batchSummary.totalValid.
-      o.batchSummary = { totalValid: r.units_on_hand ?? 0 };
-      return o;
-    });
+    const products = (rows || []).map(reshapeProduct);
+    products.forEach(p => { PRODUCT_BY_UUID[p.productUuid] = p; });
+    return { products };
   },
-  // The old endpoint returned ONE object ({expiryWarningDays: 30, …}); the
-  // table returns one row per key.
+  getExpiring(rows)     { return { expiring: (rows || []).map(reshapeBatch) }; },
+  getAllBatches(rows)   { return { batches:  (rows || []).map(reshapeBatch) }; },
+  getLogs(rows)         { return { logs:     (rows || []).map(camelizeRow) }; },
+  listStaff(rows) {
+    return { staff: (rows || []).map(r => {
+      const o = camelizeRow(r);
+      o.name = r.full_name;          // the UI reads .name
+      return o;
+    }) };
+  },
+  // The old endpoint returned ONE object ({expiryWarningDays:30, …}); the table
+  // returns one row per key.
   getSettings(rows) {
     const out = {};
     (rows || []).forEach(r => { out[r.key] = r.value; });
     return out;
-  },
-  listStaff(rows) {
-    return (rows || []).map(r => {
-      const o = camelizeRow(r);
-      o.name = r.full_name;          // the UI reads .name
-      return o;
-    });
   }
 };
-// Remaining view/table actions get the generic camelCase conversion. NOTE:
-// getExpiring and getAllBatches cannot be fully verified yet — there are zero
-// batches in the database, so they return zero rows. Re-check their field names
-// against the UI once real stock has been entered.
-const GENERIC_RESHAPE = new Set(['getExpiring', 'getAllBatches', 'getLogs']);
 
 async function api(params, _retried) {
   const p = Object.assign({}, params);
@@ -3536,7 +3566,6 @@ async function api(params, _retried) {
   // HERE, at the single choke point every caller already goes through, so no
   // renderer needed changing.
   if (RESHAPE[p.action]) return RESHAPE[p.action](data);
-  if (GENERIC_RESHAPE.has(p.action) && Array.isArray(data)) return data.map(camelizeRow);
   return data;
 }
 
