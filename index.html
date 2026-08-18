@@ -3423,6 +3423,71 @@ const ADMIN_ACTION_URL = {
   resetStaffPassword: SUPABASE_URL + '/functions/v1/admin-reset-password'
 };
 
+// ══ RESPONSE RESHAPING ═══════════════════════════════════════════
+// THE ACTION NAMES survived the migration unchanged; THE FIELD NAMES did not.
+// Actions backed by an RPC (getReorderData, getSupervisorData, …) build their
+// JSON by hand and already speak the old camelCase contract. But actions backed
+// by a VIEW or a TABLE return raw PostgreSQL columns — snake_case, plus internal
+// columns, and `id` is a uuid where the old API sent the P### code. The UI reads
+// p.minUnits / p.dispenseFirst / p.id and finds undefined everywhere, so it
+// renders "No products found" while the network call succeeds with 119 rows.
+// That is exactly what happened on first deploy.
+//
+// Everything below converts those responses back to the shape the 5,000 lines
+// of UI code already expect, so no renderer had to be touched.
+const camel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+
+function camelizeRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const out = {};
+  for (const k in row) out[camel(k)] = row[k];
+  return out;
+}
+
+const RESHAPE = {
+  getAll(rows) {
+    return (rows || []).map(r => {
+      const o = camelizeRow(r);
+      // The old API keyed products by the P### code, not the database uuid.
+      // Every pinned-product list, filter and picker in the UI compares against
+      // it, so this must be the code — the uuid is kept as productUuid for the
+      // mutation RPCs, which do want the real key.
+      o.productUuid = r.id;
+      o.id = r.product_code;
+      // POLARITY — the one field that must be INVERTED, not just renamed.
+      // Old: manualStatus TRUE  = automation OFF.
+      // New: status_auto   TRUE = automation ON.
+      // Renaming without inverting silently turns automation back on for every
+      // product a clinician deliberately pinned.
+      o.manualStatus = !r.status_auto;
+      // dfAuto is NOT inverted: false means "pinned" in BOTH schemas.
+      o.dfAuto = r.dispense_first_auto;
+      // The UI only ever reads batchSummary.totalValid.
+      o.batchSummary = { totalValid: r.units_on_hand ?? 0 };
+      return o;
+    });
+  },
+  // The old endpoint returned ONE object ({expiryWarningDays: 30, …}); the
+  // table returns one row per key.
+  getSettings(rows) {
+    const out = {};
+    (rows || []).forEach(r => { out[r.key] = r.value; });
+    return out;
+  },
+  listStaff(rows) {
+    return (rows || []).map(r => {
+      const o = camelizeRow(r);
+      o.name = r.full_name;          // the UI reads .name
+      return o;
+    });
+  }
+};
+// Remaining view/table actions get the generic camelCase conversion. NOTE:
+// getExpiring and getAllBatches cannot be fully verified yet — there are zero
+// batches in the database, so they return zero rows. Re-check their field names
+// against the UI once real stock has been entered.
+const GENERIC_RESHAPE = new Set(['getExpiring', 'getAllBatches', 'getLogs']);
+
 async function api(params, _retried) {
   const p = Object.assign({}, params);
   const endpoint = ADMIN_ACTION_URL[p.action] || API_URL;
@@ -3467,6 +3532,11 @@ async function api(params, _retried) {
     if (AUTH_ERR_CODES[data.error]) { handleAuthError(data.error); throw new Error(AUTH_ERR_CODES[data.error]); }
     throw new Error(data.error);
   }
+  // Translate raw database columns back into the shape the UI expects. Applied
+  // HERE, at the single choke point every caller already goes through, so no
+  // renderer needed changing.
+  if (RESHAPE[p.action]) return RESHAPE[p.action](data);
+  if (GENERIC_RESHAPE.has(p.action) && Array.isArray(data)) return data.map(camelizeRow);
   return data;
 }
 
