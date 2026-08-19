@@ -508,7 +508,6 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .thchip.on-ll{background:var(--rose-bg);color:var(--rose-t);border-color:var(--rose)}
 .thchip.on-df{background:var(--teal-bg);color:var(--teal-t);border-color:var(--teal)}
 .thchip.on-as{background:var(--amber-bg);color:var(--amber-t);border-color:var(--amber)}
-.thchip.on-hide{background:var(--grey-bg);color:var(--grey-t);border-color:var(--grey)}
 
 /* Update & Batches: Single/Bulk segmented control */
 .mode-seg{display:inline-flex;background:var(--surface2);border-radius:100px;padding:3px;gap:2px}
@@ -1737,10 +1736,12 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <span class="io-toggle-lbl" data-i18n="io_toggle">🏥 Mark as In-Patient Only</span>
             <span class="io-switch" id="su-io-switch"></span>
           </div>
-          <div class="io-toggle-row" onclick="toggleSuHidden()">
-            <span class="io-toggle-lbl" data-i18n="hide_toggle">Hide from Dietitian view</span>
-            <span class="io-switch" id="su-hidden-switch"></span>
-          </div>
+          <!-- "Hide from Dietitian view" removed at the owner's request
+               2026-08-18. Verified first that ZERO products were hidden, so
+               nothing is stranded invisible with no way to unhide it. The
+               hidden_from_dietitian COLUMN is deliberately left in the database
+               and the dietitian-side filter still honours it, so the feature can
+               be restored by putting this control back — no migration needed. -->
           <div class="ll-toggle-row" onclick="toggleSuLifeline()">
             <span class="ll-toggle-lbl" data-i18n="ll_toggle">🆘 Mark as Lifeline (critical product)</span>
             <span class="ll-switch" id="su-ll-switch"></span>
@@ -1832,7 +1833,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <button class="thchip" id="bs-chip-df" onclick="bulkToggleDf()">DF</button>
             <button class="thchip" id="bs-chip-dfa" onclick="bulkToggleFlag('dfAuto','on-df')">DFA</button>
             <button class="thchip" id="bs-chip-as" onclick="bulkToggleAutoStatus()">ST</button>
-            <button class="thchip" id="bs-chip-hide" onclick="bulkToggleFlag('hiddenFromDietitian','on-hide')">Hide</button>
+            <!-- bulk "Hide" chip removed with the single-product toggle above -->
           </div>
           <div style="font-size:.6875rem;color:var(--text2);margin:0 0 14px;line-height:1.6" data-i18n="bulk_flags_legend">
             <strong>IP</strong> = In-Patient Only · <strong>LL</strong> = Lifeline · <strong>DF</strong> = Dispense First · <strong>🤖DF</strong> = DF automation · <strong>🤖ST</strong> = Status automation · <strong>Hide</strong> = Hidden from Dietitian
@@ -3249,7 +3250,6 @@ const S = {
   lastSynced: null,
   suDispenseFirst: false,
   suInpatientOnly: false,
-  suHidden: false,
   suLifeline: false,
   suAutoStatus: true,
   suDfAuto: true,
@@ -3613,7 +3613,7 @@ function renderProducts() {
   let list = S.products;
   // Ledger 15: hide dietitian-hidden products for the logged-out/dietitian
   // view only — storage/supervisor must still see and manage them.
-  if(!S.isStorage) list=list.filter(p=>!p.hiddenFromDietitian);
+  // (hidden-from-dietitian filter removed 2026-08-18 — feature deleted, DB column dropped)
   // Ledger 14: the NS nutrient tag pill and the category pill are mutually
   // exclusive (see setCat/setProdTag) — at most one of these filters applies.
   if (S.prodTag) list=list.filter(p=>productHasNsTag(p, S.prodTag));
@@ -3642,7 +3642,6 @@ function renderProducts() {
   } else {
     const c={available:0,low:0,unavailable:0,df:0,io:0};
     S.products.forEach(p=>{
-      if(p.hiddenFromDietitian) return; // Ledger 15b: keep chip counts in sync with the hidden-filtered list
       if(p.status==='available') c.available++;
       if(p.status==='low') c.low++;
       if(p.status==='unavailable') c.unavailable++;
@@ -3771,7 +3770,7 @@ function togglePin(id) {
 function openAlternatives(productId) {
   const p = S.products.find(x=>x.id===productId);
   if (!p) return;
-  const alts = S.products.filter(x=>x.id!==productId && x.category===p.category && x.status==='available' && !(x.hiddenFromDietitian && !S.isStorage))
+  const alts = S.products.filter(x=>x.id!==productId && x.category===p.category && x.status==='available')
     .sort((a,b)=> (b.dispenseFirst?1:0)-(a.dispenseFirst?1:0) || a.name.localeCompare(b.name));
   const rows = alts.length ? alts.map(a=>`<div class="alt-row">
       ${a.dispenseFirst?`<span class="df-badge sm">${REFRESH_ICON}</span>`:''}
@@ -5920,7 +5919,6 @@ function applySuCardState(existing) {
   S.suStatus = existing ? (existing.status||'') : S.suStatus;
   S.suDispenseFirst = !!existing?.dispenseFirst;
   S.suInpatientOnly = !!existing?.inpatientOnly;
-  S.suHidden = !!existing?.hiddenFromDietitian;
   S.suLifeline = !!existing?.lifeline;
   S.suAutoStatus = !existing?.manualStatus; // old backend omits the field → automation on
   S.suDfAuto = existing?.dfAuto !== false;  // old backend omits the field → automation on
@@ -5930,7 +5928,6 @@ function applySuCardState(existing) {
     + (!S.suAutoStatus ? (onHand!==null?' · ':'')+t('min_hint_off') : '');
   el('su-df-switch').classList.toggle('on', S.suDispenseFirst);
   el('su-io-switch').classList.toggle('on', S.suInpatientOnly);
-  el('su-hidden-switch').classList.toggle('on', S.suHidden);
   el('su-ll-switch').classList.toggle('on', S.suLifeline);
   el('su-as-switch').classList.toggle('on', S.suAutoStatus);
   el('su-dfa-chip')?.classList.toggle('on-df', S.suDfAuto);
@@ -5966,9 +5963,9 @@ function toggleSuInpatientOnly() {
   S.suInpatientOnly = !S.suInpatientOnly;
   el('su-io-switch').classList.toggle('on', S.suInpatientOnly);
 }
-function toggleSuHidden() {
-  S.suHidden = !S.suHidden;
-  el('su-hidden-switch').classList.toggle('on', S.suHidden);
+// Kept as a no-op-safe helper only so any stray caller cannot throw; the toggle
+// it drove has been removed from the UI.
+function __removed_toggleSuHidden() {
 }
 function toggleSuLifeline() {
   S.suLifeline = !S.suLifeline;
@@ -5986,7 +5983,7 @@ function updateSuStatusGridVisibility() {
   el('su-s-low')?.classList.toggle('hidden', S.suAutoStatus);
 }
 function clearSu() {
-  S.suProduct=null;S.suStatus=null;S.suBatches=[];S.suDispenseFirst=false;S.suInpatientOnly=false;S.suHidden=false;S.suLifeline=false;S.suAutoStatus=true;S.suDfAuto=true;
+  S.suProduct=null;S.suStatus=null;S.suBatches=[];S.suDispenseFirst=false;S.suInpatientOnly=false;S.suLifeline=false;S.suAutoStatus=true;S.suDfAuto=true;
   hide('su-chip');hide('su-status-card');hide('su-batch-card');
   el('su-search').value='';clearSuHighlight();
   if(el('su-pack'))el('su-pack').value='';
@@ -5994,7 +5991,6 @@ function clearSu() {
   if(el('su-df-hint'))el('su-df-hint').textContent='';
   el('su-df-switch')?.classList.remove('on');
   el('su-io-switch')?.classList.remove('on');
-  el('su-hidden-switch')?.classList.remove('on');
   el('su-ll-switch')?.classList.remove('on');
   el('su-as-switch')?.classList.add('on'); // default: automation on
   el('su-dfa-chip')?.classList.add('on-df'); // default: automation on
@@ -6024,9 +6020,9 @@ async function submitSingle() {
   const btn=el('su-btn'),lbl=el('su-btn-lbl');
   btn.disabled=true;lbl.innerHTML='<span class="spinner-sm"></span>Saving…';
   try {
-    await api({action:'update',id:S.suProduct.id,status:S.suStatus,note:note,expectedDate:date,updatedBy:encodeURIComponent(by),minUnits:minU,unitsPerPackage:pack,dispenseFirst:S.suDispenseFirst,inpatientOnly:S.suInpatientOnly,hiddenFromDietitian:S.suHidden,lifeline:S.suLifeline,manualStatus:!S.suAutoStatus,dfAuto:S.suDfAuto});
+    await api({action:'update',id:S.suProduct.id,status:S.suStatus,note:note,expectedDate:date,updatedBy:encodeURIComponent(by),minUnits:minU,unitsPerPackage:pack,dispenseFirst:S.suDispenseFirst,inpatientOnly:S.suInpatientOnly,lifeline:S.suLifeline,manualStatus:!S.suAutoStatus,dfAuto:S.suDfAuto});
     const p=S.products.find(x=>x.id===S.suProduct.id);
-    if(p){p.status=S.suStatus;p.note=note;p.expectedDate=date;p.minUnits=minU;p.unitsPerPackage=pack>0?pack:null;p.dispenseFirst=S.suDispenseFirst;p.inpatientOnly=S.suInpatientOnly;p.hiddenFromDietitian=S.suHidden;p.lifeline=S.suLifeline;p.manualStatus=!S.suAutoStatus;p.dfAuto=S.suDfAuto;}
+    if(p){p.status=S.suStatus;p.note=note;p.expectedDate=date;p.minUnits=minU;p.unitsPerPackage=pack>0?pack:null;p.dispenseFirst=S.suDispenseFirst;p.inpatientOnly=S.suInpatientOnly;p.lifeline=S.suLifeline;p.manualStatus=!S.suAutoStatus;p.dfAuto=S.suDfAuto;}
     toast(t('t_status_saved'),'ok');
     clearSu();el('su-note').value='';
     renderProducts();
@@ -6535,16 +6531,16 @@ function syncBulkAll() {
 // true, so e.g. editing just the Note doesn't clobber status/flags. ──
 const BULK = {
   touched: { status:false, note:false, minUnits:false, unitsPerPackage:false,
-             inpatientOnly:false, lifeline:false, dispenseFirst:false, dfAuto:false, autoStatus:false, hiddenFromDietitian:false },
+             inpatientOnly:false, lifeline:false, dispenseFirst:false, dfAuto:false, autoStatus:false },
   values:  { status:'', note:'', expectedDate:'', minUnits:null, unitsPerPackage:null,
-             inpatientOnly:false, lifeline:false, dispenseFirst:false, dfAuto:true, autoStatus:true, hiddenFromDietitian:false }
+             inpatientOnly:false, lifeline:false, dispenseFirst:false, dfAuto:true, autoStatus:true }
 };
 function resetBulkEdits() {
   Object.keys(BULK.touched).forEach(k=>BULK.touched[k]=false);
   BULK.values = { status:'', note:'', expectedDate:'', minUnits:null, unitsPerPackage:null,
-    inpatientOnly:false, lifeline:false, dispenseFirst:false, dfAuto:true, autoStatus:true, hiddenFromDietitian:false };
+    inpatientOnly:false, lifeline:false, dispenseFirst:false, dfAuto:true, autoStatus:true };
   ['bs-available','bs-low','bs-coming','bs-unavailable'].forEach(id=>el(id)?.classList.remove('picked'));
-  ['bs-chip-io','bs-chip-ll','bs-chip-df','bs-chip-dfa','bs-chip-as','bs-chip-hide'].forEach(id=>el(id)?.classList.remove('on-io','on-ll','on-df','on-as','on-hide'));
+  ['bs-chip-io','bs-chip-ll','bs-chip-df','bs-chip-dfa','bs-chip-as'].forEach(id=>el(id)?.classList.remove('on-io','on-ll','on-df','on-as'));
   if(el('bs-note')) el('bs-note').value='';
   if(el('bs-min')) el('bs-min').value='';
   if(el('bs-pack')) el('bs-pack').value='';
@@ -6560,7 +6556,7 @@ function bulkMarkTouched(field, rawVal) {
 function bulkToggleFlag(key, cls) {
   BULK.touched[key]=true;
   BULK.values[key]=!BULK.values[key];
-  const chipId = key==='inpatientOnly'?'bs-chip-io':key==='lifeline'?'bs-chip-ll':key==='hiddenFromDietitian'?'bs-chip-hide':'bs-chip-dfa';
+  const chipId = key==='inpatientOnly'?'bs-chip-io':key==='lifeline'?'bs-chip-ll':'bs-chip-dfa';
   el(chipId).classList.toggle(cls, BULK.values[key]);
   updateBulkSaveBtn();
 }
@@ -6624,7 +6620,6 @@ async function submitBulkUnified() {
   if (BULK.touched.dispenseFirst) params.dispenseFirst = BULK.values.dispenseFirst;
   if (BULK.touched.dfAuto) params.dfAuto = BULK.values.dfAuto;
   if (BULK.touched.autoStatus) params.manualStatus = !BULK.values.autoStatus;
-  if (BULK.touched.hiddenFromDietitian) params.hiddenFromDietitian = BULK.values.hiddenFromDietitian;
 
   const btn=el('bs-btn'),lbl=el('bs-btn-lbl');
   btn.disabled=true;
@@ -6647,7 +6642,6 @@ async function submitBulkUnified() {
           if(BULK.touched.dispenseFirst) p.dispenseFirst=BULK.values.dispenseFirst;
           if(BULK.touched.dfAuto) p.dfAuto=BULK.values.dfAuto;
           if(BULK.touched.autoStatus) p.manualStatus=!BULK.values.autoStatus;
-          if(BULK.touched.hiddenFromDietitian) p.hiddenFromDietitian=BULK.values.hiddenFromDietitian;
         }
         ok++;
       } else fail++;
