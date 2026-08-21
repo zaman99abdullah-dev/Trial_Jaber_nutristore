@@ -3380,6 +3380,10 @@ const S = {
   countProducts: [],
   countIdx: 0,
   countBatches: {},
+  // productId -> batchUuid the counter explicitly picked, or absent for "auto"
+  // (deduct earliest-expiry-first). Persisted in the count draft so a resumed
+  // count keeps the choices already made.
+  countBatchChoice: {},
   countChanges: {},
   srcProduct: null,
   pdProduct: null,   // Products Admin Part 3 (delete) — own picker, decoupled from srcProduct
@@ -7044,8 +7048,66 @@ async function confirmRemoveBatch(batchIdEnc, reason) {
 // multi-minute weekly count would be silently discarded) ══
 function countDraftKey() { return 'ns_weeklyCountDraft'; }
 function saveCountDraft() {
-  const draft = { productIds: S.countProducts.map(p=>p.id), idx: S.countIdx, changes: S.countChanges, savedAt: Date.now() };
+  const draft = { productIds: S.countProducts.map(p=>p.id), idx: S.countIdx, changes: S.countChanges,
+                  picks: S.countBatchChoice, savedAt: Date.now() };
   localStorage.setItem(countDraftKey(), JSON.stringify(draft));
+}
+
+// ══ Weekly count — which batch did the stock come out of? ═════════
+// A product often holds several batches. The count screen records ONE number
+// (units physically on the shelf), so something has to decide which batch the
+// difference comes out of.
+//
+// Default is FEFO — earliest expiry first, SPREADING across batches when the
+// difference is bigger than any single one. That matches the app's whole
+// rotation policy (Dispense First / Rotate Now) and is right the overwhelming
+// majority of the time, so the fast path stays one tap per product.
+// The picker below exists for when staff know they took from a different batch.
+function countBatchLabel(b) {
+  const exp = b.expiryDate
+    ? new Date(b.expiryDate+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+    : 'no expiry';
+  // batchId is the human batch_code when there is one, otherwise a raw uuid —
+  // never show the uuid, it means nothing to storage staff.
+  const code = (b.batchId && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(b.batchId)) ? b.batchId + ' · ' : '';
+  return `${code}exp ${exp} · ${b.quantity} units`;
+}
+function countValidBatches(productId) {
+  return (S.countBatches[productId]||[]).filter(b=>!b.expired);   // already FEFO-sorted
+}
+function countPickBatch(productId, val) {
+  if (val) S.countBatchChoice[productId] = val;
+  else delete S.countBatchChoice[productId];
+  saveCountDraft();
+}
+
+// Work out exactly which batches absorb a count difference.
+// delta > 0 => stock went DOWN (dispensed). delta < 0 => went UP (correction).
+// Returns {moves:[{b,newQty}], leftover} — leftover > 0 means the difference
+// exceeded everything on hand, which must be REPORTED, never silently clamped.
+function allocateCount(productId, delta) {
+  const valid = countValidBatches(productId);
+  if (!valid.length) return { moves: [], leftover: Math.abs(delta) };
+  const chosenId = S.countBatchChoice[productId];
+  const chosen = valid.find(b => b.batchUuid === chosenId);
+
+  if (delta < 0) {
+    // An increase means a miscount or unrecorded delivery. Put it on the batch
+    // the counter chose; under auto, on the LATEST-expiring one, so a correction
+    // never inflates stock that is about to expire and skew rotation.
+    const t = chosen || valid[valid.length-1];
+    return { moves: [{ b: t, newQty: t.quantity + Math.abs(delta) }], leftover: 0 };
+  }
+  // Decrease: chosen batch first if there is one, then the rest in FEFO order.
+  const order = chosen ? [chosen, ...valid.filter(b=>b!==chosen)] : valid;
+  let remaining = delta;
+  const moves = [];
+  for (const b of order) {
+    if (remaining <= 0) break;
+    const take = Math.min(remaining, b.quantity);
+    if (take > 0) { moves.push({ b, newQty: b.quantity - take }); remaining -= take; }
+  }
+  return { moves, leftover: remaining };
 }
 function clearCountDraft() { localStorage.removeItem(countDraftKey()); }
 
@@ -7086,6 +7148,9 @@ async function startWeeklyCount() {
           if (confirm(`Resume your unfinished weekly count (${draft.idx}/${freshIds.length} done, saved ${mins} min ago)?\n\nCancel to start a fresh count instead.`)) {
             S.countIdx = draft.idx;
             S.countChanges = draft.changes || {};
+            // Restore the batch picks too, or a resumed count silently reverts
+            // to auto-FEFO for products where the counter had chosen otherwise.
+            S.countBatchChoice = draft.picks || {};
             resumed = true;
           }
         }
@@ -7094,11 +7159,31 @@ async function startWeeklyCount() {
     if (!resumed) {
       S.countIdx = 0;
       S.countChanges = {};
+      S.countBatchChoice = {};
       clearCountDraft();
     }
     show('count-overlay');
     renderCountCard();
   } catch(e) { toast('Failed to load: '+e.message,'err'); }
+}
+
+// Only shown when there is genuinely a choice to make: with one batch there is
+// nothing to pick, and adding a control would just slow down a flow that is
+// deliberately one tap per product across 30-40 products.
+function countBatchPickerHtml(productId) {
+  const valid = countValidBatches(productId);
+  if (valid.length < 2) return '';
+  const chosen = S.countBatchChoice[productId] || '';
+  const opts = valid.map(b =>
+    `<option value="${escapeHtml(b.batchUuid)}"${b.batchUuid===chosen?' selected':''}>${escapeHtml(countBatchLabel(b))}</option>`
+  ).join('');
+  return `
+    <div class="count-current-lbl" style="margin-top:14px">Dispensed from</div>
+    <select id="count-batch" onchange="countPickBatch('${escapeHtml(productId)}', this.value)"
+            style="width:100%;margin-top:4px">
+      <option value=""${chosen?'':' selected'}>Auto — earliest expiry first (${valid.length} batches)</option>
+      ${opts}
+    </select>`;
 }
 
 function renderCountCard() {
@@ -7113,6 +7198,7 @@ function renderCountCard() {
       <div class="count-name">${p.name}</div>
       <div class="count-current-lbl">Recorded units</div>
       <input type="number" class="count-input" id="count-input" min="0" value="${p.total}" inputmode="numeric">
+      ${countBatchPickerHtml(p.id)}
       <div class="count-actions">
         <button class="btn-toggle" style="flex:1" onclick="countSkip()">Skip</button>
         <button class="btn-submit" style="flex:1;margin-top:0" onclick="countNext()">Next →</button>
@@ -7170,17 +7256,30 @@ async function submitCount() {
   if (!name) return;
   const entries = Object.entries(S.countChanges);
   let ok=0, fail=0;
+  const short = [];
   for (const [productId, c] of entries) {
-    const batches = S.countBatches[productId]||[];
-    const target = batches.find(b=>!b.expired) || batches[0];
-    if (!target) { fail++; continue; }
-    const newBatchQty = Math.max(0, target.quantity - c.delta);
-    try {
-      await api({action:'updateBatch', batchId:batchUuid(target), quantity:newBatchQty, updatedBy:encodeURIComponent(name)});
-      ok++;
-    } catch(e) { fail++; }
+    // Spread across batches instead of forcing the whole difference onto one.
+    // The old code did `Math.max(0, target.quantity - c.delta)` against a single
+    // batch, so counting 70 dispensed out of a 40-unit earliest batch drove it
+    // to 0 and SILENTLY DISCARDED the other 30 — the count reported success
+    // while the system still disagreed with what was physically counted.
+    const { moves, leftover } = allocateCount(productId, c.delta);
+    if (!moves.length) { fail++; continue; }
+    let productOk = true;
+    for (const m of moves) {
+      try {
+        await api({action:'updateBatch', batchId:m.b.batchUuid, quantity:m.newQty, updatedBy:encodeURIComponent(name)});
+      } catch(e) { productOk = false; }
+    }
+    if (!productOk) { fail++; continue; }
+    ok++;
+    // Never swallow an unabsorbed remainder: the whole point of a count is that
+    // the system ends up agreeing with the shelf.
+    if (leftover > 0) short.push(`${c.name} (${leftover} more than on hand)`);
   }
-  toast(fail===0 ? `Count submitted — ${ok} product(s) updated` : `${ok} saved, ${fail} failed`, fail===0?'ok':'warn');
+  let msg = fail===0 ? `Count submitted — ${ok} product(s) updated` : `${ok} saved, ${fail} failed`;
+  if (short.length) msg += ` · couldn't fully apply: ${short.join(', ')}`;
+  toast(msg, (fail===0 && !short.length) ? 'ok' : 'warn');
   clearCountDraft();
   closeCount();
   try {
@@ -7472,22 +7571,82 @@ function renderLogs() {
     return;
   }
   el('log-list').innerHTML=logs.map(l=>{
-    const oldC=STATUS_CFG[l.oldStatus||''],newC=STATUS_CFG[l.newStatus||''];
     const d=l.timestamp?new Date(l.timestamp):null;
     const ds=d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
-    return `<div class="log-item">
-      <div class="log-dot" style="background:${newC.dot}"></div>
-      <div class="log-body">
-        <div class="log-name">${escapeHtml(l.productName||'—')}</div>
-        <div class="log-change">
-          <span class="sbadge ${oldC.cls}" style="font-size:.6rem">${oldC.label}</span>
+    const isStatus = l.oldStatus !== undefined || l.newStatus !== undefined;
+    const newC = STATUS_CFG[l.newStatus||''];
+    // A genuine status change keeps the two badges. EVERYTHING ELSE gets a real
+    // description: this log was written for the Sheets era, where every row was
+    // a status change on a named product, so it rendered batch/settings/staff
+    // rows as "(batch) Not Set → Not Set" — and adding a batch is the single
+    // most common action, so the tab filled with meaningless entries.
+    const body = isStatus
+      ? `<div class="log-change">
+          <span class="sbadge ${STATUS_CFG[l.oldStatus||''].cls}" style="font-size:.6rem">${STATUS_CFG[l.oldStatus||''].label}</span>
           <span style="color:var(--text3)">→</span>
           <span class="sbadge ${newC.cls}" style="font-size:.6rem">${newC.label}</span>
-        </div>
+        </div>`
+      : (logChangeHtml(l) || '');
+    return `<div class="log-item">
+      <div class="log-dot" style="background:${isStatus?newC.dot:'var(--text3)'}"></div>
+      <div class="log-body">
+        <div class="log-name">${escapeHtml(logTitle(l))}</div>
+        ${body}
         <div class="log-meta">${ds}${l.updatedBy?' · '+escapeHtml(l.updatedBy):''}${l.note?' · '+escapeHtml(l.note):''}</div>
       </div>
     </div>`;
   }).join('');
+}
+
+// Human labels for audit_logs' raw column names. Without these the Changes tab
+// shows database identifiers ("packaging_note", "units_per_package") to
+// clinical staff.
+const LOG_FIELD_LBL = {
+  min_units:'Min units', units_per_package:'Units per package', dispense_first:'Dispense First',
+  inpatient_only:'In-Patient Only', lifeline:'Lifeline', status_auto:'Auto-Status',
+  dispense_first_auto:'Dispense-First automation', manufacturer:'Manufacturer', variant:'Variant',
+  density:'Density', packaging_note:'Form', note:'Note', expected_date:'Expected date',
+  quantity:'Quantity', expiry_date:'Expiry', batch_code:'Batch code', status:'Status',
+  removed:'Removed', role:'Role', full_name:'Name', email:'Email'
+};
+// What kind of thing was touched, when it is not a product we can name.
+// audit_logs.entity_id for a BATCH row is the batch's id, not the product's, so
+// there is genuinely nothing to resolve a product name from — say "Batch"
+// rather than printing "(batch)" where a product name belongs.
+const LOG_ENTITY_LBL = { batch:'Batch', settings:'Settings', staff:'Staff account', product:'Product' };
+
+function logTitle(l) {
+  if (l.productName && !/^\(.*\)$/.test(l.productName)) return l.productName;
+  return LOG_ENTITY_LBL[l.entity] || l.entity || '—';
+}
+function logVal(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  if (v === true) return 'on';
+  if (v === false) return 'off';
+  return String(v);
+}
+// Build "Quantity 40 → 28 · Expiry 2027-01-31" from the audit row's own
+// old_value/new_value objects, so every action type reads as something a person
+// can act on rather than a pair of empty status badges.
+function logChangeHtml(l) {
+  const ov = l.oldValue && typeof l.oldValue === 'object' ? l.oldValue : {};
+  const nv = l.newValue && typeof l.newValue === 'object' ? l.newValue : {};
+  const keys = Array.from(new Set([...Object.keys(ov), ...Object.keys(nv)]))
+    // Drop fields that carry no information here: a field that was empty before
+    // AND after is not a change, and on a creation row an unset field renders as
+    // a bare "Batch code —", which is noise in a list people scan quickly.
+    .filter(k => !(logVal(ov[k]) === '—' && logVal(nv[k]) === '—'));
+  if (!keys.length) return '';
+  const parts = keys.slice(0, 4).map(k => {
+    const lbl = escapeHtml(LOG_FIELD_LBL[k] || k);
+    const a = logVal(ov[k]), b = logVal(nv[k]);
+    // A creation has no "before"; showing "— → 70" is noise.
+    return (k in ov && k in nv && a !== b)
+      ? `<span style="color:var(--text3)">${lbl}</span> ${escapeHtml(a)} → <b>${escapeHtml(b)}</b>`
+      : `<span style="color:var(--text3)">${lbl}</span> <b>${escapeHtml(k in nv ? b : a)}</b>`;
+  });
+  const more = keys.length > 4 ? ` <span style="color:var(--text3)">+${keys.length-4} more</span>` : '';
+  return `<div class="log-change" style="font-size:.75rem">${parts.join(' · ')}${more}</div>`;
 }
 
 // ══ Supervisor Dashboard ══════════════════════════════════════
@@ -8159,16 +8318,40 @@ function renderSupervisorDashboard(d) {
 // Ledger 11-FE: source from the live S.products (not the static PRODUCTS
 // seed list) so a product added via Products Admin → Add New Product is
 // immediately selectable in every picker (su-search, svh-search, src-search).
+// Callback registry for buildDropdown.
+//
+// This used to inline the callback's ENTIRE SOURCE into the onclick attribute
+// (`onclick="(${onSelect.toString()})('${p.id}')"`). That works right up until
+// the function's source contains a character that is special inside an HTML
+// attribute — and on 2026-08-21 a code COMMENT containing the words "clear this"
+// silently destroyed the Update & Batches product picker: the double quotes
+// terminated the attribute early, the handler became a syntax error, and the
+// rest of the comment spilled into the DOM as 56 stray attributes. Clicking a
+// product did nothing, with no visible error.
+//
+// The point is not that the comment was careless — it is that ANY future edit to
+// ANY of these four callbacks could do it again, invisibly. Storing the function
+// and passing only the product code through a data attribute removes the whole
+// class of failure: nothing but an escaped id ever reaches the markup.
+const DD_CALLBACKS = {};
+function ddPick(cid, ev) {
+  const row = ev.target.closest('.ddopt');
+  if (!row) return;
+  const fn = DD_CALLBACKS[cid];
+  if (fn) fn(row.dataset.pid);
+}
 function buildDropdown(cid,query,onSelect) {
   const dropEl=el(cid);
+  DD_CALLBACKS[cid]=onSelect;
   if(!query||query.length<1){hide(cid);return;}
   const q=query.toLowerCase();
   const hits=S.products.filter(p=>p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)).slice(0,10);
   if(!hits.length){hide(cid);return;}
   const pm={};S.products.forEach(p=>{pm[p.id]=p;});
+  dropEl.onclick=(ev)=>ddPick(cid,ev);
   dropEl.innerHTML=hits.map(p=>{
     const cfg=STATUS_CFG[(pm[p.id]?.status)||''];
-    return `<div class="ddopt" onclick="(${onSelect.toString()})('${p.id}')">
+    return `<div class="ddopt" data-pid="${escapeHtml(p.id)}">
       <span class="ddn">${escapeHtml(p.name)}</span>
       <span class="ddc">${escapeHtml(p.category)} · <span style="color:${cfg.dot}">${cfg.label}</span></span>
     </div>`;
