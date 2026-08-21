@@ -123,9 +123,6 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
 /* Offline banner (PWA cached-snapshot mode) */
 .offline-banner{background:var(--amber-bg);border-bottom:1px solid rgba(245,158,11,.3);color:var(--amber-t);font-size:.75rem;font-weight:600;text-align:center;padding:8px 14px;line-height:1.5}
-/* Ledger 9: dismiss control for the CORS fallback-proxy caveat banner */
-.proxy-banner-x{background:none;border:none;color:inherit;font:inherit;font-weight:800;cursor:pointer;padding:0 6px;margin-inline-start:6px;opacity:.7}
-.proxy-banner-x:active{opacity:1}
 
 /* Temporary password display (shown once after a supervisor reset) */
 .temp-pw{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.75rem;font-weight:700;letter-spacing:.25em;color:var(--blue-t);background:rgba(63,169,220,.08);border:1.5px dashed rgba(63,169,220,.35);border-radius:var(--rs);padding:16px 10px;margin:14px 0;user-select:all;-webkit-user-select:all}
@@ -343,6 +340,28 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .btn-add{padding:9px 16px;border-radius:var(--rs);font-size:.8125rem;font-weight:700;background:rgba(63,169,220,.1);color:var(--blue-t);border:1px solid rgba(63,169,220,.2)}
 .btn-add:hover{background:rgba(63,169,220,.15)}
 .btn-add.df-on{background:var(--teal-bg);color:var(--teal-t);border-color:rgba(20,184,166,.3)}
+
+/* Danger button — Products Admin Part 3 (delete product). Deliberately NOT
+   .btn-submit: this destroys data, and must never share a visual identity
+   with the Save buttons above it. */
+.btn-danger{width:100%;padding:14px;background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;font-size:.9375rem;font-weight:700;border-radius:var(--rs);margin-top:8px;box-shadow:0 4px 20px rgba(239,68,68,.25);letter-spacing:.01em}
+.btn-danger:hover{opacity:.9}
+.btn-danger:active{transform:scale(.98)}
+.btn-danger:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Small "(supervisor)" note on admin-only card titles — purple to match the
+   supervisor mode-pill/staff-role color language used elsewhere. */
+.badge-sv{display:inline-block;font-size:.6875rem;font-weight:700;color:var(--purple-t);background:var(--purple-bg);border:1px solid rgba(139,92,246,.3);border-radius:100px;padding:2px 9px;text-transform:none;letter-spacing:0}
+
+/* Delete-impact panel (Part 3) */
+.pd-impact-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.pd-impact-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.75rem;font-weight:700;color:var(--text2);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px 7px}
+.pd-impact-name{font-size:.9375rem;font-weight:700}
+.pd-impact-cat{font-size:.75rem;color:var(--text2)}
+.pd-impact-nut{font-size:.8125rem;font-weight:600;color:var(--text2);padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rs);margin-bottom:4px}
+.pd-impact-nut.has{color:var(--amber-t)}
+.pd-impact-clean{font-size:.8125rem;font-weight:600;color:var(--green-t);background:var(--green-bg);border:1px solid rgba(34,197,94,.3);border-radius:var(--rs);padding:10px 12px;margin-top:10px}
+.pd-err-box{color:var(--red-t);font-size:.8125rem;font-weight:500;padding:10px 12px;background:var(--red-bg);border:1px solid rgba(239,68,68,.3);border-radius:var(--rs)}
 
 /* Log */
 .log-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
@@ -772,7 +791,6 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
   </header>
   <div class="accent-bar"></div>
   <div id="offline-banner" class="offline-banner hidden">📡 Offline — showing data saved <span id="offline-age">a while</span>. Changes can't be recorded until you reconnect.</div>
-  <div id="proxy-banner" class="offline-banner hidden"><span id="proxy-banner-text"></span><button class="proxy-banner-x" onclick="dismissProxyBanner()" aria-label="Dismiss">✕</button></div>
 
   <nav class="nav">
     <button class="ntab on not-sv" onclick="goTab('products')"    id="tab-products"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span id="tab-products-lbl">Products</span></button>
@@ -1852,81 +1870,154 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
     <!-- ═══ PRODUCTS ADMIN (supervisor): Product Source editor + Add New Product ═══ -->
     <div id="pane-source" class="hidden">
 
-      <div class="card">
-        <div class="card-title" data-i18n="src_pick_title">Select Product</div>
-        <div class="field">
-          <input type="text" id="src-search" placeholder="Type product name…" oninput="onSrcSearch()" autocomplete="off">
-          <div id="src-dropdown" class="dropdown hidden"></div>
-          <div id="src-chip" class="sel-chip hidden">
-            <span class="sel-name" id="src-chip-name"></span>
-            <button class="sel-clear" onclick="clearSrc()" data-i18n="btn_change">✕ Change</button>
+      <!-- ═══ Part 1 — edit an existing product's source details (Ledger 2) ═══ -->
+      <div class="sv-sec" id="sv-sec-srcEdit">
+        <div class="sv-sec-header" id="sv-sec-header-srcEdit" role="button" tabindex="0" aria-expanded="true"
+             onclick="svSecToggle('srcEdit')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="sv-sec-title" data-i18n="part1_title">Part 1 · Edit Existing Product</span>
+          <span class="sv-sec-chevron open" id="sv-sec-chevron-srcEdit">▾</span>
+        </div>
+        <div class="sv-sec-body" id="sv-sec-body-srcEdit">
+
+          <div class="card">
+            <div class="card-title" data-i18n="src_pick_title">Select Product</div>
+            <div class="field">
+              <input type="text" id="src-search" placeholder="Type product name…" oninput="onSrcSearch()" autocomplete="off">
+              <div id="src-dropdown" class="dropdown hidden"></div>
+              <div id="src-chip" class="sel-chip hidden">
+                <span class="sel-name" id="src-chip-name"></span>
+                <button class="sel-clear" onclick="clearSrc()" data-i18n="btn_change">✕ Change</button>
+              </div>
+            </div>
           </div>
+
+          <!-- Supervisor-only: product source details (manufacturer/variant/density/form). -->
+          <div id="su-source-card" class="card hidden">
+            <div class="card-title"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span data-i18n="su_src_title">Product Source</span> <span class="badge-sv" data-i18n="badge_supervisor_only">(supervisor)</span></div>
+            <div class="settings-desc" style="margin:-6px 0 12px" data-i18n="su_src_desc">Company, flavour, caloric density and form. Optional — shown under the product name in every view.</div>
+            <div class="field">
+              <label for="su-manufacturer" data-i18n="addp_mfr">Manufacturer / Company</label>
+              <input type="text" id="su-manufacturer" placeholder="e.g. Abbott, Nutricia, Nestlé">
+            </div>
+            <div class="field">
+              <label for="su-variant" data-i18n="addp_variant">Variant / Flavour</label>
+              <input type="text" id="su-variant" placeholder="e.g. Vanilla, Cappuccino">
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="su-density" data-i18n="addp_density">Density</label>
+                <input type="text" id="su-density" placeholder="e.g. 1.5 kcal/mL">
+              </div>
+              <div class="field">
+                <label for="su-form" data-i18n="addp_form">Form</label>
+                <input type="text" id="su-form" placeholder="liquid, powder, RTF…">
+              </div>
+            </div>
+            <button class="btn-submit" id="su-source-btn" onclick="submitSource()">
+              <span data-i18n="su_src_save_btn">Save Product Source</span>
+            </button>
+          </div>
+
         </div>
       </div>
 
-      <!-- Supervisor-only: product source details (manufacturer/variant/density/form). English by design (admin field). -->
-      <div id="su-source-card" class="card hidden">
-        <div class="card-title">Product Source <span style="font-weight:400;opacity:.6;font-size:.8rem">(supervisor)</span></div>
-        <div class="settings-desc" style="margin:-6px 0 12px">Company, flavour, caloric density and form. Optional — shown under the product name in every view.</div>
-        <div class="field">
-          <label for="su-manufacturer">Manufacturer / Company</label>
-          <input type="text" id="su-manufacturer" placeholder="e.g. Abbott, Nutricia, Nestlé">
+      <!-- ═══ Part 2 — add a brand new product row (Ledger 3, supervisor-only, writes to the live inventory) ═══ -->
+      <div class="sv-sec" id="sv-sec-srcAdd">
+        <div class="sv-sec-header" id="sv-sec-header-srcAdd" role="button" tabindex="0" aria-expanded="true"
+             onclick="svSecToggle('srcAdd')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="sv-sec-title" data-i18n="part2_title">Part 2 · Add New Product</span>
+          <span class="sv-sec-chevron open" id="sv-sec-chevron-srcAdd">▾</span>
         </div>
-        <div class="field">
-          <label for="su-variant">Variant / Flavour</label>
-          <input type="text" id="su-variant" placeholder="e.g. Vanilla, Cappuccino">
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label for="su-density">Density</label>
-            <input type="text" id="su-density" placeholder="e.g. 1.5 kcal/mL">
+        <div class="sv-sec-body" id="sv-sec-body-srcAdd">
+
+          <div class="card" id="addp-card">
+            <div class="card-title"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span data-i18n="addp_title">Add New Product</span></div>
+            <div class="field">
+              <label for="ap-name" data-i18n="addp_name">Product Name</label>
+              <input type="text" id="ap-name" placeholder="e.g. Ensure Plus Advance 500ml">
+            </div>
+            <div class="field">
+              <label for="ap-cat" data-i18n="addp_cat">Category</label>
+              <select id="ap-cat"></select>
+            </div>
+            <div class="field">
+              <label for="ap-mfr" data-i18n="addp_mfr">Manufacturer / Company</label>
+              <input type="text" id="ap-mfr" placeholder="e.g. Abbott, Nutricia, Nestlé">
+            </div>
+            <div class="field">
+              <label for="ap-variant" data-i18n="addp_variant">Variant / Flavour</label>
+              <input type="text" id="ap-variant" placeholder="e.g. Vanilla, Cappuccino">
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="ap-density" data-i18n="addp_density">Density</label>
+                <input type="text" id="ap-density" placeholder="e.g. 1.5 kcal/mL">
+              </div>
+              <div class="field">
+                <label for="ap-form" data-i18n="addp_form">Form</label>
+                <input type="text" id="ap-form" placeholder="liquid, powder, RTF…">
+              </div>
+            </div>
+            <div class="field">
+              <label for="ap-min" data-i18n="addp_min">Min Units for Low Stock</label>
+              <input type="number" id="ap-min" min="1" placeholder="5">
+            </div>
+            <button class="btn-submit" id="ap-btn" onclick="submitAddProduct()">
+              <span id="ap-btn-lbl" data-i18n="addp_btn">Add Product</span>
+            </button>
           </div>
-          <div class="field">
-            <label for="su-form">Form</label>
-            <input type="text" id="su-form" placeholder="liquid, powder, RTF…">
-          </div>
+
         </div>
-        <button class="btn-submit" id="su-source-btn" onclick="submitSource()">
-          <span>Save Product Source</span>
-        </button>
       </div>
 
-      <!-- Ledger 10: supervisor-only — create a brand new product row (writes to the live inventory). -->
-      <div class="card" id="addp-card">
-        <div class="card-title" data-i18n="addp_title">Add New Product</div>
-        <div class="field">
-          <label for="ap-name" data-i18n="addp_name">Product Name</label>
-          <input type="text" id="ap-name" placeholder="e.g. Ensure Plus Advance 500ml">
+      <!-- ═══ Part 3 — delete a product outright (Ledger 4/7/21, NEW, supervisor-only, hard delete) ═══
+           Own picker (pd-*), fully decoupled from Part 1's src-* picker — selecting a
+           product to EDIT must never arm the delete form, and vice versa.
+           .sv-only is redundant with the tab's own nav-level supervisor gate, but this
+           is destructive enough to earn its own defense-in-depth layer (Ledger 21). -->
+      <div class="sv-sec sv-only hidden" id="sv-sec-srcDelete">
+        <div class="sv-sec-header" id="sv-sec-header-srcDelete" role="button" tabindex="0" aria-expanded="false"
+             onclick="svSecToggle('srcDelete')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="sv-sec-title" data-i18n="part3_title">Part 3 · Delete a Product</span>
+          <span class="sv-sec-chevron" id="sv-sec-chevron-srcDelete">▾</span>
         </div>
-        <div class="field">
-          <label for="ap-cat" data-i18n="addp_cat">Category</label>
-          <select id="ap-cat"></select>
-        </div>
-        <div class="field">
-          <label for="ap-mfr" data-i18n="addp_mfr">Manufacturer / Company</label>
-          <input type="text" id="ap-mfr" placeholder="e.g. Abbott, Nutricia, Nestlé">
-        </div>
-        <div class="field">
-          <label for="ap-variant" data-i18n="addp_variant">Variant / Flavour</label>
-          <input type="text" id="ap-variant" placeholder="e.g. Vanilla, Cappuccino">
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label for="ap-density" data-i18n="addp_density">Density</label>
-            <input type="text" id="ap-density" placeholder="e.g. 1.5 kcal/mL">
+        <div class="sv-sec-body collapsed" id="sv-sec-body-srcDelete">
+
+          <div class="card" style="border-color:rgba(239,68,68,.35)">
+            <div class="card-title" style="color:var(--red-t)"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> <span data-i18n="pd_title">Delete a Product</span> <span class="badge-sv" data-i18n="badge_supervisor_only">(supervisor)</span></div>
+            <div class="settings-desc" style="margin:-6px 0 12px" data-i18n="pd_desc">Permanently destroys the product and everything attached to it — stock batches, nutrition profile and dispensing history. This cannot be undone.</div>
+
+            <div class="field">
+              <label for="pd-search" data-i18n="src_pick_title">Select Product</label>
+              <input type="text" id="pd-search" placeholder="Type product name…" oninput="onPdSearch()" autocomplete="off">
+              <div id="pd-dropdown" class="dropdown hidden"></div>
+              <div id="pd-chip" class="sel-chip hidden">
+                <span class="sel-name" id="pd-chip-name"></span>
+                <button class="sel-clear" onclick="clearPd()" data-i18n="btn_change">✕ Change</button>
+              </div>
+            </div>
+
+            <div id="pd-impact" class="hidden">
+              <div id="pd-impact-loading" class="empty hidden" style="padding:16px 0">
+                <div class="spinner" style="margin:0 auto"></div>
+                <p style="margin-top:10px;font-size:.8125rem" data-i18n="pd_impact_loading">Checking what will be destroyed…</p>
+              </div>
+              <div id="pd-impact-body" class="hidden"></div>
+              <div id="pd-impact-err" class="hidden pd-err-box"></div>
+            </div>
+
+            <div id="pd-confirm-wrap" class="hidden field">
+              <label for="pd-confirm-name" id="pd-confirm-label"></label>
+              <input type="text" id="pd-confirm-name" oninput="syncPdDeleteBtn()" autocomplete="off">
+            </div>
+
+            <button class="btn-danger" id="pd-delete-btn" disabled onclick="submitDeleteProduct()">
+              <svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              <span id="pd-delete-btn-lbl" data-i18n="pd_delete_btn">Delete Product Permanently</span>
+            </button>
           </div>
-          <div class="field">
-            <label for="ap-form" data-i18n="addp_form">Form</label>
-            <input type="text" id="ap-form" placeholder="liquid, powder, RTF…">
-          </div>
+
         </div>
-        <div class="field">
-          <label for="ap-min" data-i18n="addp_min">Min Units for Low Stock</label>
-          <input type="number" id="ap-min" min="1" placeholder="5">
-        </div>
-        <button class="btn-submit" id="ap-btn" onclick="submitAddProduct()">
-          <span id="ap-btn-lbl">Add Product</span>
-        </button>
       </div>
 
     </div>
@@ -2425,6 +2516,35 @@ const T = {
   addp_name_required:['Enter a product name','أدخل اسم المنتج'],
   addp_confirm:['Add new product "{name}"? This writes to the live inventory.','إضافة منتج جديد "{name}"؟ سيُحفظ في المخزون مباشرة.'],
   addp_added:['Product added: {id}','تمت إضافة المنتج: {id}'],
+  // Ledger 1/2/3/4/24 — the three-part Products Admin layout (edit / add /
+  // delete) and Part 1's bilingual conversion.
+  part1_title:['Part 1 · Edit Existing Product','الجزء ١ · تعديل منتج موجود'],
+  part2_title:['Part 2 · Add New Product','الجزء ٢ · إضافة منتج جديد'],
+  part3_title:['Part 3 · Delete a Product','الجزء ٣ · حذف منتج'],
+  badge_supervisor_only:['(supervisor)','(للمشرف)'],
+  su_src_title:['Product Source','مصدر المنتج'],
+  su_src_desc:['Company, flavour, caloric density and form. Optional — shown under the product name in every view.','الشركة، النكهة، الكثافة الحرارية، والشكل. اختياري — يظهر تحت اسم المنتج في كل شاشة.'],
+  su_src_save_btn:['Save Product Source','حفظ مصدر المنتج'],
+  su_src_saved:['Product source saved','تم حفظ مصدر المنتج'],
+  ph_mfr_example:['e.g. Abbott, Nutricia, Nestlé','مثال: Abbott، Nutricia، Nestlé'],
+  ph_variant_example:['e.g. Vanilla, Cappuccino','مثال: فانيليا، كابتشينو'],
+  ph_density_example:['e.g. 1.5 kcal/mL','مثال: ١.٥ سعرة حرارية/مل'],
+  ph_form_example:['liquid, powder, RTF…','سائل، بودرة، جاهز للاستخدام…'],
+  // Ledger 4/7/8/21-27 — Part 3: Delete a Product (NEW, supervisor-only, hard delete)
+  pd_title:['Delete a Product','حذف منتج'],
+  pd_desc:['Permanently destroys the product and everything attached to it — stock batches, nutrition profile and dispensing history. This cannot be undone.','يحذف المنتج نهائياً مع كل ما يرتبط به — دفعات المخزون وملف التغذية وسجل الصرف. لا يمكن التراجع عن هذا الإجراء.'],
+  pd_impact_loading:['Checking what will be destroyed…','جارٍ التحقق مما سيُحذف…'],
+  pd_confirm_label:['Type "{name}" to confirm','اكتب "{name}" للتأكيد'],
+  pd_stat_batches:['Total Batches','إجمالي الدفعات'],
+  pd_stat_active:['Active Batches','الدفعات الفعالة'],
+  pd_stat_units:['Units on Hand','الوحدات المتوفرة'],
+  pd_stat_events:['Dispensing Events','أحداث الصرف'],
+  pd_has_nutrition:['Has a saved nutrition profile','يحتوي على ملف تغذية محفوظ'],
+  pd_no_nutrition:['No nutrition profile saved','لا يوجد ملف تغذية محفوظ'],
+  pd_nothing_attached:['Nothing else is attached — only the product record itself will be removed.','لا يوجد أي شيء آخر مرتبط — سيُحذف سجل المنتج فقط.'],
+  pd_delete_btn:['Delete Product Permanently','حذف المنتج نهائياً'],
+  pd_deleting:['Deleting…','جارٍ الحذف…'],
+  pd_deleted:['Deleted "{name}" and everything attached to it','تم حذف "{name}" وكل ما يرتبط به'],
   save_changes:['Save Changes','حفظ التغييرات'],
   // supervisor pane (card chrome; chart internals stay EN)
   sv_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Supervisor Dashboard','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> لوحة المشرف'],
@@ -2821,7 +2941,6 @@ const T = {
   chg_title:['Recent Changes','آخر التغييرات'], ph_staff_filter:['Filter by staff name…','تصفية باسم الموظف…'],
   // offline
   off_banner:['Offline — showing data saved {age}. Changes can\'t be recorded until you reconnect.','غير متصل — تُعرض بيانات محفوظة {age}. لا يمكن تسجيل التغييرات حتى عودة الاتصال.'],
-  proxy_banner:['Data loaded via a fallback connection — refresh to retry a direct connection.','تم تحميل البيانات عبر اتصال احتياطي — حدّث الصفحة لإعادة المحاولة عبر اتصال مباشر.'],
   ago_now:['just now','الآن'], ago_m:['{n}m ago','قبل {n} د'], ago_h:['{n}h ago','قبل {n} س'], ago_d:['{n}d ago','قبل {n} يوم'],
   // toasts / messages
   t_signed_in:['Signed in as {n}','تم تسجيل الدخول: {n}'], t_signed_out:['Signed out','تم تسجيل الخروج'],
@@ -2881,6 +3000,9 @@ const I18N_PH = {
   'cp-cur':'ph_pw_cur','cp-new':'ph_pw6','cp-new2':'ph_pw_repeat',
   'su-note':'ph_note','bs-note':'ph_note2','ab-date-shorthand':'ph_mmyy','log-filter':'ph_staff_filter',
   'rp-mfr-filter':'rp_mfr_filter',
+  'src-search':'ph_type_product','pd-search':'ph_type_product',
+  'su-manufacturer':'ph_mfr_example','su-variant':'ph_variant_example','su-density':'ph_density_example','su-form':'ph_form_example',
+  'ap-mfr':'ph_mfr_example','ap-variant':'ph_variant_example','ap-density':'ph_density_example','ap-form':'ph_form_example',
 };
 function setI18n(n, key){
   const val = t(key);
@@ -3260,6 +3382,11 @@ const S = {
   countBatches: {},
   countChanges: {},
   srcProduct: null,
+  pdProduct: null,   // Products Admin Part 3 (delete) — own picker, decoupled from srcProduct
+  pdImpact:  null,   // last getProductDeleteImpact response for pdProduct
+  pdReqToken: 0,     // stale-response guard: incremented on every pick/clear so a slow
+                     // impact fetch for a product the supervisor already moved on from
+                     // cannot overwrite the panel for whatever is selected now
 };
 
 // ══ Boot ══════════════════════════════════════════════════════
@@ -3375,14 +3502,6 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 }
 
 // ══ API ═══════════════════════════════════════════════════════
-// Actions that change data (require a login token), pure auth actions, and
-// read-only actions that now require staff/supervisor auth server-side
-// (backend security-audit fixes 2026-07-21) — getAll/getExpiring/getSettings
-// deliberately stay OUTSIDE all three sets, since the logged-out dietitian
-// view must keep working with zero login.
-const WRITE_ACTIONS = new Set(['update','addBatch','updateBatch','removeBatch','saveSettings','addProduct','saveNutrition']);
-const AUTH_ACTIONS  = new Set(['signup','login','logout','me','listStaff','approveStaff','setStaffStatus','resetStaffPassword','changePassword']);
-const AUTH_READ_ACTIONS = new Set(['getSupervisorData','getLogs','getDispenseHistory']);
 const AUTH_ERR_CODES = { AUTH_REQUIRED:'Please sign in to make changes.', SUPERVISOR_REQUIRED:'Supervisor access is required for this action.', SESSION_EXPIRED:'Your session has expired — please sign in again.' };
 
 // Refresh an expired access token. Supabase access tokens are short-lived
@@ -3450,9 +3569,55 @@ function camelizeRow(row) {
 // so a bare array silently became an empty list: 119 rows fetched, nothing shown.
 // Renaming the fields alone was not enough; the envelope has to come back too.
 
-// uuid -> P### code, filled in by getAll (which always runs first at boot).
-// Batches reference products by uuid, but the UI keys everything by the code.
+// uuid -> P### code. Batches reference products by uuid, the UI keys everything
+// by the code. Filled in by getAll and REBUILT on each one — but note boot fires
+// getAll/getSettings/getExpiring with Promise.all, so this map is NOT reliably
+// populated before another response is reshaped. Anything that can read an
+// identifier off its own row should do that first and treat this as a fallback.
 const PRODUCT_BY_UUID = {};
+
+// P### code -> database uuid, for OUTBOUND calls.
+//
+// reshapeProduct deliberately exposes the human-facing `P###` as `.id` (pinning,
+// filters, pickers and display all key off the code) and keeps the real key as
+// `.productUuid`. Every call that reaches the database must therefore translate:
+// the RPCs declare `p_product_id uuid`, and `getBatches` filters `product_id`,
+// which is a uuid column. Passing the code instead is not a silent no-op — it is
+// a hard `invalid input syntax for type uuid` — but it was invisible for a while
+// because the SQL tests called the RPCs directly with a real uuid while the
+// frontend tests mocked every write, so the wrong value never crossed the gap.
+// Accepts either a product object or a P### code.
+function productUuid(idOrProduct) {
+  const p = (idOrProduct && typeof idOrProduct === 'object')
+    ? idOrProduct
+    : S.products.find(x => x.id === idOrProduct);
+  // Fail loudly rather than sending null/undefined, which PostgREST would report
+  // as a confusing "function does not exist" for a required argument.
+  if (!p || !p.productUuid) throw new Error('Unknown product — reload and try again.');
+  return p.productUuid;
+}
+
+// Actor uuid -> staff name. The new backend records WHO did something as a
+// profiles.id uuid (`recorded_by`, `actor_id`) where the old API stored a typed
+// name, so anything showing "Recorded By" must resolve it or it prints a raw
+// uuid at the user. Falls back to a short uuid fragment, never to blank —
+// a blank reads as "nobody recorded this", which is worse than an ugly id.
+// Depends on S.staff, which loadSupervisorData fetches before it renders.
+function actorName(uuid) {
+  if (!uuid) return '';
+  const s = (S.staff || []).find(x => x.id === uuid);
+  return (s && (s.name || s.email)) || ('#' + String(uuid).slice(0, 8));
+}
+
+// Batch equivalent of productUuid(). Accepts a batch object or a displayed
+// batchId, resolved against a supplied list (defaults to the loaded batches).
+function batchUuid(idOrBatch, list) {
+  const b = (idOrBatch && typeof idOrBatch === 'object')
+    ? idOrBatch
+    : (list || S.suBatches || []).find(x => x.batchId === idOrBatch);
+  if (!b || !b.batchUuid) throw new Error('Unknown batch — reload and try again.');
+  return b.batchUuid;
+}
 
 function reshapeProduct(r) {
   const o = camelizeRow(r);
@@ -3469,8 +3634,49 @@ function reshapeProduct(r) {
   o.manualStatus = !r.status_auto;
   // dfAuto is NOT inverted: false means "pinned" in BOTH schemas.
   o.dfAuto = r.dispense_first_auto;
-  // The UI only ever reads batchSummary.totalValid.
-  o.batchSummary = { totalValid: r.units_on_hand ?? 0 };
+  // batchSummary: the old API sent NULL when a product had no batches at all,
+  // and the renderer relies on that — it tests `if (bs)` then `if (!bs.hasValid)`
+  // and prints "All batches expired". An object carrying only totalValid made
+  // hasValid undefined, so EVERY product with no stock claimed its batches had
+  // expired. With an empty store that was all 119 of them.
+  // null here = "no stock information", which renders nothing. Correct.
+  // hasExpired is deliberately false, not omitted: v_products_full exposes only
+  // units_on_hand, so expiry cannot be derived — and a false "some expired"
+  // warning is worse than none. The expiry view (getExpiring) is what surfaces it.
+  o.batchSummary = (r.units_on_hand && r.units_on_hand > 0)
+    ? { totalValid: r.units_on_hand, hasValid: true, hasExpired: false }
+    : null;
+  // NUTRITION — assemble the object getProductNutrition() actually reads.
+  // v_products_full returns the 22 nutrition columns FLAT (kcal_ml, emph_pro, …),
+  // which camelizeRow turns into p.kcalMl / p.emphPro — but every consumer reads
+  // `p.nutrition`, and nothing built it. So `p.nutrition` was undefined on all
+  // 119 products and getProductNutrition silently fell through to the hard-coded
+  // NS_PRODUCTS bundle: the 23 saved profiles in the database were ignored, the
+  // 96 products outside NS_MATCH could never show nutrition at all, and a
+  // supervisor's save appeared to work (green toast) then reverted on the next
+  // getAll. Invisible today only because the bundle and the database currently
+  // hold the same values — the same "looks fine until it doesn't" shape as the
+  // missing getBatches entry.
+  // has_nutrition is the view's own flag; trust it rather than sniffing columns,
+  // so a profile that is genuinely all-nulls still counts as present.
+  if (r.has_nutrition) {
+    const emph = {};
+    // Keys must match NS_EMPH_ORDER exactly (Kcal/Pro/CHO/Fat/Fiber/Minerals/Na)
+    // — that is what the editor, the tag pills and the detail sheet index by.
+    if (r.emph_kcal)     emph.Kcal     = r.emph_kcal;
+    if (r.emph_pro)      emph.Pro      = r.emph_pro;
+    if (r.emph_cho)      emph.CHO      = r.emph_cho;
+    if (r.emph_fat)      emph.Fat      = r.emph_fat;
+    if (r.emph_fiber)    emph.Fiber    = r.emph_fiber;
+    if (r.emph_minerals) emph.Minerals = r.emph_minerals;
+    if (r.emph_na)       emph.Na       = r.emph_na;
+    o.nutrition = {
+      kcalMl: r.kcal_ml, kcal100: r.kcal_100, pro: r.pro, cho: r.cho, fat: r.fat,
+      fiber: r.fiber, na: r.na, k: r.k, ca: r.ca, p: r.p,
+      hydro: r.hydro, lacto: r.lacto, pack: r.pack, scoop: r.scoop, form: r.form,
+      emph, tubeFeed: !!r.tube_feed, dm: !!r.dm
+    };
+  }
   return o;
 }
 
@@ -3479,11 +3685,33 @@ function reshapeProduct(r) {
 // ⚠ UNVERIFIED: there are zero batches in the database, so this mapping has
 // never seen a real row. Re-check it against the UI as soon as real stock is
 // entered — that is the first thing to suspect if the batch list misbehaves.
+// Same split as products, for the same reason: `batchId` is the value the UI
+// shows and keys DOM ids off, while the mutation RPCs declare `p_batch_id uuid`.
+// These coincide only while `batch_code` is null (true for every batch the app
+// itself creates today, since addBatch sends no code) — the moment a batch
+// carries a code, sending `batchId` would fail. Keep the real key separate.
 function reshapeBatch(r) {
   const o = camelizeRow(r);
-  o.batchId   = r.batch_code || r.id;
-  o.productId = PRODUCT_BY_UUID[r.product_id]?.id || r.product_id;
-  o.productName = PRODUCT_BY_UUID[r.product_id]?.name || '';
+  // v_expiring (getExpiring) aliases the batch's own primary key as
+  // `batch_id`, not `id` (0011_views_reports.sql: `b.id as batch_id`) — the
+  // raw `batches` table (getBatches/getAllBatches) uses plain `id`. Without
+  // the `|| r.batch_id` fallback, every row reshaped from getExpiring got
+  // batchUuid === undefined and batchId === undefined whenever batch_code was
+  // null (true for every batch addBatch creates, since it sends no code) —
+  // latent today because renderExpiring never reads either field, but a live
+  // trap for the next feature that does (e.g. removing a batch straight from
+  // the expiring list). Verified against a real getExpiring row (see fix log).
+  o.batchUuid = r.id || r.batch_id;
+  o.batchId   = r.batch_code || r.id || r.batch_id;
+  // Prefer what the ROW already carries. v_expiring returns product_name and
+  // product_code itself, so reaching for PRODUCT_BY_UUID first was both
+  // unnecessary and racy: boot fires getAll/getSettings/getExpiring with
+  // Promise.all, and the map is only populated by getAll — so whenever
+  // getExpiring resolved first, every rotation row rendered a blank name and a
+  // raw uuid. The map stays as the fallback for rows that genuinely lack the
+  // columns (the batches table has no product_name).
+  o.productId = r.product_code || PRODUCT_BY_UUID[r.product_id]?.id || r.product_id;
+  o.productName = r.product_name || PRODUCT_BY_UUID[r.product_id]?.name || '';
   o.qty = r.quantity;
   if (r.expiry_date) {
     const ms = new Date(r.expiry_date + 'T00:00:00').getTime() - Date.now();
@@ -3496,12 +3724,66 @@ function reshapeBatch(r) {
 const RESHAPE = {
   getAll(rows) {
     const products = (rows || []).map(reshapeProduct);
+    // Rebuild, don't accumulate. This map was previously only ever written to,
+    // so a deleted product lingered in it until a full reload and kept resolving
+    // its old name — reshapeBatch and the audit log both read names through it.
+    // getAll is the authoritative product list, so clearing here means a lookup
+    // that no longer resolves degrades to the raw uuid (visibly wrong) rather
+    // than to a confidently stale name (invisibly wrong).
+    Object.keys(PRODUCT_BY_UUID).forEach(k => delete PRODUCT_BY_UUID[k]);
     products.forEach(p => { PRODUCT_BY_UUID[p.productUuid] = p; });
     return { products };
   },
   getExpiring(rows)     { return { expiring: (rows || []).map(reshapeBatch) }; },
   getAllBatches(rows)   { return { batches:  (rows || []).map(reshapeBatch) }; },
-  getLogs(rows)         { return { logs:     (rows || []).map(camelizeRow) }; },
+  // getBatches was MISSING, so `loadBatches`'s `d.batches || []` silently got []
+  // every time: the Update & Batches list would have shown "no batches" forever
+  // once staff started entering stock, with no error anywhere. Invisible today
+  // only because the catalogue-only cutover left zero batches to display.
+  getBatches(rows)      { return { batches:  (rows || []).map(reshapeBatch) }; },
+  // FIX B4: getLogs returned camelized audit_logs rows verbatim, but
+  // renderLogs/exportWasteCSV read `.timestamp` (real column: occurred_at ->
+  // camelizes to occurredAt, not timestamp), `.updatedBy` (real column:
+  // actor_id -> a uuid, not a name — audit_logs carries no display name and
+  // RLS (profiles_self) means a non-supervisor caller cannot resolve OTHER
+  // actors' names at all, so this stays the raw id rather than fabricating a
+  // name), and `.productName` (does not exist on audit_logs at all — only
+  // entity/entity_id do). productName is resolved through PRODUCT_BY_UUID for
+  // entity==='product' rows, with a visible fallback (never a silent blank)
+  // when the uuid can't be resolved. oldStatus/newStatus are pulled from the
+  // old_value/new_value jsonb blobs update_product writes (only present when
+  // status actually changed — other audit actions, e.g. nutrition saves, have
+  // no status to show, which is correct, not a bug). The gateway applies no
+  // ordering or limit for this table read (unlike the legacy sheet, which
+  // returned newest-100); reproduced client-side to match.
+  getLogs(rows) {
+    const logs = (rows || []).map(r => {
+      const o = camelizeRow(r);
+      o.timestamp = r.occurred_at;
+      // actor_id is a profiles.id uuid, not a name — printing it raw put uuids
+      // in the Change Log's "who" column and made the staff-name filter unable
+      // to match anything. Same resolution as everywhere else.
+      o.updatedBy = actorName(r.actor_id);
+      const ov = (r.old_value && typeof r.old_value === 'object') ? r.old_value : null;
+      const nv = (r.new_value && typeof r.new_value === 'object') ? r.new_value : null;
+      o.oldStatus = ov ? ov.status : undefined;
+      o.newStatus = nv ? nv.status : undefined;
+      if (r.entity === 'product') {
+        const prod = PRODUCT_BY_UUID[r.entity_id];
+        // Never a bare blank: an unresolved uuid degrades to a visible marker,
+        // not silence that reads as "no product". Note PRODUCT_BY_UUID is now
+        // REBUILT on every getAll, so a deleted product stops resolving as soon
+        // as the list refreshes and its log rows fall through to this marker —
+        // which is the honest outcome for a product that no longer exists.
+        o.productName = prod ? prod.name : '(unknown product)';
+      } else {
+        o.productName = r.entity ? `(${r.entity})` : '—';
+      }
+      return o;
+    });
+    logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    return { logs: logs.slice(0, 100) };
+  },
   listStaff(rows) {
     return { staff: (rows || []).map(r => {
       const o = camelizeRow(r);
@@ -3515,6 +3797,230 @@ const RESHAPE = {
     const out = {};
     (rows || []).forEach(r => { out[r.key] = r.value; });
     return out;
+  },
+  // FIX B2: save_nutrition returns the upserted `product_nutrition` ROW
+  // (confirmed against the SQL: `returns product_nutrition`, no `success`
+  // key) — PostgREST's convention for a non-SETOF function. submitNutrition
+  // reads `r.success`, which was therefore always undefined/falsy: the write
+  // committed every time, but the UI showed a red "Failed…" toast and never
+  // ran the optimistic patch, tag-pill rebuild, or sheet close. If we reached
+  // this function at all, api() already passed the data.error check, so the
+  // write genuinely succeeded — legacy doSaveNutrition also only ever
+  // returned {success:true} (APPSCRIPT.js:1179), nothing else is read.
+  saveNutrition(row) {
+    return { success: true, ...camelizeRow(row) };
+  },
+  // FIX B2: add_product returns the inserted `products` ROW (`returns
+  // products`, confirmed against the SQL) — snake_case columns, a uuid `id`,
+  // no `success` key. confirmAddProduct reads `r.success` (same always-false
+  // bug as saveNutrition) AND `r.id` for the "Product added: {id}" toast,
+  // where legacy doAddProduct returned {success:true, id:id, name:name} with
+  // `id` = the P### CODE (APPSCRIPT.js:1082) — not the uuid. Map
+  // product_code -> id to preserve that contract; productUuid keeps the real
+  // uuid alongside it, mirroring reshapeProduct's own id/productUuid split.
+  addProduct(row) {
+    const o = camelizeRow(row);
+    o.productUuid = row.id;
+    o.id = row.product_code;
+    return { success: true, ...o };
+  },
+  // FIX B4: getReorderData (reorder_data(), one of the 7 jsonb-returning RPCs)
+  // is ALMOST already camelCase end-to-end, but each item's own
+  // jsonb_build_object mixes in snake_case `product_id`/`product_code`
+  // alongside otherwise-camelCase keys (0010_reorder.sql) — there is no `id`
+  // field at all. exportOrderCSV reads `it.id` for the CSV "ID" column (the
+  // on-screen rows don't display an id, only `.name`, so this was invisible
+  // there — only the exported CSV's ID column was silently blank). Legacy
+  // items carried `id` = the P### code (APPSCRIPT.js:1545); reproduce that.
+  getReorderData(data) {
+    if (!data || typeof data !== 'object') return data;
+    const fix = (arr) => Array.isArray(arr) ? arr.map(it => ({ ...it, id: it.product_code })) : arr;
+    return { ...data, orderNow: fix(data.orderNow), comingUp: fix(data.comingUp), lifelineAtRisk: fix(data.lifelineAtRisk) };
+  },
+  // Sweep finding (not in the original B2/B4 list): monthly_comparison() only
+  // ever returns {thisMonth,lastMonth} (0011_views_reports.sql) — unlike its
+  // sibling waste_metric(), it never computes change/direction server-side.
+  // renderMonthlyComparison reads both (`m.direction`, `m.change`), so every
+  // load rendered the literal string "undefined% decrease" with a flat "—"
+  // arrow, regardless of the real trend. Same formula as waste_metric's own
+  // SQL and legacy doGetMonthlyComparison (APPSCRIPT.js:1487-1497),
+  // reproduced client-side since the two totals needed for it ARE present.
+  getMonthlyComparison(data) {
+    if (!data || !data.thisMonth || !data.lastMonth) return data;
+    const thisTotal = data.thisMonth.total || 0, lastTotal = data.lastMonth.total || 0;
+    let change = 0, direction = 'same';
+    if (lastTotal === 0 && thisTotal === 0) { change = 0; direction = 'same'; }
+    else if (lastTotal === 0) { change = 100; direction = 'up'; }
+    else {
+      const pct = Math.round(((thisTotal - lastTotal) / lastTotal) * 100);
+      change = Math.abs(pct);
+      direction = pct > 0 ? 'up' : pct < 0 ? 'down' : 'same';
+    }
+    return { ...data, change, direction };
+  },
+  // Sweep finding: supervisor_dashboard() (jsonb) has three separate shape
+  // problems the Supervisor Dashboard's own renderer never gets right:
+  //  1. statusCount never carried a `total` key in EITHER backend (legacy
+  //     doGetSupervisorData didn't compute one either) — not migration-caused,
+  //     but renderSupervisorDashboard's "% of stock" line has always silently
+  //     read undefined and shown 0%. Cheap to compute correctly, so it is.
+  //  2. expiryAlerts.{critical,high,upcoming} are `to_jsonb(v_expiring row)` —
+  //     real columns are product_name/expiry_date/quantity/days_remaining,
+  //     but the renderer reads name/date/qty/days (the legacy shape). Every
+  //     alert on the dashboard showed a blank name/date and
+  //     "undefined units · undefinedd left".
+  //  3. staffActivity only ever returns {actor_id, count} per person — no
+  //     `name`, no `changes` array — where the renderer (and the legacy
+  //     endpoint, APPSCRIPT.js:1925) expect {name, count, changes:[{product,
+  //     from,to,note,time}]}. `changes` genuinely cannot be reconstructed
+  //     from this payload — the SQL never computes it, that's a backend gap
+  //     to fix in supervisor_dashboard() itself, not a shape mismatch fixable
+  //     here — so it's left as an honest empty array and the renderer (see
+  //     renderSupervisorDashboard) now says so explicitly instead of
+  //     rendering a misleading blank expand panel. `name` we CAN recover:
+  //     actor_id is a profiles.id uuid, and loadSupervisorData now fetches
+  //     listStaff first (see its own comment) so S.staff is populated before
+  //     this runs; falls back to the bare id, never to blank, if it isn't.
+  getSupervisorData(d) {
+    if (!d || typeof d !== 'object') return d;
+    const out = { ...d };
+    if (out.statusCount) {
+      const sc = out.statusCount;
+      out.statusCount = { ...sc, total: (sc.available||0)+(sc.low||0)+(sc.coming||0)+(sc.unavailable||0)+(sc.empty||0) };
+    }
+    const fixAlert = (arr) => Array.isArray(arr) ? arr.map(b => ({
+      ...b, name: b.product_name, date: b.expiry_date, qty: b.quantity, days: b.days_remaining
+    })) : arr;
+    if (out.expiryAlerts) {
+      out.expiryAlerts = {
+        critical: fixAlert(out.expiryAlerts.critical),
+        high:     fixAlert(out.expiryAlerts.high),
+        upcoming: fixAlert(out.expiryAlerts.upcoming)
+      };
+    }
+    if (Array.isArray(out.staffActivity)) {
+      // Shared actorName() so the dashboard and the dispensing-history card
+      // cannot drift into resolving the same uuid two different ways.
+      out.staffActivity = out.staffActivity.map(s => ({
+        ...s, name: actorName(s.actor_id), changes: []
+      }));
+    }
+    return out;
+  },
+  // FIX B4: getDispensing is a raw `table` read (dispensing_events, kind:
+  // "table" in action-map.json) — the gateway does an UNFILTERED `select *`
+  // for it (no p_month arg exists for a table-kind action), where the legacy
+  // endpoint pre-aggregated server-side to {topProducts:[{name,total}],
+  // month}. exportDispensingCSV read `d.topProducts`/`d.month` against a bare
+  // array of raw rows: `(d.topProducts||[])` was always [], so the CSV
+  // downloaded with headers only, named literally "dispensing_undefined.csv"
+  // (`d.month` undefined), while the toast still said "downloaded" — success
+  // reported, nothing useful produced.
+  // Reconstructed client-side from what the rows actually contain (occurred_at,
+  // product_id, dispensed) — this is a genuine, disclosed approximation, not a
+  // silent guess: bucketed by the BROWSER's local yyyy-MM (the same convention
+  // runDispenseReportThisMonth already uses elsewhere in this file), not the
+  // hospital's own timezone, because no per-hospital tz is available to a
+  // plain client-side Date. Only wrong for the sliver of a day where the two
+  // calendars disagree; this deployment's staff are on-site in Kuwait.
+  getDispensing(rows) {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const totals = {};
+    (rows || []).forEach(r => {
+      if (!r.occurred_at) return;
+      const d2 = new Date(r.occurred_at);
+      const rowMonth = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`;
+      if (rowMonth !== month) return;
+      const prod = PRODUCT_BY_UUID[r.product_id];
+      const name = prod ? prod.name : (r.product_id || 'Unknown');
+      totals[name] = (totals[name] || 0) + (parseInt(r.dispensed, 10) || 0);
+    });
+    const topProducts = Object.keys(totals).map(name => ({ name, total: totals[name] })).sort((a,b)=>b.total-a.total);
+    return { topProducts, month };
+  },
+  // FIX B4: dispense_history() is a TABLE(...)-returning RPC — one of the 10
+  // that come back as a bare array of snake_case columns, NOT the camelCase
+  // the "actions backed by an RPC already return camelCase" shortcut (true
+  // only for the 7 jsonb-returning functions) would suggest. renderDispenseHistory
+  // reads d.events/d.eventCount/d.capped/d.totalDispensed/d.from/d.to (plus
+  // firstEventDate/lastEventDate for the summary line) — none of which exist
+  // on a bare array, so `!d.events || !d.events.length` was always true and
+  // the panel showed "no history" unconditionally, for every product,
+  // regardless of real dispensing activity.
+  // `p` is the original request params (api() now passes them through) —
+  // used to recover productId/productName (resolved via PRODUCT_BY_UUID, the
+  // uuid sent as `productId`) and the from/to filter the caller asked for,
+  // none of which the RPC's row shape carries on its own.
+  getDispenseHistory(rows, p) {
+    const events = (rows || []).map(r => {
+      const o = camelizeRow(r);
+      o.timestamp = r.occurred_at;
+      // recorded_by is a profiles.id UUID (dispense_history's signature says
+      // `recorded_by uuid`), not a name — assigning it raw printed a uuid in
+      // the history's "Recorded By" column.
+      o.updatedBy = actorName(r.recorded_by);
+      // batch_id is a uuid too, and dispense_history carries no batch_code to
+      // resolve it against. A full uuid in the meta line is noise, so show a
+      // short fragment — identifiable enough to correlate, short enough to read.
+      o.batchId = r.batch_id ? '#' + String(r.batch_id).slice(0, 8) : '';
+      return o;
+    });
+    const eventCount = events.length;
+    const totalDispensed = events.reduce((s,e)=>s+(e.dispensed||0),0);
+    // SQL orders occurred_at DESC, id DESC — events[0] is newest, last is oldest.
+    const firstEventDate = eventCount ? (events[eventCount-1].timestamp||'').slice(0,10) : null;
+    const lastEventDate  = eventCount ? (events[0].timestamp||'').slice(0,10) : null;
+    const prod = p && p.productId ? PRODUCT_BY_UUID[p.productId] : null;
+    return {
+      productId: prod ? prod.id : ((p && p.productId) || null),
+      productName: prod ? prod.name : '',
+      from: (p && p.from) || null,
+      to:   (p && p.to)   || null,
+      events, eventCount,
+      // dispense_history() has no row cap at all (0011_views_reports.sql's own
+      // comment: "No 200-row cap, for the same reason the range cap is gone"),
+      // unlike the legacy 200-row HISTORY_CAP this field used to signal.
+      capped: false,
+      totalDispensed, firstEventDate, lastEventDate
+    };
+  },
+  // FIX B4: dispense_report() is likewise a TABLE(...)-returning RPC — bare
+  // array, columns product_id/product_code/product_name/units_dispensed/
+  // event_count. renderDispenseReport/exportDispenseReportCSV read d.products
+  // (each needing .id/.name/.total), d.from/d.to/d.days, d.grandTotal — none
+  // present on a bare array, so `!d.products || !d.products.length` was
+  // always true and the report showed its empty state for every date range.
+  // from/to/days are reconstructed from the request params (the RPC doesn't
+  // echo them back); `.id` = product_code, matching S.products' own `.id`
+  // convention (svReportFilter matches against it).
+  getDispenseReport(rows, p) {
+    const products = (rows || []).map(r => ({
+      id: r.product_code,
+      name: r.product_name,
+      total: r.units_dispensed,
+      eventCount: r.event_count
+    }));
+    const grandTotal = products.reduce((s,x)=>s+(x.total||0),0);
+    const entryCount = products.reduce((s,x)=>s+(x.eventCount||0),0);
+    const from = (p && p.from) || null, to = (p && p.to) || null;
+    let days = null;
+    if (from && to) days = Math.round((new Date(to+'T23:59:59') - new Date(from+'T00:00:00')) / 86400000 + 0.5);
+    return { from, to, days, products, grandTotal, entryCount };
+  },
+  // FIX B4: dispensing_trend() is likewise a TABLE(...)-returning RPC — bare
+  // array of {month_start, units_dispensed, event_count}. renderTrend reads
+  // `d.trend` (an array whose items need `.total` for svgTrend); a bare array
+  // has no `.trend` property at all, so `!d || !d.trend` was always true and
+  // the trend chart showed "Not available yet — redeploy backend" regardless
+  // of how much real dispensing history existed.
+  getDispensingTrend(rows) {
+    const trend = (rows || []).map(r => ({
+      month: r.month_start ? String(r.month_start).slice(0,7) : '',
+      total: r.units_dispensed || 0,
+      eventCount: r.event_count || 0
+    }));
+    return { trend };
   }
 };
 
@@ -3565,24 +4071,13 @@ async function api(params, _retried) {
   // Translate raw database columns back into the shape the UI expects. Applied
   // HERE, at the single choke point every caller already goes through, so no
   // renderer needed changing.
-  if (RESHAPE[p.action]) return RESHAPE[p.action](data);
+  // Pass the REQUEST params too: several RPCs return a bare result set and do
+  // not echo back what was asked for, so the reshaper has to reconstruct
+  // from/to/productId from the request. Without this second argument those
+  // reshapers still run (they guard with `p && p.x`) but silently yield null,
+  // so a filtered report would quietly lose its date range.
+  if (RESHAPE[p.action]) return RESHAPE[p.action](data, p);
   return data;
-}
-
-// ══ CORS fallback-proxy caveat banner (Ledger 9) ═════════════════
-// Shown when a response was served via a public proxy instead of the direct
-// Google connection. Informational only — never blocks the data or the UI.
-function showProxyBanner() {
-  if (S.proxyBannerDismissed) return;   // don't nag once dismissed this session (refresh re-evaluates)
-  const b = el('proxy-banner');
-  if (!b) return;
-  const txt = el('proxy-banner-text');
-  if (txt) txt.textContent = t('proxy_banner');
-  b.classList.remove('hidden');
-}
-function dismissProxyBanner() {
-  S.proxyBannerDismissed = true;
-  el('proxy-banner')?.classList.add('hidden');
 }
 
 // A write came back unauthenticated → drop the stale session and reflect logged-out.
@@ -3591,13 +4086,6 @@ function handleAuthError(code) {
     S.session = null; localStorage.removeItem('ns_session');
     setTimeout(()=>{ applyUser(); }, 0);
   }
-}
-
-// Hash the password on-device so plaintext never leaves the browser.
-async function hashCred(email, password) {
-  const bytes = new TextEncoder().encode(String(email).trim().toLowerCase()+':'+password);
-  const buf = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 // ══ Products ══════════════════════════════════════════════════
@@ -3909,7 +4397,7 @@ async function quickToggleDispenseFirst(productId) {
   if (!name) return;
   const next = !p.dispenseFirst;
   try {
-    await api({action:'update', id:productId, dispenseFirst:next, updatedBy:encodeURIComponent(name)});
+    await api({action:'update', id:productUuid(p), dispenseFirst:next, updatedBy:encodeURIComponent(name)});
     p.dispenseFirst = next;
     toast(next ? 'Marked Dispense First' : 'Unflagged Dispense First','ok');
     renderExpiring();
@@ -3925,7 +4413,7 @@ async function quickToggleLifeline(productId) {
   if (!name) return;
   const next = !p.lifeline;
   try {
-    await api({action:'update', id:productId, lifeline:next, updatedBy:encodeURIComponent(name)});
+    await api({action:'update', id:productUuid(p), lifeline:next, updatedBy:encodeURIComponent(name)});
     p.lifeline = next;
     toast(next ? 'Marked as Lifeline' : 'Unflagged Lifeline','ok');
     renderProducts();
@@ -3959,7 +4447,7 @@ async function quickSetStatus(productId, status) {
   if (!name) return;
   closeQuickActions();
   try {
-    await api({action:'update', id:productId, status, updatedBy:encodeURIComponent(name)});
+    await api({action:'update', id:productUuid(productId), status, updatedBy:encodeURIComponent(name)});
     const p = S.products.find(x=>x.id===productId);
     if (p) p.status = status;
     toast(`Status updated to ${STATUS_CFG[status].label}`,'ok');
@@ -4225,7 +4713,10 @@ function goTab(name) {
   qsa('[id^="pane-"]').forEach(p=>p.classList.add('hidden'));
   show('pane-'+name);
   S.activeTab=name;
-  if (name==='changes') loadLogs();
+  // Staff BEFORE logs: getLogs' reshaper resolves actor uuids through
+  // actorName(), so without this the Change Log renders "#3f2a1b9c" in the who
+  // column and its "Filter by staff name" box can never match anything.
+  if (name==='changes') ensureStaffLoaded().then(loadLogs);
   if (name==='supervisor') loadSupervisorData();
   // (was: loadSettingsEmails() — removed with the emailed-report feature)
   if (name==='staff') loadStaff();
@@ -4392,8 +4883,12 @@ function calcInitPins() {
 // above), section state here persists per supervisor via localStorage —
 // a dashboard checked occasionally benefits from remembering what was
 // left open, unlike mid-task calculator chaining.
-const SV_SECTIONS = ['overview','reports','admin'];
-const SV_SECTION_DEFAULTS = {overview:true, reports:false, admin:false}; // true = expanded
+// srcEdit/srcAdd/srcDelete (Products Admin tab, ledger 1) share this same
+// collapsible-section mechanism and the same 'ns_sv_sections' localStorage
+// key as the Supervisor Dashboard's overview/reports/admin — harmless, since
+// SVSEC.expanded is just a flat {id: bool} map and every id here is unique.
+const SV_SECTIONS = ['overview','reports','admin','srcEdit','srcAdd','srcDelete'];
+const SV_SECTION_DEFAULTS = {overview:true, reports:false, admin:false, srcEdit:true, srcAdd:true, srcDelete:false}; // true = expanded
 const SVSEC = {expanded:{}};
 function svSecLoadState() {
   let saved = {};
@@ -4887,8 +5382,10 @@ function nsIndicesFor(productId) {
 // what is it" — every tag/detail/editor helper below reads through this
 // instead of touching p.nutrition or NS_MATCH/NS_PRODUCTS directly, so a
 // supervisor-saved row and the legacy static fallback are indistinguishable
-// to callers. Priority: a live saved row (p.nutrition, merged onto the
-// product by the backend's getAll from the Nutrition sheet) always wins;
+// to callers. Priority: a live saved row always wins — `p.nutrition` is
+// assembled in reshapeProduct from the flat nutrition columns v_products_full
+// returns (the Apps Script "Nutrition sheet merge" this comment used to
+// describe is gone; nothing on the server side builds a nested object);
 // otherwise fall back to the original NS_PRODUCTS entry (via NS_MATCH) so
 // the ~24 pre-matched products keep showing their PDF-sourced figures until
 // a supervisor overwrites them. Returns null when neither source has data.
@@ -5234,7 +5731,7 @@ async function submitNutrition(productId) {
   if (lbl) lbl.innerHTML = '<span class="spinner-sm"></span>'+t('nut_saving');
   try {
     const r = await api({
-      action:'saveNutrition', id:productId,
+      action:'saveNutrition', id:productUuid(p),
       kcalMl:vals.kcalMl, kcal100:vals.kcal100, pro:vals.pro, cho:vals.cho, fat:vals.fat,
       fiber:vals.fiber, na:vals.na, k:vals.k, ca:vals.ca, p:vals.p,
       hydro:vals.hydro, lacto:vals.lacto, pack:vals.pack, scoop:vals.scoop, form:vals.form,
@@ -5805,6 +6302,20 @@ const STAFF_STATUS = {
   disabled: {cls:'s-empty',       get lbl(){return t('stf_disabled')}},
   rejected: {cls:'s-unavailable', get lbl(){return t('stf_rejected')}},
 };
+// Populate S.staff for actorName() WITHOUT touching the Staff tab's DOM.
+// Both the Supervisor dashboard and the Change Log need staff only to turn
+// actor uuids into names; loadStaff() also renders into #staff-list, which
+// would spin a hidden element on a tab the user is not looking at.
+// listStaff is supervisor-only (profiles RLS is self-only otherwise), so for
+// storage staff this is a deliberate no-op and actorName() falls back to the
+// short uuid fragment — the honest outcome, since they genuinely are not
+// permitted to see other people's names.
+async function ensureStaffLoaded() {
+  if (!S.isSupervisor || (S.staff && S.staff.length)) return;
+  try { const d = await api({action:'listStaff'}); S.staff = d.staff || []; }
+  catch(e) { /* names degrade to uuid fragments; never block the caller */ }
+}
+
 async function loadStaff() {
   const box = el('staff-list');
   box.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
@@ -5907,6 +6418,17 @@ function selectSuProduct(id) {
   const existing=S.products.find(p=>p.id===id);
   el('su-min').value=existing?.minUnits||S.settings.defaultMinUnits||5;
   el('su-pack').value=existing?.unitsPerPackage||'';
+  // Prefill note + expected date from server truth ON SELECT.
+  // These used to be left blank because an empty value was silently DROPPED in
+  // transit, so a blank field could not do any harm. Empty now genuinely means
+  // "clear this" (that was the whole point of the clearable-fields fix), which
+  // turns the old blank form into a silent eraser: saving a status would wipe a
+  // note the user was never shown. Showing the real value makes a blank field an
+  // intentional act again. Deliberately NOT done in applySuCardState (the
+  // post-batch resync), which must not overwrite what the user is mid-way
+  // through typing.
+  el('su-note').value = existing?.note || '';
+  el('su-date').value = existing?.expectedDate || '';
   applySuCardState(existing);
   show('su-status-card');
   loadBatches(id);
@@ -5914,7 +6436,9 @@ function selectSuProduct(id) {
 // Applies server-truth product state to the status card's DOM. Called on
 // initial product select AND after any batch mutation (live-resync) so an
 // auto-computed status/Dispense-First flip is visible without reselecting
-// the product. Never touches su-note/su-date — those aren't server-sourced.
+// the product. Deliberately never touches su-note/su-date: selectSuProduct
+// seeds them from server truth, and clobbering them here would discard text the
+// user is part-way through typing when a batch mutation triggers a resync.
 function applySuCardState(existing) {
   S.suStatus = existing ? (existing.status||'') : S.suStatus;
   S.suDispenseFirst = !!existing?.dispenseFirst;
@@ -6016,13 +6540,29 @@ async function submitSingle() {
   const note=el('su-note').value.trim();
   const date=S.suStatus==='coming'?el('su-date').value:'';
   const minU=parseInt(el('su-min').value)||S.settings.defaultMinUnits||5;
-  const pack=parseInt(el('su-pack').value)||0; // 0 clears the pack size on the backend
+  // Blank means "not supplied", NOT zero. `units_per_package` carries
+  // CHECK (units_per_package > 0) and update_product coalesces NULL to the
+  // existing value, so 0 is not a "clear" — it is a constraint violation that
+  // fails the ENTIRE status save. The old `||0` sent 0 on every save, and all
+  // 119 live products have no pack size, so this would have broken Save Status
+  // on every product the moment the parameter started binding. Omit when blank.
+  // Consequence, deliberate: an existing pack size cannot be cleared from here,
+  // because numerics are correctly excluded from the gateway's `clearable` list.
+  const packRaw=parseInt(el('su-pack').value);
+  const pack=Number.isFinite(packRaw)&&packRaw>0?packRaw:null;
   const btn=el('su-btn'),lbl=el('su-btn-lbl');
   btn.disabled=true;lbl.innerHTML='<span class="spinner-sm"></span>Saving…';
   try {
-    await api({action:'update',id:S.suProduct.id,status:S.suStatus,note:note,expectedDate:date,updatedBy:encodeURIComponent(by),minUnits:minU,unitsPerPackage:pack,dispenseFirst:S.suDispenseFirst,inpatientOnly:S.suInpatientOnly,lifeline:S.suLifeline,manualStatus:!S.suAutoStatus,dfAuto:S.suDfAuto});
+    // Ledger 37: the gateway's parameter map binds p_status_auto from a param
+    // named `statusAuto`, not `manualStatus` — sending `manualStatus` (even
+    // inverted correctly for the OLD polarity) never matches, so toggling
+    // Auto-Status was a silent no-op. manualStatus = !status_auto (see
+    // reshapeProduct), so status_auto = !manualStatus = !(!S.suAutoStatus) =
+    // S.suAutoStatus — sending statusAuto:S.suAutoStatus directly, no
+    // inversion, is the same intent the old (broken) line encoded.
+    await api({action:'update',id:productUuid(S.suProduct),status:S.suStatus,note:note,expectedDate:date,updatedBy:encodeURIComponent(by),minUnits:minU,...(pack!==null?{unitsPerPackage:pack}:{}),dispenseFirst:S.suDispenseFirst,inpatientOnly:S.suInpatientOnly,lifeline:S.suLifeline,statusAuto:S.suAutoStatus,dfAuto:S.suDfAuto});
     const p=S.products.find(x=>x.id===S.suProduct.id);
-    if(p){p.status=S.suStatus;p.note=note;p.expectedDate=date;p.minUnits=minU;p.unitsPerPackage=pack>0?pack:null;p.dispenseFirst=S.suDispenseFirst;p.inpatientOnly=S.suInpatientOnly;p.lifeline=S.suLifeline;p.manualStatus=!S.suAutoStatus;p.dfAuto=S.suDfAuto;}
+    if(p){p.status=S.suStatus;p.note=note;p.expectedDate=date;p.minUnits=minU;if(pack!==null)p.unitsPerPackage=pack;p.dispenseFirst=S.suDispenseFirst;p.inpatientOnly=S.suInpatientOnly;p.lifeline=S.suLifeline;p.manualStatus=!S.suAutoStatus;p.dfAuto=S.suDfAuto;}
     toast(t('t_status_saved'),'ok');
     clearSu();el('su-note').value='';
     renderProducts();
@@ -6045,12 +6585,12 @@ async function submitSource() {
   const btn=el('su-source-btn');
   btn.disabled=true;
   try {
-    await api({action:'update',id:S.srcProduct.id,updatedBy:encodeURIComponent(by),
+    await api({action:'update',id:productUuid(S.srcProduct),updatedBy:encodeURIComponent(by),
       manufacturer:man,variant:vari,
       density:den,packagingNote:form});
     const p=S.products.find(x=>x.id===S.srcProduct.id);
     if(p){p.manufacturer=man;p.variant=vari;p.density=den;p.packagingNote=form;}
-    toast('Product source saved','ok');
+    toast(t('su_src_saved'),'ok');
     renderProducts();
   } catch(e){ toast(t('t_failed')+e.message,'err'); }
   finally{ btn.disabled=false; }
@@ -6091,11 +6631,30 @@ function populateApCatSelect() {
   sel.innerHTML = CATS.filter(c=>c!=='All').map(c=>`<option value="${c}">${t('cat_'+c)}</option>`).join('');
   sel.value = prev && CATS.includes(prev) ? prev : 'Adult';
 }
-async function submitAddProduct() {
+// Validates and shows the in-page confirm sheet (the app's established
+// pattern for "are you sure" — see openQuickActions/submitRemoveBatch — used
+// here instead of a native confirm(), which browser automation tooling
+// cannot dismiss and which the rest of the app has already moved away from
+// for this exact reason). confirmAddProduct() below does the actual write.
+function submitAddProduct() {
   if (!S.isSupervisor) return;
   const name = el('ap-name').value.trim();
   if (!name) { toast(t('addp_name_required'),'err'); return; }
-  if (!confirm(t('addp_confirm').replace('{name}', name))) return;
+  el('qa-sheet').innerHTML = `
+    <div class="sheet-backdrop" onclick="if(event.target===this) closeQuickActions()">
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">${escapeHtml(t('addp_title'))}</div>
+        <div class="sheet-sub">${tf('addp_confirm',{name:escapeHtml(name)})}</div>
+        <button class="btn-submit" onclick="closeQuickActions();confirmAddProduct()">${t('addp_btn')}</button>
+        <button class="btn-submit" style="margin-top:8px;background:var(--surface2);color:var(--text2);box-shadow:none" onclick="closeQuickActions()">${t('btn_cancel')}</button>
+      </div>
+    </div>`;
+}
+async function confirmAddProduct() {
+  if (!S.isSupervisor) return;
+  const name = el('ap-name').value.trim();
+  if (!name) { toast(t('addp_name_required'),'err'); return; }
   const cat  = el('ap-cat').value || 'Adult';
   const min  = parseInt(el('ap-min').value) || 5;
   const man  = el('ap-mfr').value.trim();
@@ -6127,13 +6686,175 @@ async function submitAddProduct() {
   }
 }
 
+// ══ Products Admin — Part 3: Delete a Product (Ledger 4/7/21-27, NEW,
+// supervisor-only, HARD delete — product + batches + nutrition + dispensing
+// history are permanently destroyed). Own picker (pd-*), deliberately
+// decoupled from Part 1's src-* picker (same reasoning as Ledger 8c above:
+// picking a product to EDIT must never arm the delete form). ═══════════
+// NOTE: getProductDeleteImpact/deleteProduct are RPC-backed (per the backend
+// handoff), so — like getSupervisorData/getReorderData — they already build
+// their JSON by hand in the old camelCase shape. Verified against the
+// contract in this task: {productId,name,category,batches,activeBatches,
+// unitsOnHand,dispensingEvents,hasNutrition} and {success,productId,name,
+// deleted:{...}} need no RESHAPE entry — nothing here is a raw view/table
+// column. If that ever changes (e.g. the backend switches to querying a view
+// directly), reshapeProduct's uuid<->code handling would need revisiting too.
+function onPdSearch() {
+  if (!S.isSupervisor) return;
+  buildDropdown('pd-dropdown', el('pd-search').value, selectPdProduct);
+}
+function selectPdProduct(id) {
+  if (!S.isSupervisor) return;
+  const p = S.products.find(x=>x.id===id);
+  if (!p) return;
+  S.pdProduct = p;
+  S.pdImpact = null;
+  const token = ++S.pdReqToken;
+  el('pd-chip-name').textContent = p.name;
+  show('pd-chip'); hide('pd-dropdown'); el('pd-search').value='';
+  el('pd-confirm-name').value = '';
+  hide('pd-confirm-wrap');
+  syncPdDeleteBtn();
+  loadPdImpact(p, token);
+}
+function clearPd() {
+  S.pdProduct = null; S.pdImpact = null;
+  S.pdReqToken++; // invalidates any impact fetch still in flight for the previous pick
+  hide('pd-chip'); hide('pd-impact'); hide('pd-confirm-wrap');
+  el('pd-search').value = ''; el('pd-confirm-name').value = '';
+  syncPdDeleteBtn();
+}
+async function loadPdImpact(p, token) {
+  show('pd-impact');
+  hide('pd-impact-body'); hide('pd-impact-err');
+  show('pd-impact-loading');
+  try {
+    const imp = await api({action:'getProductDeleteImpact', id:p.productUuid});
+    if (token !== S.pdReqToken) return; // stale — supervisor already picked something else
+    S.pdImpact = imp;
+    renderPdImpact(imp);
+    el('pd-confirm-label').textContent = tf('pd_confirm_label',{name:p.name});
+    show('pd-confirm-wrap');
+    syncPdDeleteBtn();
+  } catch(e) {
+    if (token !== S.pdReqToken) return;
+    hide('pd-impact-loading');
+    el('pd-impact-err').textContent = t('t_failed')+e.message;
+    show('pd-impact-err');
+  }
+}
+function renderPdImpact(imp) {
+  hide('pd-impact-loading');
+  const nothingElse = !imp.batches && !imp.activeBatches && !imp.unitsOnHand && !imp.dispensingEvents && !imp.hasNutrition;
+  el('pd-impact-body').innerHTML = `
+    <div class="pd-impact-head">
+      <span class="pd-impact-code">${escapeHtml(imp.productId)}</span>
+      <span class="pd-impact-name">${escapeHtml(imp.name)}</span>
+      <span class="pd-impact-cat">${escapeHtml(imp.category||'')}</span>
+    </div>
+    <div class="sv-stat-grid">
+      <div class="sv-stat sv-stat-r"><div class="sv-stat-num">${imp.batches||0}</div><div class="sv-stat-lbl">${t('pd_stat_batches')}</div></div>
+      <div class="sv-stat sv-stat-r"><div class="sv-stat-num">${imp.activeBatches||0}</div><div class="sv-stat-lbl">${t('pd_stat_active')}</div></div>
+      <div class="sv-stat sv-stat-r"><div class="sv-stat-num">${imp.unitsOnHand||0}</div><div class="sv-stat-lbl">${t('pd_stat_units')}</div></div>
+      <div class="sv-stat sv-stat-r"><div class="sv-stat-num">${imp.dispensingEvents||0}</div><div class="sv-stat-lbl">${t('pd_stat_events')}</div></div>
+    </div>
+    <div class="pd-impact-nut${imp.hasNutrition?' has':''}">${imp.hasNutrition ? t('pd_has_nutrition') : t('pd_no_nutrition')}</div>
+    ${nothingElse ? `<div class="pd-impact-clean">${t('pd_nothing_attached')}</div>` : ''}
+  `;
+  show('pd-impact-body');
+}
+// Gates the Delete button: must have a selected product, a successfully
+// loaded impact panel, AND the typed confirmation must match the product
+// name — trim() + case-insensitive, mirroring the server-side normalization
+// (Ledger 8). Re-run on every keystroke in pd-confirm-name.
+function syncPdDeleteBtn() {
+  const btn = el('pd-delete-btn');
+  if (!btn) return;
+  const typed  = (el('pd-confirm-name')?.value || '').trim().toLowerCase();
+  const target = (S.pdProduct?.name || '').trim().toLowerCase();
+  btn.disabled = !(S.pdProduct && S.pdImpact && typed && typed === target);
+}
+async function submitDeleteProduct() {
+  if (!S.isSupervisor) return;
+  if (!S.pdProduct || !S.pdImpact) return;
+  const typed = el('pd-confirm-name').value.trim();
+  if (typed.toLowerCase() !== S.pdProduct.name.trim().toLowerCase()) return; // belt-and-braces; button is already disabled otherwise
+  const deletedCode = S.pdProduct.id; // P### code, for the defensive cross-clear below
+  const btn = el('pd-delete-btn'), lbl = el('pd-delete-btn-lbl');
+  btn.disabled = true;
+  const origLbl = lbl.innerHTML;
+  lbl.innerHTML = '<span class="spinner-sm"></span>'+t('pd_deleting');
+  try {
+    const r = await api({action:'deleteProduct', id:S.pdProduct.productUuid, confirmName:typed});
+    if (r && r.success) {
+      toast(tf('pd_deleted',{name:r.name||S.pdProduct.name}),'ok');
+      clearPd();
+      // Defensive: if the just-deleted product happened to still be armed in
+      // Part 1's edit form (or the Update-tab status form) in this same
+      // session, drop it rather than leave a save button pointed at a
+      // product that the server will now answer NOT_FOUND for.
+      if (S.srcProduct && S.srcProduct.id === deletedCode) clearSrc();
+      if (S.suProduct && S.suProduct.id === deletedCode) clearSu();
+      // Purge every OTHER place the now-dead P### code is still held. Left in
+      // place, bulkIds makes a later bulk apply report a spurious per-product
+      // failure, svhProductId refetches history for a product that is gone, and
+      // pinnedIds persists to localStorage, so without this the code would sit
+      // in every device's pinned list forever, pinning a product that no longer
+      // exists. (Codes are no longer RECYCLED — a per-hospital high-water mark
+      // now guarantees that — so this is about a dangling entry, not about the
+      // code silently attaching itself to a different product.)
+      if (S.bulkIds && S.bulkIds.delete(deletedCode)) renderBulkList();
+      if (S.svhProductId === deletedCode) clearSvhProduct();
+      if (S.pinnedIds && S.pinnedIds.delete(deletedCode)) {
+        localStorage.setItem('ns_pinned', JSON.stringify([...S.pinnedIds]));
+      }
+      // Ledger 22: re-fetch so the product vanishes everywhere. buildDropdown,
+      // selectSuProduct, selectSvhProduct, renderBulkList and weekly count all
+      // read live S.products (verified above/Ledger 11-FE/19-FE comments), so
+      // this one refetch is genuinely enough — no per-picker patch needed.
+      const pd = await api({action:'getAll'});
+      S.products = pd.products || [];
+      S.lastSynced = Date.now();
+      // getExpiring is fetched AFTER getAll (not Promise.all'd alongside it,
+      // unlike boot) deliberately: reshapeBatch resolves productName/productId
+      // via PRODUCT_BY_UUID, which RESHAPE.getAll only just populated on the
+      // line above — running them concurrently risks the same race boot's
+      // Promise.all already has. The deleted product's own batches are gone
+      // now too (hard delete), so S.expiring must be refreshed or it can go
+      // on naming a batch that belongs to nothing.
+      const ed = await api({action:'getExpiring'});
+      S.expiring = ed.expiring || [];
+      // The deleted product may have carried the last instance of an NS
+      // nutrient tag — rebuild the pills (clear first; buildProdTagPills only
+      // appends, see Ledger 31/38) and fall back off a filter that just died.
+      qsa('#prod-cats .ns-tag-pill').forEach(n => n.remove());
+      buildProdTagPills();
+      if (S.prodTag && !nsDeriveTags().includes(S.prodTag)) S.prodTag='All';
+      renderProducts();
+      renderBulkList();
+      renderExpiring();
+    } else {
+      toast((r&&r.error)||t('t_failed'),'err');
+    }
+  } catch(e) {
+    toast(t('t_failed')+e.message,'err');
+  } finally {
+    // Restore in a finally, not per-branch: the SUCCESS path previously fell
+    // through clearPd() without ever putting the label back, leaving the button
+    // reading "Deleting…" with a live spinner forever. clearPd() has already
+    // dropped the selection by then, so syncPdDeleteBtn() correctly re-disables.
+    lbl.innerHTML = origLbl;
+    syncPdDeleteBtn();
+  }
+}
+
 // ══ Batch management ══════════════════════════════════════════
 async function loadBatches(productId) {
   show('su-batch-card');
   el('batch-list').innerHTML='<div class="empty"><div class="spinner"></div></div>';
   hide('add-batch-form');
   try {
-    const d=await api({action:'getBatches',productId});
+    const d=await api({action:'getBatches',productId:productUuid(productId)});
     S.suBatches=d.batches||[];
     renderBatches();
   } catch(e) {
@@ -6242,7 +6963,7 @@ async function submitAddBatch() {
   const btn=el('ab-btn'),lbl=el('ab-btn-lbl');
   btn.disabled=true;lbl.innerHTML='<span class="spinner-sm"></span>Adding…';
   try {
-    await api({action:'addBatch',productId:S.suProduct.id,expiryDate:date,quantity:qty,addedBy:encodeURIComponent(by)});
+    await api({action:'addBatch',productId:productUuid(S.suProduct),expiryDate:date,quantity:qty,addedBy:encodeURIComponent(by)});
     toast(t('t_batch_added'),'ok');
     clearDraftBatch();
     el('ab-date').value=''; el('ab-date-shorthand').value=''; el('ab-qty').value='';
@@ -6267,8 +6988,15 @@ async function submitUpdateBatch(batchIdEnc) {
   }
 
   try {
-    const d=await api({action:'updateBatch',batchId,quantity:newQty,updatedBy:encodeURIComponent(by)});
-    toast(`${t('t_qty_saved')}${d.dispensed>0?' · '+d.dispensed+' '+t('units'):''}`,'ok');
+    await api({action:'updateBatch',batchId:batchUuid(batchId),quantity:newQty,updatedBy:encodeURIComponent(by)});
+    // Compute the dispensed count LOCALLY. update_batch_quantity returns a raw
+    // `batches` row, which has no `dispensed` key (the legacy Apps Script
+    // endpoint synthesised one), so reading d.dispensed was always undefined
+    // and the "· N units" half of this toast never appeared — on the single
+    // most frequent storage action. `b` is the pre-edit row loaded from the
+    // server, so previous-minus-new is the same subtraction the RPC performs.
+    const dispensed = b ? b.quantity - newQty : 0;
+    toast(`${t('t_qty_saved')}${dispensed>0?' · '+dispensed+' '+t('units'):''}`,'ok');
     await loadBatches(S.suProduct.id);
     await resyncSuCardFromServer();
   } catch(e){toast(t('t_failed')+e.message,'err');}
@@ -6300,7 +7028,7 @@ async function confirmRemoveBatch(batchIdEnc, reason) {
   if (!by) { toast(t('t_signin_first'),'warn'); closeQuickActions(); toggleMode(); return; }
   closeQuickActions();
   try {
-    await api({action:'removeBatch',batchId,reason,updatedBy:encodeURIComponent(by)});
+    await api({action:'removeBatch',batchId:batchUuid(batchId),reason,updatedBy:encodeURIComponent(by)});
     toast(t('t_batch_removed'),'ok');
     await loadBatches(S.suProduct.id);
     await resyncSuCardFromServer();
@@ -6446,7 +7174,7 @@ async function submitCount() {
     if (!target) { fail++; continue; }
     const newBatchQty = Math.max(0, target.quantity - c.delta);
     try {
-      await api({action:'updateBatch', batchId:target.batchId, quantity:newBatchQty, updatedBy:encodeURIComponent(name)});
+      await api({action:'updateBatch', batchId:batchUuid(target), quantity:newBatchQty, updatedBy:encodeURIComponent(name)});
       ok++;
     } catch(e) { fail++; }
   }
@@ -6606,20 +7334,35 @@ async function submitBulkUnified() {
   const by=currentActorName();
   if(!by){toast(t('t_signin_first'),'err');toggleMode();return;}
   const params={updatedBy:encodeURIComponent(by)};
+  // DATA LOSS GUARD — send note/expectedDate ONLY when deliberately touched.
+  // `bs-note` is ONE shared textarea for N selected products, so unlike su-note
+  // it can never be prefilled: it is blank unless someone types in it. Empty now
+  // means "clear this" (the clearable-fields change), so sending it just because
+  // a status was set would erase the note on every selected product — marking 30
+  // products Low would destroy 30 clinical notes, and the optimistic patch below
+  // would wipe the local copies too, so screen and database would agree and
+  // nothing would look wrong. Same reasoning for expectedDate, which is only
+  // meaningful for 'coming' and is never silently cleared in bulk.
   if (BULK.touched.status) {
     params.status = BULK.values.status;
-    params.note = el('bs-note').value.trim();
-    params.expectedDate = BULK.values.status==='coming' ? el('bs-date').value : '';
-  } else if (BULK.touched.note) {
-    params.note = el('bs-note').value.trim();
+    if (BULK.values.status === 'coming') params.expectedDate = el('bs-date').value;
   }
+  if (BULK.touched.note) params.note = el('bs-note').value.trim();
   if (BULK.touched.minUnits) params.minUnits = parseInt(BULK.values.minUnits)||S.settings.defaultMinUnits||5;
-  if (BULK.touched.unitsPerPackage) params.unitsPerPackage = parseInt(BULK.values.unitsPerPackage)||0;
+  // Same CHECK (units_per_package > 0) trap as submitSingle: `||0` would send a
+  // constraint-violating 0 and fail the whole bulk apply. Omit when not a
+  // positive number.
+  if (BULK.touched.unitsPerPackage) {
+    const bp = parseInt(BULK.values.unitsPerPackage);
+    if (Number.isFinite(bp) && bp > 0) params.unitsPerPackage = bp;
+  }
   if (BULK.touched.inpatientOnly) params.inpatientOnly = BULK.values.inpatientOnly;
   if (BULK.touched.lifeline) params.lifeline = BULK.values.lifeline;
   if (BULK.touched.dispenseFirst) params.dispenseFirst = BULK.values.dispenseFirst;
   if (BULK.touched.dfAuto) params.dfAuto = BULK.values.dfAuto;
-  if (BULK.touched.autoStatus) params.manualStatus = !BULK.values.autoStatus;
+  // Ledger 37 — see the matching comment in submitSingle: the gateway binds
+  // p_status_auto from `statusAuto`, not `manualStatus`. No inversion needed.
+  if (BULK.touched.autoStatus) params.statusAuto = BULK.values.autoStatus;
 
   const btn=el('bs-btn'),lbl=el('bs-btn-lbl');
   btn.disabled=true;
@@ -6628,15 +7371,22 @@ async function submitBulkUnified() {
   for(let i=0;i<ids.length;i+=BATCH){
     const chunk=ids.slice(i,i+BATCH);
     lbl.innerHTML=`<span class="spinner-sm"></span>${Math.min(i+BATCH,ids.length)}/${ids.length}…`;
-    const res=await Promise.allSettled(chunk.map(id=>api({action:'update',id,...params})));
+    // async arrow: productUuid() throws on an unknown code, and an async fn turns
+    // that into a rejected promise so allSettled still reports it per-product
+    // instead of aborting the whole chunk.
+    const res=await Promise.allSettled(chunk.map(async id=>api({action:'update',id:productUuid(id),...params})));
     res.forEach((r,j)=>{
       if(r.status==='fulfilled'){
         const p=S.products.find(x=>x.id===chunk[j]);
         if(p){
-          if(BULK.touched.status) { p.status=BULK.values.status; p.expectedDate=BULK.values.status==='coming'?el('bs-date').value:''; }
-          if(BULK.touched.status||BULK.touched.note) p.note=el('bs-note').value.trim();
+          // Mirror the payload above EXACTLY: patch locally only what was sent,
+          // or the optimistic copy invents a clear the server never performed.
+          if(BULK.touched.status) { p.status=BULK.values.status; if(BULK.values.status==='coming') p.expectedDate=el('bs-date').value; }
+          if(BULK.touched.note) p.note=el('bs-note').value.trim();
           if(BULK.touched.minUnits) p.minUnits=params.minUnits;
-          if(BULK.touched.unitsPerPackage) p.unitsPerPackage=params.unitsPerPackage>0?params.unitsPerPackage:null;
+          // Mirror the payload: only patch when the value was actually sent,
+          // or the local copy invents a change the server never made.
+          if(params.unitsPerPackage!==undefined) p.unitsPerPackage=params.unitsPerPackage;
           if(BULK.touched.inpatientOnly) p.inpatientOnly=BULK.values.inpatientOnly;
           if(BULK.touched.lifeline) p.lifeline=BULK.values.lifeline;
           if(BULK.touched.dispenseFirst) p.dispenseFirst=BULK.values.dispenseFirst;
@@ -6744,6 +7494,15 @@ async function loadSupervisorData() {
   hide('sv-content');
   S.svLoaded = false;
   try {
+    // Staff FIRST, deliberately. The dashboard's staff-activity rows and the
+    // dispensing-history card both identify people by profiles.id uuid, and
+    // actorName() needs S.staff to turn those into names. Fetched before
+    // getSupervisorData rather than alongside it so the reshaper cannot run
+    // against an empty S.staff and fall back to uuids on first paint.
+    // allSettled, not await: staff is an enhancement to the dashboard, so a
+    // failure here must degrade names to uuids, never block the whole screen.
+    await ensureStaffLoaded();
+
     const d = await api({action:'getSupervisorData'});
     renderSupervisorDashboard(d);
     hide('sv-loading');
@@ -6948,6 +7707,12 @@ function renderWaste(d) {
 function renderTrend(d) {
   const box = el('sv-trend-content');
   if (!d || !d.trend) { box.innerHTML = '<div class="empty" style="padding:12px"><p style="font-size:.8125rem">Not available yet — redeploy backend</p></div>'; return; }
+  // An EMPTY array is not the same as a missing one. dispensing_trend() returns
+  // no rows at all until there is dispensing history, and `[]` is truthy — so
+  // this fell through to svgTrend([]), which draws a degenerate empty path and
+  // renders a blank box with no explanation. That is the day-one state of a
+  // fresh cutover, so say so plainly instead of showing an empty chart.
+  if (!d.trend.length) { box.innerHTML = '<div class="empty" style="padding:12px"><p style="font-size:.8125rem">No dispensing recorded yet</p></div>'; return; }
   box.innerHTML = svgTrend(d.trend);
 }
 
@@ -7130,7 +7895,7 @@ async function loadDispenseHistory(productId) {
   const box = el('svh-content');
   box.innerHTML = '<div class="empty" style="padding:12px"><div class="spinner"></div></div>';
   try {
-    const d = await api({action:'getDispenseHistory', productId, ...(S.svhPeriod||{})});
+    const d = await api({action:'getDispenseHistory', productId:productUuid(productId), ...(S.svhPeriod||{})});
     S.svhData = d;
     renderDispenseHistory(d);
   } catch(e) {
@@ -7436,6 +8201,7 @@ function toast(msg,type=''){
 document.addEventListener('click',e=>{
   if(!e.target.closest('#su-search')&&!e.target.closest('#su-dropdown')) hide('su-dropdown');
   if(!e.target.closest('#src-search')&&!e.target.closest('#src-dropdown')) hide('src-dropdown');
+  if(!e.target.closest('#pd-search')&&!e.target.closest('#pd-dropdown')) hide('pd-dropdown');
 });
 </script>
 </body>
