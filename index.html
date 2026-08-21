@@ -4005,7 +4005,9 @@ const RESHAPE = {
     const entryCount = products.reduce((s,x)=>s+(x.eventCount||0),0);
     const from = (p && p.from) || null, to = (p && p.to) || null;
     let days = null;
-    if (from && to) days = Math.round((new Date(to+'T23:59:59') - new Date(from+'T00:00:00')) / 86400000 + 0.5);
+    // Whole days INCLUSIVE of both ends: 1st to 19th is 19 days, not 20. The
+    // previous mix of a 23:59:59 end and a +0.5 nudge over-counted by one.
+    if (from && to) days = Math.round((new Date(to+'T00:00:00') - new Date(from+'T00:00:00')) / 86400000) + 1;
     return { from, to, days, products, grandTotal, entryCount };
   },
   // FIX B4: dispensing_trend() is likewise a TABLE(...)-returning RPC — bare
@@ -7781,7 +7783,28 @@ function toggleReportCustom(btn) {
   setReportChip(btn);
   el('rp-custom-wrap').classList.toggle('hidden');
 }
+// The quick-period chips pass {days:N}, but dispense_report/dispense_history
+// take only p_from/p_to and NOTHING ever translated it. Consequences differed
+// and both were bad: dispense_report's params have no defaults, so "Last 3/7/30
+// days" failed outright; dispense_history's default to NULL, so its chips
+// silently returned ALL-TIME history while the UI showed the period selected.
+// Found 2026-08-20 by check_frontend_contract.py. Converted here, in one place,
+// so the chips and the custom-range inputs cannot drift apart.
+// Local yyyy-MM-dd deliberately: it matches the <input type="date"> fields these
+// chips sit beside, so both routes into the same report agree with each other.
+// N days INCLUSIVE of today — "Last 7 days" is today plus the six before it.
+function periodToRange(params) {
+  if (!params || params.days == null) return params || {};
+  const n = Number(params.days);
+  if (!Number.isFinite(n) || n <= 0) return {};
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const to = new Date();
+  const from = new Date(); from.setDate(from.getDate() - (n - 1));
+  return { from: ymd(from), to: ymd(to) };
+}
+
 async function runDispenseReport(params, btn) {
+  params = periodToRange(params);
   if (btn) { setReportChip(btn); el('rp-custom-wrap').classList.add('hidden'); }
   const box = el('sv-report-content');
   box.innerHTML = '<div class="empty" style="padding:12px"><div class="spinner"></div></div>';
@@ -7876,7 +7899,9 @@ function setSvhChip(btn) {
   btn?.classList.add('on');
 }
 function svhSetPeriod(params, btn) {
-  S.svhPeriod = params;
+  // Normalise at set time so every later read of S.svhPeriod is already a
+  // real from/to range — including the CSV export's filename.
+  S.svhPeriod = periodToRange(params);
   setSvhChip(btn);
   el('svh-custom-wrap')?.classList.add('hidden');
   if (S.svhProductId) loadDispenseHistory(S.svhProductId);
