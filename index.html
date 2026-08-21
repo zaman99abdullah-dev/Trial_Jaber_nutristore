@@ -3770,8 +3770,14 @@ const RESHAPE = {
       o.updatedBy = actorName(r.actor_id);
       const ov = (r.old_value && typeof r.old_value === 'object') ? r.old_value : null;
       const nv = (r.new_value && typeof r.new_value === 'object') ? r.new_value : null;
-      o.oldStatus = ov ? ov.status : undefined;
-      o.newStatus = nv ? nv.status : undefined;
+      // PRODUCT statuses only. A STAFF row's `status` is a different vocabulary
+      // entirely — approved/pending/disabled/rejected — and reading it as a
+      // product status put 'approved' into STATUS_CFG, which has no such key,
+      // so renderLogs threw on `newC.cls` and the ENTIRE Changes tab went blank
+      // for supervisors and storage alike. One staff approval was enough.
+      const isProductStatus = r.entity === 'product';
+      o.oldStatus = (isProductStatus && ov) ? ov.status : undefined;
+      o.newStatus = (isProductStatus && nv) ? nv.status : undefined;
       if (r.entity === 'product') {
         const prod = PRODUCT_BY_UUID[r.entity_id];
         // Never a bare blank: an unresolved uuid degrades to a visible marker,
@@ -7573,8 +7579,12 @@ function renderLogs() {
   el('log-list').innerHTML=logs.map(l=>{
     const d=l.timestamp?new Date(l.timestamp):null;
     const ds=d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+    // NEVER index STATUS_CFG bare. One unrecognised value used to throw inside
+    // this .map() and take the WHOLE list down — a single bad row must degrade
+    // to "Not Set", not blank the page.
+    const cfg = (s) => STATUS_CFG[s||''] || STATUS_CFG[''];
     const isStatus = l.oldStatus !== undefined || l.newStatus !== undefined;
-    const newC = STATUS_CFG[l.newStatus||''];
+    const newC = cfg(l.newStatus);
     // A genuine status change keeps the two badges. EVERYTHING ELSE gets a real
     // description: this log was written for the Sheets era, where every row was
     // a status change on a named product, so it rendered batch/settings/staff
@@ -7582,7 +7592,7 @@ function renderLogs() {
     // most common action, so the tab filled with meaningless entries.
     const body = isStatus
       ? `<div class="log-change">
-          <span class="sbadge ${STATUS_CFG[l.oldStatus||''].cls}" style="font-size:.6rem">${STATUS_CFG[l.oldStatus||''].label}</span>
+          <span class="sbadge ${cfg(l.oldStatus).cls}" style="font-size:.6rem">${cfg(l.oldStatus).label}</span>
           <span style="color:var(--text3)">→</span>
           <span class="sbadge ${newC.cls}" style="font-size:.6rem">${newC.label}</span>
         </div>`
