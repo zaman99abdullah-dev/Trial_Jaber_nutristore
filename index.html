@@ -784,7 +784,13 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
    loses to it at equal specificity. */
 @media(max-width:430px){
   .pitem,.d-row{flex-wrap:wrap;gap:6px 10px}
-  .pi-info,.d-info{flex:1 1 100% !important;order:1;min-width:0}
+  /* `.d-row .sbadge{order:1}` and `.d-row .d-info{order:2}` are two-class rules
+     — a bare `.d-info` here loses the ORDER even though it wins the flex-basis,
+     which put the status badge on line 1 and pushed the product NAME to line 2.
+     Match their specificity so the name leads, as it does in the storage row. */
+  .pi-info{flex:1 1 100%;order:1;min-width:0}
+  .d-row .d-info{flex:1 1 100%;order:1;min-width:0}
+  .d-row .sbadge{order:2;margin-inline-end:auto}
   /* .d-row .d-name is declared at two-class specificity, so a bare .d-name
      here loses to it — match it rather than reach for !important. */
   .pi-name,.d-row .d-name{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
