@@ -454,7 +454,11 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .log-body{flex:1;min-width:0}
 .log-name{font-size:.875rem;font-weight:600}
 .log-meta{font-size:.75rem;color:var(--text2);margin-top:3px}
-.log-change{font-size:.75rem;margin-top:3px;display:flex;align-items:center;gap:5px}
+/* flex-wrap is load-bearing: a settings save lists five fields, and without it
+   the row is a single non-wrapping flex line that runs past the card edge.
+   min-width:0 lets a long single value shrink rather than force the overflow. */
+.log-change{font-size:.75rem;margin-top:3px;display:flex;align-items:center;gap:5px;
+  flex-wrap:wrap;row-gap:4px;min-width:0;overflow-wrap:anywhere}
 
 /* Settings */
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border)}
@@ -770,6 +774,28 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
   color:var(--accent);background:none;padding:8px 10px;border-radius:var(--rs);min-height:36px}
 .btn-refresh:hover{background:var(--surface2)}
 @media(max-width:430px){ .btn-refresh{min-height:44px;padding:10px 12px} }
+
+/* ── Changes log: month grouping ──────────────────────────────────────────
+   An audit trail only grows. Grouping by month keeps every entry reachable
+   while showing one month at a time, instead of one unbounded scroll. */
+.log-month{margin-bottom:6px}
+.log-month-hd{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;
+  padding:10px 12px;margin:6px 0;border-radius:var(--rs);background:var(--surface2);
+  border:1px solid var(--border);color:var(--text);font-weight:700;font-size:.75rem;
+  letter-spacing:.05em;text-transform:uppercase;text-align:inherit}
+.log-month-hd:hover{background:var(--surface);border-color:var(--border2)}
+.log-month-name{flex:1;min-width:0}
+.log-month-count{font-size:.7rem;font-weight:700;color:var(--text2);
+  background:var(--surface);border-radius:100px;padding:2px 8px;min-width:24px;text-align:center}
+.log-month-chev{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  color:var(--text2);transition:transform .18s}
+.log-month-hd.open .log-month-chev{transform:rotate(180deg)}
+.log-month-body.collapsed{display:none}
+.btn-load-older{display:block;width:100%;min-height:44px;margin-top:10px;padding:12px;
+  border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border2);
+  color:var(--accent);font-weight:700;font-size:.8125rem}
+.btn-load-older:hover{background:var(--surface)}
+@media (prefers-reduced-motion:reduce){ .log-month-chev{transition:none} }
 
 /* ── PHONE: product rows ──────────────────────────────────────────────────
    The NAME is the entire point of this list and it was getting ~90px of a
@@ -2731,6 +2757,9 @@ const T = {
   stf_pending:['Pending','قيد الانتظار'], stf_approved:['Approved','معتمد'], stf_disabled:['Disabled','معطّل'], stf_rejected:['Rejected','مرفوض'],
   stf_storage:['Storage','مخزن'], stf_supervisor:['Supervisor','مشرف'], stf_reject:['✕ Reject','✕ رفض'],
   stf_approve_as:['Approve as','اعتماد كـ'],
+  log_load_older:['Load older changes','تحميل تغييرات أقدم'],
+  log_loading_older:['Loading…','جارٍ التحميل…'],
+  log_undated:['Undated','بدون تاريخ'],
   stf_role_sv:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 20 2-10 4 4 4-7 4 7 4-4 2 10Z"/></svg> Supervisor','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 20 2-10 4 4 4-7 4 7 4-4 2 10Z"/></svg> مشرف'],
   stf_role_st:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Storage','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> مخزن'],
   stf_role_change:['Change role','تغيير الدور'],
@@ -3877,8 +3906,26 @@ function reshapeBatch(r) {
   o.productName = r.product_name || PRODUCT_BY_UUID[r.product_id]?.name || '';
   o.qty = r.quantity;
   if (r.expiry_date) {
-    const ms = new Date(r.expiry_date + 'T00:00:00').getTime() - Date.now();
-    o.daysLeft = Math.ceil(ms / 86400000);
+    // CALENDAR days, and prefer the server's own figure when it sent one.
+    //
+    // This used to subtract `Date.now()` from midnight on the expiry date, so a
+    // batch expiring TODAY came back as daysLeft -1 / expired:true the moment
+    // the clock passed 00:00 — while the DATABASE still counts it as valid
+    // stock (`expiry_date >= app.hospital_today(...)`, and v_expiring reports
+    // days_remaining 0 for it). The app and the database therefore disagreed
+    // about the same batch: staff would see "expired" and leave usable stock on
+    // the shelf, and the status automation would still be counting it.
+    // v_expiring computes days_remaining server-side in the HOSPITAL's timezone,
+    // which is more correct than anything derivable from the browser clock, so
+    // use it when present; the raw `batches` table has no such column, so fall
+    // back to a date-only difference — never a timestamp one.
+    if (r.days_remaining !== undefined && r.days_remaining !== null) {
+      o.daysLeft = Number(r.days_remaining);
+    } else {
+      const midnightToday = new Date(); midnightToday.setHours(0,0,0,0);
+      const exp = new Date(r.expiry_date + 'T00:00:00');
+      o.daysLeft = Math.round((exp.getTime() - midnightToday.getTime()) / 86400000);
+    }
     o.expired  = o.daysLeft < 0;
   }
   return o;
@@ -3950,8 +3997,13 @@ const RESHAPE = {
       }
       return o;
     });
-    logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    return { logs: logs.slice(0, 100) };
+    // NO client-side sort or slice any more. `getLogs` is now the audit_log
+    // RPC, which orders (occurred_at desc, id desc) and limits SERVER-side.
+    // Re-sorting here would be harmless; re-slicing would silently drop rows the
+    // server deliberately sent, and sorting by timestamp alone would scramble
+    // rows sharing a timestamp — the exact tie the server breaks with id.
+    // `o.id` is preserved by camelizeRow and is what keyset paging pages on.
+    return { logs };
   },
   listStaff(rows) {
     return { staff: (rows || []).map(r => {
@@ -7799,11 +7851,18 @@ async function saveSettings() {
 // who the weekly email went to. No email, nothing to list.
 
 // ══ Logs ══════════════════════════════════════════════════════
+const LOG_PAGE = 50;   // must not exceed the RPC's server-side ceiling (200)
+
 async function loadLogs() {
   el('log-list').innerHTML='<div class="empty"><div class="spinner"></div></div>';
   try {
-    const d=await api({action:'getLogs'});
+    const d=await api({action:'getLogs', limit:LOG_PAGE});
     S.logs = d.logs||[];
+    // A full page means there is probably more; a short page means we reached
+    // the end. Cheaper and less racy than a separate count query, and the worst
+    // case is one extra request that comes back empty.
+    S.logHasMore = S.logs.length === LOG_PAGE;
+    S.logMonthsOpen = null;          // recompute the default-open month
     renderLogs();
   } catch(e){
     el('log-list').innerHTML='<div class="empty"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><p>'+e.message+'</p></div>';
@@ -7829,13 +7888,32 @@ function renderLogs() {
       : '<div class="empty"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg></div><p>No changes yet</p></div>';
     return;
   }
-  const weekAgo = Date.now() - 7*24*60*60*1000;
-  const hasRecent = logs.some(l=> l.timestamp && new Date(l.timestamp).getTime() >= weekAgo );
-  if (!hasRecent && !q) {
-    el('log-list').innerHTML = '<div class="empty"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p>No changes in the last 7 days</p></div>';
-    return;
-  }
-  el('log-list').innerHTML=logs.map(l=>{
+  // The old "No changes in the last 7 days" early-return HID THE ENTIRE LIST
+  // whenever nothing had happened that week — the history was still there and
+  // still loaded, just unreachable. Month grouping replaces it: everything stays
+  // reachable, but only the current month is open, so a log that runs to
+  // thousands of entries stays readable instead of becoming one endless scroll.
+  const monthKey = (ts) => { const d = new Date(ts); return isFinite(d) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown'; };
+  const monthLabel = (key) => {
+    if (key === 'unknown') return t('log_undated');
+    const [y,m] = key.split('-');
+    return new Date(Number(y), Number(m)-1, 1)
+      .toLocaleDateString(LANG.current === 'ar' ? 'ar' : 'en-GB', {month:'long', year:'numeric'});
+  };
+  const groups = [];
+  logs.forEach(l => {
+    const k = monthKey(l.timestamp);
+    let g = groups.find(x => x.key === k);
+    if (!g) { g = {key:k, items:[]}; groups.push(g); }
+    g.items.push(l);
+  });
+  // Newest month first; the first group opens by default. A staff-name filter
+  // opens EVERY group — hiding a search result behind a collapsed heading is
+  // the fastest way to make someone think the record is missing.
+  groups.sort((a,b) => b.key.localeCompare(a.key));
+  if (!S.logMonthsOpen) S.logMonthsOpen = new Set(groups.length ? [groups[0].key] : []);
+
+  const renderItem = (l) => {
     const d=l.timestamp?new Date(l.timestamp):null;
     const ds=d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
     // NEVER index STATUS_CFG bare. One unrecognised value used to throw inside
@@ -7864,7 +7942,49 @@ function renderLogs() {
         <div class="log-meta">${ds}${l.updatedBy?' · '+escapeHtml(l.updatedBy):''}${l.note?' · '+escapeHtml(l.note):''}</div>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  el('log-list').innerHTML = groups.map(g => {
+    const open = q ? true : S.logMonthsOpen.has(g.key);
+    return `<div class="log-month">
+      <button class="log-month-hd${open?' open':''}" onclick="toggleLogMonth('${escapeHtml(g.key)}')"
+              aria-expanded="${open}">
+        <span class="log-month-name">${escapeHtml(monthLabel(g.key))}</span>
+        <span class="log-month-count">${g.items.length}</span>
+        <span class="log-month-chev">▾</span>
+      </button>
+      <div class="log-month-body${open?'':' collapsed'}">${g.items.map(renderItem).join('')}</div>
+    </div>`;
+  }).join('') + (S.logHasMore ? `
+    <button class="btn-load-older" onclick="loadOlderLogs()">${escapeHtml(t('log_load_older'))}</button>` : '');
+}
+
+// Keyset paging: ask for rows older than the oldest one we already hold.
+// Paging on (occurred_at, id) rather than an offset means new entries arriving
+// while someone reads cannot shift the window and duplicate or skip a row —
+// and occurred_at alone is NOT unique, which is why the id goes too.
+async function loadOlderLogs() {
+  const oldest = S.logs[S.logs.length - 1];
+  if (!oldest) return;
+  const btn = document.querySelector('.btn-load-older');
+  if (btn) { btn.disabled = true; btn.textContent = t('log_loading_older'); }
+  try {
+    const d = await api({action:'getLogs', limit:LOG_PAGE,
+                         before:oldest.timestamp, beforeId:oldest.id});
+    const older = d.logs || [];
+    S.logs = S.logs.concat(older);
+    S.logHasMore = older.length === LOG_PAGE;
+    renderLogs();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = t('log_load_older'); }
+    toast(t('t_failed') + e.message, 'err');
+  }
+}
+
+function toggleLogMonth(key) {
+  if (!S.logMonthsOpen) S.logMonthsOpen = new Set();
+  if (S.logMonthsOpen.has(key)) S.logMonthsOpen.delete(key); else S.logMonthsOpen.add(key);
+  renderLogs();
 }
 
 // Human labels for audit_logs' raw column names. Without these the Changes tab
