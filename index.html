@@ -808,7 +808,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
     <button class="ntab sv-only hidden" onclick="goTab('staff')"       id="tab-staff"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span id="tab-staff-lbl">Staff</span><span class="ntab-dot hidden" id="staff-dot"></span></button>
     <button class="ntab sv-only hidden" onclick="goTab('source')"      id="tab-source"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg><span id="tab-source-lbl">Products Admin</span></button>
     <button class="ntab s-only hidden" onclick="goTab('settings')"    id="tab-settings"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="tab-settings-lbl">Settings</span></button>
-    <button class="ntab hidden" onclick="goTab('changes')"    id="tab-changes"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg><span id="tab-changes-lbl">Changes</span></button>
+    <button class="ntab s-only hidden" onclick="goTab('changes')"    id="tab-changes"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg><span id="tab-changes-lbl">Changes</span></button>
   </nav>
 
   <div class="main">
@@ -4666,6 +4666,17 @@ async function restoreSession() {
 }
 
 // Reflect the current user's role in the header + which tabs are visible.
+// May the CURRENT role open this tab? Reads the nav button's own gating class,
+// the same one applyUser() uses to show or hide it, so a tab can never be
+// reachable while its button is hidden. Unknown/ungated tabs are open to all.
+function tabAllowed(name) {
+  const btn = el('tab-' + name);
+  if (!btn) return true;
+  if (btn.classList.contains('sv-only')) return !!S.isSupervisor;
+  if (btn.classList.contains('s-only'))  return !!S.isStorage;
+  return true;
+}
+
 function applyUser() {
   const role = S.session ? S.session.role : null;
   const pill=el('mode-pill'), btn=el('mode-btn');
@@ -4687,8 +4698,12 @@ function applyUser() {
     qsa('.not-sv').forEach(t=>t.classList.remove('hidden'));
     qsa('.sv-only').forEach(t=>t.classList.add('hidden'));
   }
-  // Changes tab: signed-in staff only — hidden from the logged-out (dietitian) view.
-  el('tab-changes')?.classList.toggle('hidden', !role);
+  // Changes now carries `s-only` like every other staff tab, so the three
+  // branches above position it. It previously had NO gating class and was driven
+  // by a bespoke `hidden = !role` line, which meant ANY signed-in role saw it —
+  // including a dietitian, who then got an empty list because audit_read is
+  // restricted to storage/supervisor in the database. One tab opting out of the
+  // shared mechanism was all it took to drift.
   if (role) {
     btn.innerHTML=t('btn_signout');
     btn.classList.toggle('on', role==='storage');
@@ -4697,7 +4712,14 @@ function applyUser() {
     btn.innerHTML=t('btn_signin'); btn.classList.remove('on','on-sv');
   }
   renderIdentityLines();
-  if (!role && ['update','settings','supervisor','staff','changes','source'].includes(S.activeTab)) goTab('products');
+  // Close any tab the CURRENT role may not see. This used to fire only when
+  // logged OUT (`!role`), so demoting someone mid-session left them sitting on a
+  // storage or supervisor pane that was still rendered and still interactive —
+  // exactly what happens now that roles are changeable after approval.
+  // Derived from the nav button's own gating class rather than a hardcoded
+  // list, so the visibility rules and this guard cannot drift apart, and a tab
+  // added later is covered without anyone remembering to update a list here.
+  if (!tabAllowed(S.activeTab)) goTab('products');
   if (S.products.length) renderProducts();
 }
 
@@ -4751,6 +4773,12 @@ async function submitChangePassword() {
 
 // ══ Tabs ══════════════════════════════════════════════════════
 function goTab(name) {
+  // Refuse a tab this role may not open, whatever route asked for it — a stale
+  // inline handler, a restored draft, or code calling goTab directly. The nav
+  // buttons are already hidden, so this only ever catches the non-click paths;
+  // it is cheap, and the alternative is a pane rendering for someone whose
+  // every action on it the database will refuse anyway.
+  if (!tabAllowed(name)) name = 'products';
   qsa('.ntab').forEach(t=>t.classList.remove('on'));
   el('tab-'+name)?.classList.add('on');
   qsa('[id^="pane-"]').forEach(p=>p.classList.add('hidden'));
