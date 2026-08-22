@@ -108,19 +108,60 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .auth-link.dim{color:var(--text3b);font-weight:500;font-size:.75rem}
 
 /* Staff management rows */
-.staff-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+/* Staff row. Was a plain flex-wrap, so the action group broke to a second line
+   at unpredictable points — one row kept its buttons inline while the next
+   dropped just the last one, leaving the list visibly ragged. Now the actions
+   are their own right-aligned group that wraps as a UNIT, and the row gets a
+   hover state (interactive rows should say so). */
+.staff-row{display:flex;align-items:center;gap:12px;padding:13px 10px;
+  border-bottom:1px solid var(--border);flex-wrap:wrap;border-radius:var(--rs);
+  transition:background .15s}
+.staff-row:hover{background:var(--surface2)}
+@media (prefers-reduced-motion:reduce){ .staff-row{transition:none} }
 .staff-row:last-child{border-bottom:none}
 .staff-main{flex:1;min-width:160px}
 .staff-nm{font-size:.9375rem;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .staff-em{font-size:.75rem;color:var(--text2);margin-top:3px;word-break:break-all}
-.staff-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.staff-role{font-size:.75rem;font-weight:700;color:var(--text2);margin-right:2px}
+/* The action group moves to its own line as a WHOLE when it will not fit
+   beside the name, instead of splitting so one row keeps three buttons inline
+   and the next drops only its last one. That splitting is what made the list
+   look ragged. Below 560px it may wrap internally — at that width there is no
+   arrangement that keeps them on one line, and wrapping beats overflow. */
+.staff-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  margin-inline-start:auto;flex:0 0 auto;flex-wrap:nowrap;max-width:100%}
+@media(max-width:560px){
+  .staff-actions{flex-wrap:wrap;justify-content:flex-start;margin-inline-start:0}
+}
+/* Destructive actions stop competing with the primary one. Solid red at the
+   same weight as "Approve" made every row read as a warning; it now sits quiet
+   until you go near it, which is also what keeps a mis-tap unlikely. */
+.staff-btn.no{background:transparent;color:var(--red-t);border-color:rgba(239,68,68,.35)}
+.staff-btn.no:hover{background:var(--red-bg);border-color:rgba(239,68,68,.6)}
+.staff-btn:hover{border-color:var(--border2)}
+.staff-role{display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:.75rem;
+  font-weight:700;color:var(--text2);margin-inline-end:2px}
+.staff-approve-as{font-size:.7rem;font-weight:600;color:var(--text3b);
+  letter-spacing:.03em;text-transform:uppercase;margin-inline-end:2px}
 /* Role picker on an approved staff row. Sized to sit level with .staff-btn so
    the row reads as one control group rather than a stray form field. */
 .staff-role-sel{padding:7px 10px;border-radius:var(--rs);font-size:.75rem;font-weight:700;
   border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
-  min-height:36px;max-width:130px}
-.staff-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:var(--rs);font-size:.75rem;font-weight:700;border:1px solid var(--border2);background:var(--surface2);color:var(--text2)}
+  height:36px;min-height:36px;max-width:130px;box-sizing:border-box}
+/* One control height across the whole row. Buttons were 30px, the role label
+   36px and the select 44px, so every row sat at a different height and the list
+   read as uneven. 36px on pointer devices; 44px at phone widths, where these
+   genuinely are touch targets and the group has the room to grow. */
+.staff-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  min-height:36px;padding:7px 12px;border-radius:var(--rs);font-size:.75rem;font-weight:700;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
+  /* Two-word labels ("Reset PW", "Enable · Supervisor") were wrapping to a
+     second line whenever the row was tight, making that one button 44px while
+     its neighbours stayed 36px. The group moves to its own line as a unit
+     instead — that is what .staff-actions' nowrap is for. */
+  white-space:nowrap}
+@media(max-width:560px){
+  .staff-btn,.staff-role-sel,.staff-role{min-height:44px}
+}
 .staff-btn.ok{background:var(--green-bg);color:var(--green-t);border-color:rgba(34,197,94,.3)}
 .staff-btn.sv{background:var(--purple-bg);color:var(--purple-t);border-color:rgba(139,92,246,.3)}
 .staff-btn.no{background:var(--red-bg);color:var(--red-t);border-color:rgba(239,68,68,.3)}
@@ -145,7 +186,23 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .hdr-left{display:flex;align-items:center;gap:11px;min-width:0}
 .hdr-logo{width:42px;height:42px;flex-shrink:0;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
 .hdr-tw{display:flex;flex-direction:column;min-width:0}
-.hdr-title-row{display:flex;align-items:center;gap:8px}
+.hdr-title-row{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+/* The right-hand controls must never be encroached on. Without this the title
+   block kept its natural width and the role pill slid UNDER the language button
+   and Sign Out at phone widths — three elements stacked on the same pixels. */
+.hdr-right{display:flex;align-items:center;flex-shrink:0}
+@media(max-width:430px){
+  /* On a phone there is not room for wordmark + role pill + hospital name +
+     two buttons on one line. The hospital name goes first: it was already
+     ellipsised to "JABER AL AHMAD …", which tells a nurse standing in that
+     hospital nothing, while the ROLE pill genuinely changes what the app lets
+     them do. The pill drops to its own line inside the 62px header. */
+  .hdr-sub{display:none}
+  .hdr-title{font-size:.9375rem}
+  .hdr-title-row{gap:3px 8px}
+  .hdr-logo{width:36px;height:36px}
+  .hdr{padding:0 12px}
+}
 .hdr-title{font-size:1rem;font-weight:800;letter-spacing:.01em;line-height:1.2}
 .hdr-sub{font-size:.5625rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;margin-top:1px;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .mode-pill{display:inline-flex;align-items:center;gap:4px;font-size:.6875rem;font-weight:700;padding:3px 9px;border-radius:100px;text-transform:uppercase;letter-spacing:.05em}
@@ -190,12 +247,34 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
    Distinct from .calc-* above — these collapse a GROUP of whole .card
    elements (not one card's own body) and persist their state across reloads
    (the calculator cards deliberately do not). */
-.sv-sec{margin-bottom:14px}
-.sv-sec-header{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 2px;margin-bottom:10px}
-.sv-sec-title{flex:1;min-width:0;font-size:.8125rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)}
-.sv-sec-chevron{font-size:.75rem;color:var(--text2);transition:transform .15s;flex-shrink:0}
+.sv-sec{margin-bottom:18px}
+/* Section header. Previously tiny low-contrast caps with a near-invisible
+   chevron, so it read as a label rather than a control and was hard to scan
+   between. Now a real surface: full-width hit area (44px min per touch rules),
+   a visible chevron affordance, and a left accent rule that gives the eye an
+   anchor when several sections stack. */
+.sv-sec-header{display:flex;align-items:center;gap:10px;cursor:pointer;
+  padding:10px 12px;margin-bottom:10px;min-height:44px;width:100%;text-align:inherit;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);
+  border-inline-start:3px solid var(--accent);transition:background .15s,border-color .15s}
+.sv-sec-header:hover{background:var(--surface);border-color:var(--border2)}
+.sv-sec-title{flex:1;min-width:0;font-size:.8125rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text);}
+/* ▾ at 11px inside a 22px circle rendered as a speck — the affordance has to be
+   legible or the header does not read as expandable at all. */
+.sv-sec-chevron{display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;background:var(--surface);
+  border:1px solid var(--border);line-height:1;
+  font-size:.95rem;color:var(--text);transition:transform .18s;flex-shrink:0}
 .sv-sec-chevron.open{transform:rotate(180deg)}
 .sv-sec-body.collapsed{display:none}
+/* A section whose contents are destructive announces itself before it is opened
+   — the delete part of Products Admin should never look like the edit parts. */
+.sv-sec-header.danger{border-inline-start-color:var(--red)}
+.sv-sec-header.danger .sv-sec-title{color:var(--red-t)}
+@media (prefers-reduced-motion:reduce){
+  .sv-sec-header,.sv-sec-chevron{transition:none}
+}
 
 /* Stats bar */
 .stats-bar{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px}
@@ -684,6 +763,36 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .foot-app{font-size:.625rem;color:var(--text3);margin-top:12px;letter-spacing:.1em;text-transform:uppercase}
 
 @media(max-width:480px){.row2{grid-template-columns:1fr}.add-batch-form .row2{grid-template-columns:1fr}.sv-stat-grid{grid-template-columns:1fr 1fr}.bar-label{width:100px}.mc-grid{grid-template-columns:1fr 1fr}}
+/* The shared Refresh control (Staff / Supervisor / Changes) was 84x25 — well
+   under the 44px touch minimum, and it is the one thing on those screens a
+   user reaches for repeatedly. Same look, real hit area. */
+.btn-refresh{display:inline-flex;align-items:center;gap:6px;font-size:.8125rem;font-weight:700;
+  color:var(--accent);background:none;padding:8px 10px;border-radius:var(--rs);min-height:36px}
+.btn-refresh:hover{background:var(--surface2)}
+@media(max-width:430px){ .btn-refresh{min-height:44px;padding:10px 12px} }
+
+/* ── PHONE: product rows ──────────────────────────────────────────────────
+   The NAME is the entire point of this list and it was getting ~90px of a
+   375px screen: the status badge (~100px) and the action buttons claimed the
+   row first, so names rendered as "Fontactiv …", "Pulmoca…", "Nepro H…".
+   This catalogue holds seven Fontactiv variants and Pediasure Peptide 1 vs
+   1.5 Cal — a name clipped to ten characters is not a cosmetic problem, it is
+   reaching for the wrong tin. Both row types are covered: .pitem is the
+   storage/supervisor row, .d-row the dietitian one.
+   Placed at the END of the stylesheet deliberately: .pi-info's own `flex:1`
+   is declared later in the file than the row rules, so an earlier media query
+   loses to it at equal specificity. */
+@media(max-width:430px){
+  .pitem,.d-row{flex-wrap:wrap;gap:6px 10px}
+  .pi-info,.d-info{flex:1 1 100% !important;order:1;min-width:0}
+  /* .d-row .d-name is declared at two-class specificity, so a bare .d-name
+     here loses to it — match it rather than reach for !important. */
+  .pi-name,.d-row .d-name{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
+  .pi-src{max-width:100%}
+  /* Second line: status on the left, actions pushed to the right. */
+  .pitem > .sbadge,.d-row > .sbadge{order:2;margin-inline-end:auto}
+  .pitem > .qa-btn,.d-row > .qa-btn,.d-row > .pin-star{order:3}
+}
 </style>
 </head>
 <body>
@@ -789,7 +898,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <div class="hdr-sub" data-i18n="hdr_sub">Jaber Al Ahmad Hospital · MOH Kuwait</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center">
+    <div class="hdr-right">
       <button class="btn-lang" id="lang-btn" onclick="toggleLang()" aria-label="العربية / English">ع</button>
       <button class="btn-mode" id="mode-btn" onclick="toggleMode()"><svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Sign In</button>
     </div>
@@ -1898,15 +2007,22 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
           <!-- Supervisor-only: product source details (manufacturer/variant/density/form). -->
           <div id="su-source-card" class="card hidden">
-            <div class="card-title"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span data-i18n="su_src_title">Product Source</span> <span class="badge-sv" data-i18n="badge_supervisor_only">(supervisor)</span></div>
+            <div class="card-title"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span data-i18n="su_src_title">Product Source</span></div>
             <div class="settings-desc" style="margin:-6px 0 12px" data-i18n="su_src_desc">Company, flavour, caloric density and form. Optional — shown under the product name in every view.</div>
-            <div class="field">
+            <div class="row2">
+
+              <div class="field">
               <label for="su-manufacturer" data-i18n="addp_mfr">Manufacturer / Company</label>
               <input type="text" id="su-manufacturer" placeholder="e.g. Abbott, Nutricia, Nestlé">
-            </div>
-            <div class="field">
+
+              </div>
+
+              <div class="field">
               <label for="su-variant" data-i18n="addp_variant">Variant / Flavour</label>
               <input type="text" id="su-variant" placeholder="e.g. Vanilla, Cappuccino">
+
+              </div>
+
             </div>
             <div class="row2">
               <div class="field">
@@ -1945,13 +2061,20 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
               <label for="ap-cat" data-i18n="addp_cat">Category</label>
               <select id="ap-cat"></select>
             </div>
-            <div class="field">
+            <div class="row2">
+
+              <div class="field">
               <label for="ap-mfr" data-i18n="addp_mfr">Manufacturer / Company</label>
               <input type="text" id="ap-mfr" placeholder="e.g. Abbott, Nutricia, Nestlé">
-            </div>
-            <div class="field">
+
+              </div>
+
+              <div class="field">
               <label for="ap-variant" data-i18n="addp_variant">Variant / Flavour</label>
               <input type="text" id="ap-variant" placeholder="e.g. Vanilla, Cappuccino">
+
+              </div>
+
             </div>
             <div class="row2">
               <div class="field">
@@ -1981,7 +2104,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
            .sv-only is redundant with the tab's own nav-level supervisor gate, but this
            is destructive enough to earn its own defense-in-depth layer (Ledger 21). -->
       <div class="sv-sec sv-only hidden" id="sv-sec-srcDelete">
-        <div class="sv-sec-header" id="sv-sec-header-srcDelete" role="button" tabindex="0" aria-expanded="false"
+        <div class="sv-sec-header danger" id="sv-sec-header-srcDelete" role="button" tabindex="0" aria-expanded="false"
              onclick="svSecToggle('srcDelete')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
           <span class="sv-sec-title" data-i18n="part3_title">Part 3 · Delete a Product</span>
           <span class="sv-sec-chevron" id="sv-sec-chevron-srcDelete">▾</span>
@@ -1989,7 +2112,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <div class="sv-sec-body collapsed" id="sv-sec-body-srcDelete">
 
           <div class="card" style="border-color:rgba(239,68,68,.35)">
-            <div class="card-title" style="color:var(--red-t)"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> <span data-i18n="pd_title">Delete a Product</span> <span class="badge-sv" data-i18n="badge_supervisor_only">(supervisor)</span></div>
+            <div class="card-title" style="color:var(--red-t)"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> <span data-i18n="pd_title">Delete a Product</span></div>
             <div class="settings-desc" style="margin:-6px 0 12px" data-i18n="pd_desc">Permanently destroys the product and everything attached to it — stock batches, nutrition profile and dispensing history. This cannot be undone.</div>
 
             <div class="field">
@@ -2037,7 +2160,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <div style="font-weight:700;font-size:.9375rem" data-i18n="sv_title">📊 Supervisor Dashboard</div>
             <div style="font-size:.75rem;color:var(--text2);margin-top:3px" id="sv-week-range">Loading week data…</div>
           </div>
-          <button onclick="loadSupervisorData()" style="font-size:.8125rem;font-weight:700;color:var(--accent);background:none;padding:4px 8px" data-i18n="sv_refresh">↻ Refresh</button>
+          <button class="btn-refresh" onclick="loadSupervisorData()" data-i18n="sv_refresh">↻ Refresh</button>
         </div>
       </div>
 
@@ -2256,7 +2379,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <div style="font-weight:700;font-size:.9375rem" data-i18n="staff_title">👥 Staff Accounts</div>
             <div style="font-size:.75rem;color:var(--text2);margin-top:3px" id="staff-pending-count">—</div>
           </div>
-          <button onclick="loadStaff()" style="font-size:.8125rem;font-weight:700;color:var(--accent);background:none;padding:4px 8px" data-i18n="sv_refresh">↻ Refresh</button>
+          <button class="btn-refresh" onclick="loadStaff()" data-i18n="sv_refresh">↻ Refresh</button>
         </div>
       </div>
       <div class="card">
@@ -2347,7 +2470,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <span class="card-title" style="margin-bottom:0" data-i18n="chg_title">Recent Changes</span>
-          <button onclick="loadLogs()" style="font-size:.8125rem;font-weight:700;color:var(--accent);background:none" data-i18n="sv_refresh">↻ Refresh</button>
+          <button class="btn-refresh" onclick="loadLogs()" data-i18n="sv_refresh">↻ Refresh</button>
         </div>
         <div class="search-wrap">
           <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
@@ -2526,7 +2649,6 @@ const T = {
   part1_title:['Part 1 · Edit Existing Product','الجزء ١ · تعديل منتج موجود'],
   part2_title:['Part 2 · Add New Product','الجزء ٢ · إضافة منتج جديد'],
   part3_title:['Part 3 · Delete a Product','الجزء ٣ · حذف منتج'],
-  badge_supervisor_only:['(supervisor)','(للمشرف)'],
   su_src_title:['Product Source','مصدر المنتج'],
   su_src_desc:['Company, flavour, caloric density and form. Optional — shown under the product name in every view.','الشركة، النكهة، الكثافة الحرارية، والشكل. اختياري — يظهر تحت اسم المنتج في كل شاشة.'],
   su_src_save_btn:['Save Product Source','حفظ مصدر المنتج'],
@@ -2601,7 +2723,8 @@ const T = {
   staff_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Staff Accounts','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> حسابات الموظفين'],
   staff_desc:['Staff sign up with their email, then you approve them here. Choose <strong style="color:var(--text)">Storage</strong> for the storage team or <strong style="color:var(--text)">Supervisor</strong> for people who can also approve accounts.','يسجّل الموظفون ببريدهم الإلكتروني ثم تعتمدهم هنا. اختر <strong style="color:var(--text)">مخزن</strong> لفريق المخزن أو <strong style="color:var(--text)">مشرف</strong> لمن يمكنه أيضاً اعتماد الحسابات.'],
   stf_pending:['Pending','قيد الانتظار'], stf_approved:['Approved','معتمد'], stf_disabled:['Disabled','معطّل'], stf_rejected:['Rejected','مرفوض'],
-  stf_storage:['✓ Storage','✓ مخزن'], stf_supervisor:['✓ Supervisor','✓ مشرف'], stf_reject:['✕ Reject','✕ رفض'],
+  stf_storage:['Storage','مخزن'], stf_supervisor:['Supervisor','مشرف'], stf_reject:['✕ Reject','✕ رفض'],
+  stf_approve_as:['Approve as','اعتماد كـ'],
   stf_role_sv:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 20 2-10 4 4 4-7 4 7 4-4 2 10Z"/></svg> Supervisor','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 20 2-10 4 4 4-7 4 7 4-4 2 10Z"/></svg> مشرف'],
   stf_role_st:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Storage','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> مخزن'],
   stf_role_change:['Change role','تغيير الدور'],
@@ -6456,7 +6579,11 @@ function renderStaff() {
     const esc = encodeForJsAttr(s.email); // Ledger 17 fix: encodeURIComponent alone leaves ' unescaped
     let actions = '';
     if (s.status==='pending') {
-      actions = `<button class="staff-btn ok" onclick="approveStaff('${esc}','storage')">${t('stf_storage')}</button>
+      // "✓ Storage / ✓ Supervisor" read as two ways of approving rather than a
+      // choice of WHICH ROLE to approve into. One short prefix disambiguates
+      // both buttons without making either wide enough to wrap on a phone.
+      actions = `<span class="staff-approve-as">${escapeHtml(t('stf_approve_as'))}</span>
+                 <button class="staff-btn ok" onclick="approveStaff('${esc}','storage')">${t('stf_storage')}</button>
                  <button class="staff-btn sv" onclick="approveStaff('${esc}','supervisor')">${t('stf_supervisor')}</button>
                  <button class="staff-btn no" onclick="setStaffStatus('${esc}','rejected')">${t('stf_reject')}</button>`;
     } else if (s.status==='approved') {
@@ -8536,7 +8663,14 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
 // receiving end (decodeURIComponent correctly reverses %27 same as any other
 // percent-escape).
 function encodeForJsAttr(v){return encodeURIComponent(String(v)).replace(/'/g,'%27');}
-function timeAgo(ts){const m=Math.floor((Date.now()-ts)/60000);if(m<1)return t('ago_now');if(m<60)return tf('ago_m',{n:m});const h=Math.floor(m/60);if(h<24)return tf('ago_h',{n:h});return tf('ago_d',{n:Math.floor(h/24)});}
+// Accepts epoch millis OR a date string. It previously did `Date.now() - ts`
+// directly, which is fine for the number the draft/sync callers pass but yields
+// NaN for a string — and listStaff's lastLoginAt is an ISO timestamp from
+// Postgres, so every approved staff row read "last in NaNd ago".
+function timeAgo(ts){
+  const ms = typeof ts === 'number' ? ts : Date.parse(ts);
+  if (!isFinite(ms)) return '';
+  const m=Math.floor((Date.now()-ms)/60000);if(m<1)return t('ago_now');if(m<60)return tf('ago_m',{n:m});const h=Math.floor(m/60);if(h<24)return tf('ago_h',{n:h});return tf('ago_d',{n:Math.floor(h/24)});}
 let _tt;
 function toast(msg,type=''){
   const t=el('toast');t.textContent=msg;t.className='show '+type;
