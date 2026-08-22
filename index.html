@@ -2973,6 +2973,7 @@ const T = {
   updated_ago:['● Updated {n} min ago','● حُدّث قبل {n} دقيقة'],
   expired_ago:['Expired {n}d ago','منتهية منذ {n} يوم'],
   days_left:['{n}d left','متبقٍ {n} يوم'],
+  exp_unknown:['Expiry unknown','تاريخ الانتهاء غير معروف'],
   n_selected:['{n} selected','{n} محدد'],
   no_expiring:['No products expiring within {n} days','لا توجد منتجات تنتهي خلال {n} يوماً'],
   stf_last_in:['· last in','· آخر دخول'],
@@ -3611,6 +3612,25 @@ function actorName(uuid) {
   if (!uuid) return '';
   const s = (S.staff || []).find(x => x.id === uuid);
   return (s && (s.name || s.email)) || ('#' + String(uuid).slice(0, 8));
+}
+
+// Urgency + a safe day label for a batch.
+//
+// Found 2026-08-22 by scripts/render_test.js: a batch with no computable
+// expiry rendered the literal text "undefinedd left" / "undefined days left",
+// because reshapeBatch only sets daysLeft `if (r.expiry_date)` and both
+// renderers interpolated it straight into a template.
+//
+// Unreachable from live data TODAY — batches.expiry_date is NOT NULL — but
+// dispensing_events.expiry_date IS nullable, and the comparisons themselves
+// misbehave regardless: `undefined <= 7` is false, so an unknown expiry was
+// silently classed as the LEAST urgent tier. Showing a clinician "undefined"
+// where a shelf life belongs is worse than admitting we don't know.
+function batchUrgency(b) {
+  const n = (b && typeof b.daysLeft === 'number' && isFinite(b.daysLeft)) ? b.daysLeft : null;
+  if (n === null) return { urg:'urg-medium', known:false, n:null };
+  if (b.expired)  return { urg:'urg-expired', known:true, n };
+  return { urg: n<=7 ? 'urg-critical' : n<=14 ? 'urg-high' : 'urg-medium', known:true, n };
 }
 
 // Batch equivalent of productUuid(). Accepts a batch object or a displayed
@@ -4361,8 +4381,9 @@ function renderExpiring() {
 
   list.innerHTML=groupArr.map(g=>{
     const batchRows = g.batches.map(b=>{
-      const urg = b.daysLeft<=7 ? 'urg-critical' : b.daysLeft<=14 ? 'urg-high' : 'urg-medium';
-      const daysLbl = `${b.daysLeft} day${b.daysLeft!==1?'s':''} left`;
+      const u = batchUrgency(b);
+      const urg = u.urg;
+      const daysLbl = u.known ? `${u.n} day${u.n!==1?'s':''} left` : t('exp_unknown');
       return `<div class="exp-batch-row">
         <div class="exp-batch-info">
           <span>${CAL_ICON} ${escapeHtml(b.expiryDate)}</span>
@@ -6880,8 +6901,10 @@ function renderBatches() {
     return;
   }
   el('batch-list').innerHTML=S.suBatches.map(b=>{
-    const urg = b.expired ? 'urg-expired' : b.daysLeft<=7 ? 'urg-critical' : b.daysLeft<=14 ? 'urg-high' : 'urg-medium';
-    const daysLbl = b.expired ? tf('expired_ago',{n:Math.abs(b.daysLeft)}) : tf('days_left',{n:b.daysLeft});
+    const u = batchUrgency(b);
+    const urg = u.urg;
+    const daysLbl = !u.known ? t('exp_unknown')
+      : (b.expired ? tf('expired_ago',{n:Math.abs(u.n)}) : tf('days_left',{n:u.n}));
     const expClass = b.expired ? 'expired-batch' : '';
     // Ledger 17: batchId/expiryDate are embedded inside an onclick JS-string
     // argument, not HTML text — escapeHtml() doesn't protect that context
