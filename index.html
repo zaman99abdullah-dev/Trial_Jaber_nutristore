@@ -1966,6 +1966,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <button class="sbtn sb-unavailable" id="su-s-unavailable" onclick="pickSuStatus('unavailable')">🔴 Not Available</button>
             <button class="sbtn sb-clear"                             onclick="pickSuStatus('')" data-i18n="st_clear">🗑️ Clear / Not Set</button>
           </div>
+          <!-- Explains the automatic Auto-Status pin that picking Coming Soon
+               performs. Empty (and therefore invisible) at all other times. -->
+          <div id="su-cs-hint" class="settings-desc" style="margin:6px 0 0"></div>
           <div id="su-date-wrap" class="field hidden">
             <label for="su-date" data-i18n="lbl_expected">Expected Arrival Date</label>
             <input type="date" id="su-date">
@@ -2643,6 +2646,7 @@ const T = {
   load_hosp:['Jaber Al Ahmad Al Sabah Hospital','مستشفى جابر الأحمد الصباح'],
   // auth
   foot_credit:['Created by','من تطوير'],
+  cs_auto_off_hint:['Auto Status was turned off so “Coming Soon” is not overwritten by stock levels. Turn it back on when the stock arrives.','تم إيقاف الحالة التلقائية حتى لا يتم استبدال «قريباً» حسب المخزون. أعد تشغيلها عند وصول المخزون.'],
   auth_signin_h:['Staff Sign In','تسجيل دخول الموظفين'],
   auth_signin_sub:['Sign in with your hospital email to access storage.','سجّل الدخول ببريدك الإلكتروني للوصول إلى المخزن.'],
   lbl_email:['Email','البريد الإلكتروني'], lbl_password:['Password','كلمة المرور'],
@@ -6882,6 +6886,7 @@ function applySuCardState(existing) {
   updateSuDfHint();
   updateSuStatusGridVisibility();
   clearSuHighlight(); highlightSuStatus(S.suStatus);
+  updateSuComingHint();
 }
 async function resyncSuCardFromServer() {
   if (!S.suProduct) return;
@@ -6923,6 +6928,7 @@ function toggleSuAutoStatus() {
   S.suAutoStatus = !S.suAutoStatus;
   el('su-as-switch').classList.toggle('on', S.suAutoStatus);
   updateSuStatusGridVisibility();
+  updateSuComingHint(); // turning automation back on retires the pin explanation
 }
 // When Auto Status is ON, Available/Low/Not-Available are ALL computed — not
 // pickable (avoids a manual pick getting silently overwritten by the next batch
@@ -6945,6 +6951,7 @@ function clearSu() {
   if(el('su-pack'))el('su-pack').value='';
   if(el('su-min-hint'))el('su-min-hint').textContent='';
   if(el('su-df-hint'))el('su-df-hint').textContent='';
+  if(el('su-cs-hint'))el('su-cs-hint').textContent='';
   el('su-df-switch')?.classList.remove('on');
   el('su-io-switch')?.classList.remove('on');
   el('su-ll-switch')?.classList.remove('on');
@@ -6953,9 +6960,38 @@ function clearSu() {
   updateSuStatusGridVisibility();
   hide('add-batch-form');
 }
+// Picking "Coming Soon" PINS the product by turning Auto Status off, exactly as
+// toggleSuDispenseFirst() pins Dispense First.
+//
+// WHY (verified against the deployed automation, 2026-08-23): with Auto Status
+// ON, apply_status_automation overwrites 'coming' on any product that has ever
+// been stocked — to 'unavailable' at zero stock, to 'low' below min_units.
+// "Coming Soon" means "we have ordered more", which is exactly the situation
+// where stock IS zero or low, so without this pin the supervisor got a success
+// toast and lost the flag at the 5 AM recompute. Reports success, does nothing.
+//
+// Turning the automation off is what makes the choice survive, and it is a real
+// state change, so it is made VISIBLE: the Auto Status switch flips in front of
+// the user, the hidden status buttons reappear (automation is off, so they are
+// pickable again), and su-cs-hint says why. Deliberately NOT re-enabled when a
+// different status is picked afterwards — same as Dispense First, where a
+// manual pin also stays pinned until the user clears it themselves.
 function pickSuStatus(s) {
   S.suStatus=s; clearSuHighlight(); highlightSuStatus(s);
   el('su-date-wrap').classList.toggle('hidden',s!=='coming');
+  if (s === 'coming' && S.suAutoStatus) {
+    S.suAutoStatus = false;
+    el('su-as-switch')?.classList.remove('on');
+    updateSuStatusGridVisibility();
+  }
+  updateSuComingHint();
+}
+// Shown only while Coming Soon is the picked status AND automation is off —
+// i.e. exactly when the pin is doing something. Rebuilt via t() rather than
+// data-i18n so a language toggle cannot overwrite a computed line.
+function updateSuComingHint() {
+  const hint = el('su-cs-hint'); if (!hint) return;
+  hint.textContent = (S.suStatus === 'coming' && !S.suAutoStatus) ? t('cs_auto_off_hint') : '';
 }
 function highlightSuStatus(s) {
   const m={available:'su-s-available',low:'su-s-low',coming:'su-s-coming',unavailable:'su-s-unavailable'};
@@ -7851,6 +7887,16 @@ function pickBulkStatus(s) {
   const m={available:'bs-available',low:'bs-low',coming:'bs-coming',unavailable:'bs-unavailable'};
   if(m[s]) el(m[s])?.classList.add('picked');
   el('bs-date-wrap').classList.toggle('hidden',s!=='coming');
+  // Same pin as the single-product path (see pickSuStatus): without turning
+  // automation off, 'coming' is overwritten on every product in the selection
+  // that has ever been stocked. Marking autoStatus `touched` is what makes the
+  // flag actually get SENT — BULK deliberately transmits only touched fields.
+  if (s === 'coming') {
+    BULK.touched.autoStatus = true;
+    BULK.values.autoStatus  = false;
+    el('bs-chip-as')?.classList.remove('on-as');
+    updateBulkStatusGridVisibility();
+  }
   updateBulkSaveBtn();
 }
 function updateBulkSaveBtn() {
