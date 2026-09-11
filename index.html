@@ -4736,6 +4736,14 @@ function renderProducts() {
   // Discovery tags STACK on whatever the pill above selected, and combine with
   // each other by AND — see productHasAllTags.
   if (S.prodTags.size) list=list.filter(p=>productHasAllTags(p, S.prodTags));
+  // Rebuild the tag pills HERE, not at each call site. Found live on
+  // 2026-09-09: the counts were only recomputed when a TAG was toggled, so
+  // changing the category pill (or typing in the search box) left them showing
+  // the old numbers — "Infant 40" while the filtered view held none, because
+  // the category was Adult. A count that disagrees with the list is worse than
+  // no count: it is the app telling the user something untrue about their stock.
+  // renderProducts is the one place every filter change passes through.
+  buildDiscoveryTagPills();
   // Shared matcher (see PRODUCT SEARCH above) — name, code, category,
   // manufacturer, variant and curated clinical keywords, with synonyms.
   if (q) {
@@ -4842,7 +4850,7 @@ function renderStorageRows(list) {
       }
     }
     return `<div class="pitem">
-      <div class="pi-info"><div class="pi-name">${escapeHtml(p.name)}</div><div class="pi-sub">${sub}</div></div>
+      <div class="pi-info"><div class="pi-name">${escapeHtml(p.name)}</div><div class="pi-sub">${sub}</div>${productTagsHtml(p)}</div>
       <span class="sbadge ${cfg.cls}">${cfg.label}</span>
       <button class="qa-btn ns-info-btn" onclick="openNsDetailForProduct('${p.id}')" title="Formulary details"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>
       <button class="qa-btn" onclick="openQuickActions('${p.id}')">⋮</button>
@@ -6219,13 +6227,11 @@ function buildDiscoveryTagPills() {
 function toggleProdTag(btn) {
   const tag = btn.dataset.tag;
   if (S.prodTags.has(tag)) S.prodTags.delete(tag); else S.prodTags.add(tag);
-  renderProducts();
-  buildDiscoveryTagPills();
+  renderProducts(); // rebuilds the pills too — see the note in renderProducts
 }
 function clearProdTags() {
   S.prodTags.clear();
   renderProducts();
-  buildDiscoveryTagPills();
 }
 // Ledger 32: a pill must never filter down to zero products, so the pill
 // list is derived from tags carried by ≥1 LIVE product — iterating every
