@@ -354,6 +354,19 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ptag{font-size:.625rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
   color:var(--text3b);background:var(--surface2);border:1px solid var(--border);
   border-radius:6px;padding:1px 6px}
+/* The "+n" / "Less" control. It has to stay chip-sized to keep the row compact,
+   which puts it far under the 44px touch minimum — so the VISUAL size stays and
+   an invisible ::after expands the hit area to roughly 44px tall. Chips are
+   vertically spaced 4px apart, so the overlap between two stacked rows' hit
+   areas is small and only one row ever carries this control. */
+.ptag-more{position:relative;cursor:pointer;color:var(--accent);
+  border-color:rgba(63,169,220,.4);background:rgba(63,169,220,.1);
+  font-family:inherit;line-height:inherit;transition:background .15s,border-color .15s}
+/* Measured, not guessed. The chip renders 27x16; these insets were probed in a
+   real browser with elementFromPoint until the TAP target measured 45x44. The
+   first pair I wrote (-6/-11) looked plausible and measured 37x36. */
+.ptag-more::after{content:'';position:absolute;left:-10px;right:-10px;top:-15px;bottom:-15px}
+.ptag-more:hover{background:rgba(63,169,220,.2);border-color:var(--accent)}
 /* ── Tag editor (Products Admin, supervisor) ─────────────────────────────── */
 .tag-editor{margin-top:18px;padding:14px;border-radius:var(--rs);
   background:var(--surface2);border:1px solid var(--border2)}
@@ -2827,6 +2840,8 @@ const T = {
   foot_credit:['Created by','من تطوير'],
   tags_clear:['Clear tags','مسح الوسوم'],
   tags_filter_by:['Filter by tag','التصفية بالوسوم'],
+  tags_less:['Less','أقل'],
+  tags_more_a11y:['Show {n} more tags','عرض {n} وسوم إضافية'],
   tags_sel_lbl:['Tag filters on','وسوم مفعّلة'],
   tag_edit_title:['Clinical tags','الوسوم السريرية'],
   tag_edit_sub:['Used for filtering, search and suggested alternatives','تُستخدم للتصفية والبحث واقتراح البدائل'],
@@ -3848,6 +3863,11 @@ const S = {
   // Phase 2 discovery tags. A SET, not a single value: these combine with AND,
   // and they stack on top of the category/NS-tag pill rather than replacing it.
   prodTags:  new Set(),
+  // Product rows whose chip list the user expanded past the 2-chip cap, by P###
+  // code. State, not a DOM flag: renderProducts() rebuilds the whole list on
+  // every keystroke of the search box, so a DOM-only flag would collapse under
+  // the user mid-read.
+  tagRowsOpen: new Set(),
   srcTags:   [],   // staged tag edits in Products Admin (committed by Save tags)
   tagsByUuid:{},
   allTags:   [],
@@ -5006,10 +5026,50 @@ function productSrcHtml(p){
     .map(v=>escapeHtml(String(v)));
   return bits.length?`<span class="pi-src" dir="ltr">${bits.join(' · ')}</span>`:'';
 }
-// Read-only tag chips on a product row. Capped at 4 with a "+n" remainder:
-// a renal infant peptide formula can legitimately carry six tags, and six
-// chips would push the name and status out of view on a phone. Tapping the
-// row still shows everything.
+// ── Which chips earn the two visible slots ──────────────────────────────────
+// With a cap of two, ORDER became a clinical decision rather than a cosmetic
+// one. The chips used to render in the tags' own (alphabetical) order, which
+// on the real catalogue put "High Carb · High Energy" on Fresubin Renal,
+// Renilon and Nepro HP and pushed RENAL — the one word a dietitian scans that
+// row for — behind the "+n". Measured over Jaber's 118 products, this ordering
+// changes which tags lead on 9 of the 15 rows that have more than two.
+//
+// Indication first (WHY you reach for this product), then form/role (WHAT kind
+// of product it is), then the nutrient-emphasis axis, which is real but is
+// never the first thing you scan for. An unknown tag — the tag editor lets
+// supervisors invent them — sits above emphasis rather than below, because a
+// word nobody has classified is more likely to be a new indication than a new
+// nutrient. Population sits LAST: the category badge on the same row already
+// carries that axis, so a population tag that survived the filter below is the
+// least informative thing competing for the slot.
+const TAG_INDICATION = new Set(['renal','allergy','metabolic','diabetes','hepatic',
+  'ibd','respiratory','reflux','preterm','gluten free']);
+const TAG_FORM = new Set(['peptide','amino acid','modular','thickener',
+  'protein supplement','supplements','tube feed']);
+function tagChipRank(tag){
+  if (TAG_INDICATION.has(tag)) return 0;
+  if (TAG_FORM.has(tag)) return 1;
+  if (CATS.some(c => c.toLowerCase() === tag)) return 4;
+  if (/^(high|low) /.test(tag)) return 3;
+  return 2;
+}
+function toggleTagChips(id, ev){
+  // The dietitian row is itself a button (it opens Alternatives). Without this
+  // the chip would expand AND open the sheet over the top of it.
+  if (ev) ev.stopPropagation();
+  if (S.tagRowsOpen.has(id)) S.tagRowsOpen.delete(id); else S.tagRowsOpen.add(id);
+  renderProducts();
+}
+// Read-only tag chips on a product row. Capped at TWO with a "+n" control that
+// expands that row in place. Was four, cut on 2026-09-12: on the phone the
+// heavy rows (Fresubin Renal, Renilon) ran to two lines of chips each. Only 15
+// of 118 rows carry more than two tags, so this is a narrow change that hits
+// exactly the rows that were costing the space.
+//
+// The "+n" chip is the control rather than the whole row: tapping the row
+// already means "show me alternatives" in the dietitian view, and the chip is
+// both the thing that advertises there is more and a target the user's eye is
+// already on. Its hit area is expanded to a real touch target in CSS.
 function productTagsHtml(p){
   // Drop the tag that merely repeats the category badge already on this row.
   // Seen live 2026-09-09: Osmolite showed a badge reading "Adult" and then a
@@ -5017,11 +5077,26 @@ function productTagsHtml(p){
   // thing directly above it. This is the same rule the pill row uses, applied
   // one level down; the population tag still powers search and alternatives.
   const cat = (p.category || '').toLowerCase();
-  const tags = (p.tags || []).filter(t => t !== cat);
+  const tags = (p.tags || []).filter(t => t !== cat)
+    .sort((a,b) => tagChipRank(a) - tagChipRank(b) || a.localeCompare(b));
   if (!tags.length) return '';
-  const shown = tags.slice(0,4).map(t=>`<span class="ptag">${escapeHtml(tagLabel(t))}</span>`).join('');
-  const rest  = tags.length>4 ? `<span class="ptag">+${tags.length-4}</span>` : '';
-  return `<span class="ptags">${shown}${rest}</span>`;
+  const CAP = 2;
+  const open = S.tagRowsOpen.has(p.id);
+  const list = open ? tags : tags.slice(0, CAP);
+  const chips = list.map(t=>`<span class="ptag">${escapeHtml(tagLabel(t))}</span>`).join('');
+  // The control is rendered ONLY when there is something hidden (or something
+  // to hide again) — a "+0" on a two-tag row would be a button that does
+  // nothing, which is worse than no button.
+  let more = '';
+  if (tags.length > CAP) {
+    more = open
+      ? `<button type="button" class="ptag ptag-more" onclick="toggleTagChips('${p.id}',event)"
+          aria-expanded="true">${escapeHtml(t('tags_less'))}</button>`
+      : `<button type="button" class="ptag ptag-more" onclick="toggleTagChips('${p.id}',event)"
+          aria-expanded="false"
+          aria-label="${escapeHtml(tf('tags_more_a11y',{n:tags.length-CAP}))}">+${tags.length-CAP}</button>`;
+  }
+  return `<span class="ptags">${chips}${more}</span>`;
 }
 
 function renderStorageRows(list) {
