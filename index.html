@@ -328,6 +328,24 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ptag{font-size:.625rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
   color:var(--text3b);background:var(--surface2);border:1px solid var(--border);
   border-radius:6px;padding:1px 6px}
+/* ── Tag editor (Products Admin, supervisor) ─────────────────────────────── */
+.tag-editor{margin-top:18px;padding:14px;border-radius:var(--rs);
+  background:var(--surface2);border:1px solid var(--border2)}
+.tag-editor-head{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;
+  font-size:.8125rem;font-weight:700;color:var(--text)}
+.tag-editor-sub{font-size:.6875rem;font-weight:400;color:var(--text2)}
+.tag-editor-chips{display:flex;flex-wrap:wrap;gap:6px;min-height:32px;margin-bottom:10px}
+.tag-editor-empty{font-size:.75rem;color:var(--text3b);font-style:italic}
+.tag-chip{display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:600;
+  color:var(--text);background:rgba(63,169,220,.14);border:1px solid var(--accent);
+  border-radius:8px;padding:4px 6px 4px 10px}
+/* 28px, not 44: this sits INSIDE a chip, and a 44px target would make every
+   chip the height of a button. The chip itself is comfortably tappable. */
+.tag-chip-x{width:28px;height:28px;border-radius:6px;background:none;color:var(--text2);
+  font-size:1rem;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.tag-chip-x:hover{background:rgba(239,68,68,.18);color:var(--red-t)}
+.tag-editor-add{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.tag-editor-add select{flex:1;min-width:140px;min-height:44px}
 .cpill.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 2px 12px rgba(63,169,220,.25)}
 /* NS nutrient-tag pills appended after the category pills (Ledger 14) — same
    shape as .cpill, tinted so they read as data tags, not categories. */
@@ -2198,6 +2216,31 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <button class="btn-submit" id="su-source-btn" onclick="submitSource()">
               <span data-i18n="su_src_save_btn">Save Product Source</span>
             </button>
+
+            <!-- ── TAG EDITOR (supervisor only) ────────────────────────────
+                 Saved SEPARATELY from the source fields above, on purpose: tags
+                 go through set_product_tags (which replaces the whole set
+                 atomically and is supervisor-gated in SQL), while the fields
+                 above go through update_product. Sharing one Save button would
+                 mean a failure in either half silently half-applied the other.
+                 The tag list offers what is already in use, so tagging is
+                 picking rather than typing — free text is how "Renal", "renal"
+                 and "RENAL " become three filters that each match a third of
+                 the catalogue. -->
+            <div class="tag-editor" id="src-tag-editor">
+              <div class="tag-editor-head">
+                <span data-i18n="tag_edit_title">Clinical tags</span>
+                <span class="tag-editor-sub" data-i18n="tag_edit_sub">Used for filtering, search and suggested alternatives</span>
+              </div>
+              <div class="tag-editor-chips" id="src-tag-chips"></div>
+              <div class="tag-editor-add">
+                <select id="src-tag-pick" aria-label="Add a tag"></select>
+                <button class="btn-quiet" onclick="srcAddTag()" data-i18n="tag_edit_add">Add</button>
+              </div>
+              <button class="btn-submit" id="src-tag-btn" onclick="submitProductTags()">
+                <span id="src-tag-btn-lbl" data-i18n="tag_edit_save">Save tags</span>
+              </button>
+            </div>
           </div>
 
         </div>
@@ -2715,7 +2758,7 @@ const STATUS_CFG = {
 // refused to proceed otherwise. "All Ages" holds the 25 genuinely age-agnostic
 // products — gluten-free foods, single amino acids, modulars, thickeners —
 // because calling those "Adult" would be a clinical falsehood for a tidy list.
-const CATS = ['All','Adult','Pediatric','Infant','All Ages'];
+const CATS = ['All','Adult','Pediatric','Infant','Any Age'];
 
 // ══ i18n (English / العربية) ═══════════════════════════════════
 // Product names stay in English (brand names); the UI chrome, statuses,
@@ -2739,6 +2782,15 @@ const T = {
   // auth
   foot_credit:['Created by','من تطوير'],
   tags_clear:['Clear tags','مسح الوسوم'],
+  tag_edit_title:['Clinical tags','الوسوم السريرية'],
+  tag_edit_sub:['Used for filtering, search and suggested alternatives','تُستخدم للتصفية والبحث واقتراح البدائل'],
+  tag_edit_add:['Add','إضافة'],
+  tag_edit_save:['Save tags','حفظ الوسوم'],
+  tag_edit_none:['No tags yet','لا توجد وسوم'],
+  tag_edit_all_used:['All tags already added','تمت إضافة كل الوسوم'],
+  tag_edit_remove:['Remove {s}','إزالة {s}'],
+  tag_edit_max:['Maximum 12 tags per product','الحد الأقصى 12 وسماً لكل منتج'],
+  t_tags_saved:['Tags saved','تم حفظ الوسوم'],
   // NS emphasis pills, spelled out. The PDF encodes these as arrows (↑ Kcal);
   // the department reads them as "high energy" / "low energy" and so on.
   ns_hi_kcal:['High Energy','عالي السعرات'],   ns_lo_kcal:['Low Energy','منخفض السعرات'],
@@ -2804,7 +2856,7 @@ const T = {
   // Supplements/Gluten Free keys above are now DEAD but deliberately kept —
   // never bulk-edit this dictionary (see the recursive-t() incident), and a
   // tenant that has not migrated still needs them.
-  'cat_All Ages':['All Ages','كل الأعمار'],
+  'cat_Any Age':['Any Age','أي عمر'],
   cat_Supplements:['Supplements','المكملات'], 'cat_Gluten Free':['Gluten Free','خالٍ من الغلوتين'],
   empty_products:['No products found','لا توجد منتجات'],
   lbl_pinned:['⭐ Pinned','⭐ المثبّتة'], lbl_all_products:['All Products','جميع المنتجات'],
@@ -3750,6 +3802,7 @@ const S = {
   // Phase 2 discovery tags. A SET, not a single value: these combine with AND,
   // and they stack on top of the category/NS-tag pill rather than replacing it.
   prodTags:  new Set(),
+  srcTags:   [],   // staged tag edits in Products Admin (committed by Save tags)
   tagsByUuid:{},
   allTags:   [],
   bulkCat:   'All',
@@ -4607,8 +4660,35 @@ function applyProductTags(payload) {
   _searchBlobCache = { src: null, map: null }; // tags are searchable; rebuild
 }
 // Stored lower-case so the filter cannot fragment on capitalisation; shown
-// title-cased.
+// title-cased in English, translated where we have a translation.
+//
+// Found live 2026-09-09: the category pills and the NS emphasis pills both
+// translate, but the tag pills stayed English in Arabic mode — three rows of
+// controls, two languages. Tags are clinical CONCEPTS, not brand names, so
+// unlike product names they should translate.
+//
+// Unknown tags fall back to title-case rather than breaking: the supervisor tag
+// editor (Phase 3) will let staff invent tags this map has never seen, and an
+// untranslated tag is far better than a blank pill.
+const TAG_LABEL_AR = {
+  'allergy':'حساسية', 'amino acid':'أحماض أمينية', 'diabetes':'السكري',
+  'gluten free':'خالٍ من الغلوتين', 'metabolic':'استقلابي', 'modular':'معياري',
+  'peptide':'ببتيدي', 'preterm':'الخدّج', 'protein supplement':'مكمل بروتيني',
+  'reflux':'الارتجاع', 'renal':'كلوي', 'supplements':'المكملات',
+  'high energy':'عالي السعرات', 'fibre':'ألياف', 'hepatic':'كبدي',
+  'ibd':'التهاب الأمعاء', 'respiratory':'تنفسي', 'thickener':'مكثّف',
+  'adult':'البالغون', 'pediatric':'الأطفال', 'infant':'الرضّع',
+  'low energy':'منخفض السعرات', 'high protein':'عالي البروتين',
+  'low protein':'منخفض البروتين', 'high carb':'عالي الكربوهيدرات',
+  'low carb':'منخفض الكربوهيدرات', 'high fat':'عالي الدهون',
+  'low fat':'منخفض الدهون', 'high fibre':'عالي الألياف',
+  'low fibre':'منخفض الألياف', 'high minerals':'عالي المعادن',
+  'low minerals':'منخفض المعادن', 'high sodium':'عالي الصوديوم',
+  'low sodium':'منخفض الصوديوم', 'tube feed':'تغذية أنبوبية',
+};
 function tagLabel(tag) {
+  const key = (tag || '').toLowerCase();
+  if (LANG.current === 'ar' && TAG_LABEL_AR[key]) return TAG_LABEL_AR[key];
   return (tag || '').replace(/\b[a-z]/g, c => c.toUpperCase());
 }
 function productHasAllTags(p, tags) {
@@ -6255,14 +6335,19 @@ function nsTagLabel(tag) {
 // (nsFilteredSorted/renderNsTagChips/nsSetTagFilter/nsToggleSortDir/
 // renderNsFormulary) were removed with the Formulary calculator segment
 // itself; the helpers above are still used here.
+// 2026-09-09: the NS emphasis pills NO LONGER render here.
+//
+// They used to be appended to the CATEGORY row, which put a third vocabulary
+// (nutrient emphasis) inside the population axis. They were only ever a
+// separate mechanism because a colleague had already collected that data —
+// the concept is the same kind of fact as every other tag. The emphasis data
+// has been migrated into product_tags ('high energy', 'high protein',
+// 'low carb'…), so it now appears in the tag row like everything else:
+// multi-select, AND-combinable, translated, and supervisor-editable.
+//
+// This function is kept as the single entry point the boot and applyLang
+// already call, rather than re-pointing those call sites.
 function buildProdTagPills() {
-  const box = el('prod-cats');
-  if (!box) return;
-  const tags = nsDeriveTags();
-  const html = tags.map(tag =>
-    `<button class="cpill ns-tag-pill ${S.prodTag===tag?'on':''}" data-tag="${escapeHtml(tag)}" onclick="setProdTag(this)"><svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg> ${escapeHtml(nsTagLabel(tag))}</button>`
-  ).join('');
-  box.insertAdjacentHTML('beforeend', html);
   buildDiscoveryTagPills();
 }
 // ── Discovery tag pills (Phase 2) ───────────────────────────────────────────
@@ -6308,7 +6393,9 @@ function buildDiscoveryTagPills() {
   //    because the alternatives sheet and search both match on tags, not on NS
   //    data: stripping them would quietly make Infatrini's alternatives fall
   //    back to "any Infant product", all forty of them.
-  const nsMirrored = new Set(['high energy','fibre']);
+  // The NS-mirror suppression is gone: 'high energy' and 'high fibre' are no
+  // longer duplicated by a separate NS pill — they ARE the pills now.
+  const nsMirrored = new Set();
   const MIN_FOR_PILL = 3;
   // Rule 2 is measured against the WHOLE catalogue, not the filtered view — a
   // tag must be small in absolute terms to lose its pill, otherwise pills would
@@ -7639,6 +7726,10 @@ function selectSrcProduct(id) {
   el('su-variant').value      = ex.variant || '';
   el('su-density').value      = ex.density || '';
   el('su-form').value         = ex.packagingNote || '';
+  // Working copy: edits are staged here and only committed by Save tags, so
+  // abandoning a half-finished edit changes nothing on the server.
+  S.srcTags = [...(ex.tags || [])];
+  renderSrcTagEditor();
   show('su-source-card');
 }
 function clearSrc() {
@@ -7647,6 +7738,70 @@ function clearSrc() {
   el('src-search').value = '';
   el('su-manufacturer').value=''; el('su-variant').value='';
   el('su-density').value=''; el('su-form').value='';
+  S.srcTags = [];
+  renderSrcTagEditor();
+}
+
+// ══ Products Admin — TAG EDITOR (supervisor only) ═══════════════════════════
+// Requested 2026-09-09. Without it the taxonomy rots: whoever adds a product
+// cannot tag it, so within weeks the filters quietly under-report — and an
+// empty filter result is worse than no filter, because staff trust it.
+//
+// set_product_tags is supervisor-gated in SQL, so this UI is a convenience, not
+// the security boundary; a storage account that reached it would still be
+// refused by the database.
+function renderSrcTagEditor() {
+  const box = el('src-tag-chips'); if (!box) return;
+  const tags = S.srcTags || [];
+  box.innerHTML = tags.length
+    ? tags.map(t =>
+        `<span class="tag-chip">${escapeHtml(tagLabel(t))}<button class="tag-chip-x"
+           aria-label="${escapeHtml(tf('tag_edit_remove',{s:tagLabel(t)}))}"
+           onclick="srcRemoveTag('${encodeForJsAttr(t)}')">×</button></span>`).join('')
+    : `<span class="tag-editor-empty">${escapeHtml(t('tag_edit_none'))}</span>`;
+  // Offer the vocabulary already in use, minus what this product already has.
+  const pick = el('src-tag-pick'); if (!pick) return;
+  const avail = (S.allTags || []).filter(x => tags.indexOf(x) === -1);
+  pick.innerHTML = avail.length
+    ? avail.map(x => `<option value="${escapeHtml(x)}">${escapeHtml(tagLabel(x))}</option>`).join('')
+    : `<option value="">${escapeHtml(t('tag_edit_all_used'))}</option>`;
+  pick.disabled = !avail.length;
+}
+function srcAddTag() {
+  const pick = el('src-tag-pick'); const v = pick && pick.value;
+  if (!v) return;
+  if ((S.srcTags||[]).indexOf(v) !== -1) return;
+  if ((S.srcTags||[]).length >= 12) { toast(t('tag_edit_max'),'warn'); return; } // matches the SQL cap
+  S.srcTags = [...(S.srcTags||[]), v].sort();
+  renderSrcTagEditor();
+}
+function srcRemoveTag(enc) {
+  const tag = decodeURIComponent(enc);
+  S.srcTags = (S.srcTags||[]).filter(x => x !== tag);
+  renderSrcTagEditor();
+}
+async function submitProductTags() {
+  if (!S.srcProduct) { toast(t('t_sel_product'),'err'); return; }
+  const by = currentActorName();
+  if (!by) { toast(t('t_signin_first'),'err'); return; }
+  const btn = el('src-tag-btn'), lbl = el('src-tag-btn-lbl');
+  btn.disabled = true; lbl.innerHTML = '<span class="spinner-sm"></span>' + t('saving');
+  try {
+    // Sends the FULL set — set_product_tags replaces rather than merges, so a
+    // removed tag is genuinely removed rather than silently surviving.
+    await api({ action:'setProductTags', id: productUuid(S.srcProduct),
+                tags: S.srcTags || [], updatedBy: encodeURIComponent(by) });
+    toast(t('t_tags_saved'),'ok');
+    // Re-read from the server rather than patching locally: the SQL normalises
+    // and de-duplicates, so the stored set is the only truth worth showing.
+    const tg = await api({action:'getProductTags'}).catch(()=>null);
+    applyProductTags(tg);
+    const fresh = S.products.find(p => p.id === S.srcProduct.id);
+    S.srcTags = [...((fresh && fresh.tags) || [])];
+    renderSrcTagEditor();
+    renderProducts();
+  } catch(e) { toast(t('t_failed')+e.message,'err'); }
+  finally { btn.disabled = false; lbl.textContent = t('tag_edit_save'); }
 }
 
 // ══ Products Admin — Add New Product (Ledger 10, supervisor-only) ═══════
