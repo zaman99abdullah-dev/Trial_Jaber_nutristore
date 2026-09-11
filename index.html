@@ -309,7 +309,33 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
    no accent fill until selected. Categories pick one thing; these narrow it.
    Making them look identical would suggest they are alternatives to each
    other rather than stacking filters. */
-.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 14px}
+.tag-block{margin:-6px 0 14px}
+/* The disclosure. Full-width so the whole strip is the target (44px tall,
+   comfortably over the 44px touch minimum) rather than a small chevron. */
+.tag-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;
+  padding:0 12px;border-radius:10px;border:1px solid var(--border);
+  background:none;color:var(--text2);font-size:.8125rem;font-weight:600;
+  cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.tag-toggle:hover{border-color:var(--border2);color:var(--text)}
+.tag-toggle-ico{flex-shrink:0;opacity:.8}
+.tag-chev{flex-shrink:0;margin-inline-start:auto;opacity:.7;transition:transform .2s ease}
+.tag-toggle[aria-expanded="true"] .tag-chev{transform:rotate(180deg)}
+/* With filters on, the disclosure itself carries the accent — collapsed, this
+   strip is the ONLY thing on screen saying the list is narrowed. */
+.tag-toggle.filtering{border-color:var(--accent);color:var(--text);background:rgba(63,169,220,.08)}
+.tag-toggle-n{flex-shrink:0;font-size:.6875rem;font-weight:700;color:var(--text3b);
+  background:var(--surface2);border-radius:100px;padding:1px 7px;min-width:22px;text-align:center}
+.tag-toggle.filtering .tag-toggle-n{color:var(--accent)}
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+/* Collapsed with nothing selected the row has no children at all, so it must
+   not keep its top margin and leave a floating gap. */
+.tag-row:empty{display:none}
+@keyframes tagIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.tag-row.expanding .tpill{animation:tagIn .18s ease both}
+@media (prefers-reduced-motion:reduce){
+  .tag-chev{transition:none}
+  .tag-row.expanding .tpill{animation:none}
+}
 .tpill{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;min-height:32px;
   padding:5px 10px;border-radius:8px;font-size:.75rem;font-weight:600;
   border:1px solid var(--border);background:none;color:var(--text2);
@@ -1106,8 +1132,26 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <!-- Discovery tags (Phase 2). Own row, below the categories: they
              multi-select with AND and STACK on the category pill, so mixing
              them into that row would imply they replace it. Hidden entirely
-             until the tenant has tagged something. -->
-        <div class="tag-row hidden" id="prod-tag-row" role="group" aria-label="Filter by clinical tag"></div>
+             until the tenant has tagged something.
+
+             COLLAPSED BEHIND A DISCLOSURE since 2026-09-12: eighteen pills
+             wrapped to NINE rows on a 375px phone — measured at ~650px of an
+             812px viewport, so the whole first screen was filter chrome and the
+             first product sat below the fold on the device this is actually
+             used on. Collapsed, the row still renders the SELECTED pills (see
+             buildDiscoveryTagPills), so a filter can never be active and
+             invisible at the same time. -->
+        <div class="tag-block hidden" id="prod-tag-block">
+          <button type="button" class="tag-toggle" id="prod-tag-toggle"
+                  aria-expanded="false" aria-controls="prod-tag-row"
+                  onclick="toggleTagRow()">
+            <svg class="tag-toggle-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+            <span id="prod-tag-toggle-lbl">Filter by tag</span>
+            <span class="tag-toggle-n" id="prod-tag-toggle-n"></span>
+            <svg class="tag-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="tag-row" id="prod-tag-row" role="group" aria-label="Filter by clinical tag"></div>
+        </div>
         <div id="prod-list"></div>
       </div>
     </div>
@@ -2782,6 +2826,8 @@ const T = {
   // auth
   foot_credit:['Created by','من تطوير'],
   tags_clear:['Clear tags','مسح الوسوم'],
+  tags_filter_by:['Filter by tag','التصفية بالوسوم'],
+  tags_sel_lbl:['Tag filters on','وسوم مفعّلة'],
   tag_edit_title:['Clinical tags','الوسوم السريرية'],
   tag_edit_sub:['Used for filtering, search and suggested alternatives','تُستخدم للتصفية والبحث واقتراح البدائل'],
   tag_edit_add:['Add','إضافة'],
@@ -3805,6 +3851,12 @@ const S = {
   srcTags:   [],   // staged tag edits in Products Admin (committed by Save tags)
   tagsByUuid:{},
   allTags:   [],
+  // Is the tag row expanded? Collapsed by default on a FIRST visit — see the
+  // markup comment for the 650px-of-812px measurement — but remembered per
+  // device, because a dietitian who browses by tag should not have to reopen
+  // it on every launch. Read defensively: private-mode Safari throws on
+  // localStorage, and a throw here would take the whole state object down.
+  tagsOpen:  (() => { try { return localStorage.getItem('ns_tags_open') === '1'; } catch(e) { return false; } })(),
   bulkCat:   'All',
   isBulk:    false,
   suProduct: null,
@@ -3937,7 +3989,14 @@ function saveBootCache() {
   try {
     localStorage.setItem('ns_cache', JSON.stringify({
       t: S.lastSynced, products: S.products, settings: S.settings, expiring: S.expiring,
-      hospital: S.hospital // so the offline view keeps the hospital's name
+      hospital: S.hospital, // so the offline view keeps the hospital's name
+      // The VOCABULARY, not just the per-product tags. S.products already
+      // carries p.tags through JSON, so the chips on each row survived an
+      // offline boot — but S.allTags did not, and that is what the filter row
+      // is built from, so opening the app with no connection showed tagged
+      // products and no way to filter by tag. Same family as the re-fetch bug
+      // above: the tags are two pieces of state and only one was being kept.
+      tagsByUuid: S.tagsByUuid
     }));
   } catch(e) {} // storage full/blocked — offline fallback just won't be available
 }
@@ -3948,6 +4007,11 @@ async function bootFromCache() {
     const c = JSON.parse(raw);
     if (!c.products || !c.products.length) return false;
     S.products  = c.products;
+    // After S.products, never before: applyProductTags joins onto the list.
+    // A snapshot taken before this field existed simply has no tags — the
+    // products keep whatever p.tags they were serialised with and the filter
+    // row stays hidden, which is the old behaviour, not a new failure.
+    if (c.tagsByUuid) applyProductTags({ tagsByUuid: c.tagsByUuid });
     S.settings  = c.settings || S.settings;
     S.expiring  = c.expiring || [];
     S.lastSynced = c.t || null;
@@ -4262,6 +4326,23 @@ const RESHAPE = {
     // than to a confidently stale name (invisibly wrong).
     Object.keys(PRODUCT_BY_UUID).forEach(k => delete PRODUCT_BY_UUID[k]);
     products.forEach(p => { PRODUCT_BY_UUID[p.productUuid] = p; });
+    // Re-graft the discovery tags. applyProductTags() hangs `p.tags` off the
+    // PRODUCT OBJECTS, so every re-fetch that replaces S.products throws every
+    // tag away. Reported live 2026-09-12 ("when i refresh the page all the tags
+    // disappear") and confirmed: FIVE paths replace the list without re-reading
+    // tags — pull-to-refresh, resyncSuCardFromServer (i.e. after EVERY
+    // supervisor status/flag save), addProduct, deleteProduct and the weekly
+    // count. After any of them the chips on every row and every pill in the
+    // filter row vanished, with no error, until a full reload.
+    //
+    // Patching those five call sites would leave the sixth one someone adds
+    // next month broken in exactly the same silent way, so the graft belongs
+    // HERE, where product objects are born: a product cannot now exist without
+    // its tags. S.tagsByUuid is the cached vocabulary from getProductTags; at
+    // boot it is still {} when this runs (getAll and getProductTags are
+    // Promise.all'd), which is why boot ALSO calls applyProductTags() straight
+    // after — that pass is what fills tags in for the first render.
+    products.forEach(p => { p.tags = S.tagsByUuid[p.productUuid] || []; });
     return { products };
   },
   getExpiring(rows)     { return { expiring: (rows || []).map(reshapeBatch) }; },
@@ -5116,8 +5197,22 @@ function setupPullToRefresh() {
       refreshing = true;
       indicator.textContent = '↻ Refreshing…';
       try {
-        const pd = await api({action:'getAll'});
+        // Pull-to-refresh is the user's explicit "give me the current truth"
+        // gesture, so it re-reads the TAG VOCABULARY too, not just stock: a tag
+        // another supervisor added on their phone should arrive here without a
+        // full reload. The other four re-fetch paths deliberately don't — they
+        // follow a write this device just made, and RESHAPE.getAll's graft
+        // already carries the cached tags through them.
+        const [pd, tg] = await Promise.all([
+          api({action:'getAll'}),
+          api({action:'getProductTags'}).catch(()=>null),
+        ]);
         S.products = pd.products || [];
+        // The guard is load-bearing: applyProductTags(null) would empty
+        // S.tagsByUuid, so a gateway hiccup on the tags call alone would wipe
+        // every tag — the exact failure this whole fix is about. Falling back
+        // to the graft RESHAPE.getAll already applied costs nothing.
+        if (tg) applyProductTags(tg);
         S.lastSynced = Date.now();
         renderProducts();
         toast('Refreshed','ok');
@@ -6361,9 +6456,10 @@ function buildProdTagPills() {
 // rather than hidden, so the vocabulary stays stable while you narrow.
 function buildDiscoveryTagPills() {
   const box = el('prod-tag-row');
+  const block = el('prod-tag-block');
   if (!box) return;
-  if (!S.allTags || !S.allTags.length) { box.innerHTML = ''; box.classList.add('hidden'); return; }
-  box.classList.remove('hidden');
+  if (!S.allTags || !S.allTags.length) { box.innerHTML = ''; block?.classList.add('hidden'); return; }
+  block?.classList.remove('hidden');
   // Base list = everything the NON-tag filters allow, so counts reflect reality.
   let base = S.products;
   if (S.prodTag) base = base.filter(p => productHasNsTag(p, S.prodTag));
@@ -6402,9 +6498,15 @@ function buildDiscoveryTagPills() {
   // appear and vanish as you narrow, which is exactly the instability rule 1's
   // "disable, don't hide" behaviour exists to avoid.
   const totalFor = tag => S.products.filter(p => (p.tags||[]).indexOf(tag) !== -1).length;
-  const pills = S.allTags
+  const vocab = S.allTags
     .filter(tag => !catTags.has(tag) && !nsMirrored.has(tag))
-    .filter(tag => S.prodTags.has(tag) || totalFor(tag) >= MIN_FOR_PILL)
+    .filter(tag => S.prodTags.has(tag) || totalFor(tag) >= MIN_FOR_PILL);
+  // 4. COLLAPSED, the row shows only the tags that are actually ON. The
+  //    disclosure exists to buy back vertical space on the phone, but a filter
+  //    the user cannot see is how a list "shows empty with no error" — so the
+  //    selected pills are never what gets hidden. With nothing selected the row
+  //    has no children and .tag-row:empty removes it entirely.
+  const pills = (S.tagsOpen ? vocab : vocab.filter(tag => S.prodTags.has(tag)))
     .map(tag => {
     const on = S.prodTags.has(tag);
     // Count with this tag ADDED to the current selection.
@@ -6418,6 +6520,35 @@ function buildDiscoveryTagPills() {
   const clear = S.prodTags.size
     ? `<button class="tpill tpill-clear" onclick="clearProdTags()">${escapeHtml(t('tags_clear'))}</button>` : '';
   box.innerHTML = pills + clear;
+  // Re-trigger the stagger only when the row was just opened, not on every
+  // re-render — the row rebuilds on each keystroke of the search box, and
+  // animating there would make the pills flicker while you type.
+  box.classList.toggle('expanding', !!S._tagsJustOpened);
+  S._tagsJustOpened = false;
+  syncTagToggle(vocab.length);
+}
+// The disclosure's own label. Two states, deliberately worded rather than left
+// to one badge meaning two different things:
+//   nothing selected → "Filter by tag" + the size of the vocabulary, so the
+//     control still advertises that there is something behind it (the whole
+//     point of the tag work was products nobody remembers to search for);
+//   filters on      → "n selected" + accent, because collapsed this strip is
+//     the only thing on screen saying the list below is narrowed.
+function syncTagToggle(vocabCount) {
+  const btn = el('prod-tag-toggle'); if (!btn) return;
+  const n = S.prodTags.size;
+  btn.setAttribute('aria-expanded', S.tagsOpen ? 'true' : 'false');
+  btn.classList.toggle('filtering', n > 0);
+  const lbl = el('prod-tag-toggle-lbl');
+  if (lbl) lbl.textContent = n ? t('tags_sel_lbl') : t('tags_filter_by');
+  const cnt = el('prod-tag-toggle-n');
+  if (cnt) cnt.textContent = n || vocabCount || '';
+}
+function toggleTagRow() {
+  S.tagsOpen = !S.tagsOpen;
+  S._tagsJustOpened = S.tagsOpen;
+  try { localStorage.setItem('ns_tags_open', S.tagsOpen ? '1' : '0'); } catch(e) {}
+  buildDiscoveryTagPills();
 }
 function toggleProdTag(btn) {
   const tag = btn.dataset.tag;
