@@ -304,6 +304,30 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;padding-bottom:2px}
 .cats::-webkit-scrollbar{display:none}
 .cpill{flex-shrink:0;padding:6px 14px;border-radius:100px;font-size:.8rem;font-weight:600;border:1.5px solid var(--border2);background:none;color:var(--text2);cursor:pointer;transition:all .15s}
+/* ── Discovery tag pills (Phase 2) ──────────────────────────────────────────
+   Visually SUBORDINATE to the category pills above them: smaller, squarer,
+   no accent fill until selected. Categories pick one thing; these narrow it.
+   Making them look identical would suggest they are alternatives to each
+   other rather than stacking filters. */
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 14px}
+.tpill{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;min-height:32px;
+  padding:5px 10px;border-radius:8px;font-size:.75rem;font-weight:600;
+  border:1px solid var(--border);background:none;color:var(--text2);
+  cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.tpill:hover:not(.dead){border-color:var(--border2);color:var(--text)}
+.tpill.on{background:rgba(63,169,220,.14);border-color:var(--accent);color:var(--text)}
+/* A pill that would filter to zero is DISABLED, not hidden — the vocabulary
+   stays stable while you narrow, instead of pills vanishing under your finger. */
+.tpill.dead{opacity:.35;cursor:not-allowed}
+.tpill-n{font-size:.6875rem;font-weight:700;color:var(--text3b);
+  background:var(--surface2);border-radius:100px;padding:1px 6px;min-width:20px;text-align:center}
+.tpill.on .tpill-n{color:var(--accent)}
+.tpill-clear{border-style:dashed;color:var(--text3b)}
+/* Tag chips shown on a product row — read-only, purely informational. */
+.ptags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.ptag{font-size:.625rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--text3b);background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;padding:1px 6px}
 .cpill.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 2px 12px rgba(63,169,220,.25)}
 /* NS nutrient-tag pills appended after the category pills (Ledger 14) — same
    shape as .cpill, tinted so they read as data tags, not categories. */
@@ -1061,6 +1085,11 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           <input type="text" id="prod-search" placeholder="Search products…" oninput="renderProducts()">
         </div>
         <div class="cats" id="prod-cats"></div>
+        <!-- Discovery tags (Phase 2). Own row, below the categories: they
+             multi-select with AND and STACK on the category pill, so mixing
+             them into that row would imply they replace it. Hidden entirely
+             until the tenant has tagged something. -->
+        <div class="tag-row hidden" id="prod-tag-row" role="group" aria-label="Filter by clinical tag"></div>
         <div id="prod-list"></div>
       </div>
     </div>
@@ -2698,6 +2727,7 @@ const T = {
   load_hosp:['Jaber Al Ahmad Al Sabah Hospital','مستشفى جابر الأحمد الصباح'],
   // auth
   foot_credit:['Created by','من تطوير'],
+  tags_clear:['Clear tags','مسح الوسوم'],
   min_hint_will_be:['will show {s}','ستظهر {s}'],
   qa_io_on:['Mark In-Patient Only','تحديد كمرضى داخليين فقط'],
   qa_io_off:['Unflag In-Patient Only','إلغاء مرضى داخليين فقط'],
@@ -3690,6 +3720,11 @@ const S = {
   activeTab: 'products',
   prodCat:   'All',
   prodTag:   null,   // NS nutrient tag pill selected in the Products view (Ledger 14) — mutually exclusive with prodCat
+  // Phase 2 discovery tags. A SET, not a single value: these combine with AND,
+  // and they stack on top of the category/NS-tag pill rather than replacing it.
+  prodTags:  new Set(),
+  tagsByUuid:{},
+  allTags:   [],
   bulkCat:   'All',
   isBulk:    false,
   suProduct: null,
@@ -3746,7 +3781,7 @@ window.onload = async () => {
   calcInitPins(); // Ledger 6-12 — restore calculator card pin state/order (all cards start collapsed regardless)
   svSecInit(); // restore Supervisor Dashboard section expand/collapse state
   try {
-    const [pd, sd, ed, hp] = await Promise.all([
+    const [pd, sd, ed, hp, tg] = await Promise.all([
       api({action:'getAll'}),
       api({action:'getSettings'}),
       api({action:'getExpiring'}),
@@ -3759,10 +3794,19 @@ window.onload = async () => {
       // breaking the entire app. Falling back to null just means no hospital
       // name is shown.
       api({action:'hospitalProfile'}).catch(()=>null),
+      // Discovery tags. Same failure-tolerant treatment as hospitalProfile, and
+      // for the same reason: this file is uploaded by hand while the backend
+      // deploys separately, so a new frontend WILL meet a gateway that has never
+      // heard of getProductTags. Losing tags must degrade to "no tags", never
+      // take the whole boot down. Proven necessary — the equivalent catch was
+      // breach-probed on 2026-08-23 and its removal put every user on the
+      // Connection Failed screen.
+      api({action:'getProductTags'}).catch(()=>null),
     ]);
     S.hospital = hp || null;
     applyHospitalIdentity();
     S.products = pd.products || [];
+    applyProductTags(tg);
     S.settings = { expiryWarningDays: sd.expiryWarningDays||30, defaultMinUnits: sd.defaultMinUnits||5, outpatientGuardDays: sd.outpatientGuardDays||30, leadTimeDays: sd.leadTimeDays||30, orderCoverageDays: sd.orderCoverageDays||90 };
     S.expiring  = ed.expiring || [];
     S.lastSynced = Date.now();
@@ -4111,6 +4155,23 @@ function reshapeBatch(r) {
 }
 
 const RESHAPE = {
+  // Phase 2 discovery tags (2026-09-09). PostgREST returns product_tags as a
+  // BARE ARRAY of {hospital_id, product_id, tag} rows — one per product-tag —
+  // so this must be reshaped like every other table action or the caller gets
+  // an array where it expects an object and silently renders nothing.
+  // Keyed by product UUID, because that is what the rows carry; the rest of the
+  // app keys products by the P### code (see reshapeProduct), so the join is
+  // done in applyProductTags() rather than here.
+  getProductTags(rows) {
+    const byUuid = {};
+    (rows || []).forEach(r => {
+      const u = r.product_id;
+      if (!u || !r.tag) return;
+      (byUuid[u] = byUuid[u] || []).push(r.tag);
+    });
+    Object.values(byUuid).forEach(list => list.sort());
+    return { tagsByUuid: byUuid };
+  },
   getAll(rows) {
     const products = (rows || []).map(reshapeProduct);
     // Rebuild, don't accumulate. This map was previously only ever written to,
@@ -4498,6 +4559,40 @@ function renderLastSynced() {
   el2.textContent = mins < 1 ? t('updated_now') : tf('updated_ago',{n:mins});
 }
 
+// ══ DISCOVERY TAGS (Phase 2, 2026-09-09) ════════════════════════════════════
+// A product belongs to MANY clinical groups — Neocate LCP is an INFANT formula
+// for ALLERGY; Kindergen is PAEDIATRIC and RENAL. `category` can only hold one,
+// so whichever label loses, a dietitian searching that axis never finds the
+// product. The user's framing of the cost: dietitians search by name, so they
+// only reach products they already remember, and the rest sits until it expires.
+//
+// Tags come from product_tags (keyed by product UUID) and are joined onto the
+// products list here, because the rest of the app keys products by the P### code.
+function applyProductTags(payload) {
+  const byUuid = (payload && payload.tagsByUuid) || {};
+  S.tagsByUuid = byUuid;
+  S.products.forEach(p => { p.tags = byUuid[p.productUuid] || []; });
+  // The vocabulary IS the set of tags actually in use — no separate list to
+  // drift out of sync with the data.
+  const all = new Set();
+  Object.values(byUuid).forEach(list => list.forEach(t => all.add(t)));
+  S.allTags = [...all].sort();
+  _searchBlobCache = { src: null, map: null }; // tags are searchable; rebuild
+}
+// Stored lower-case so the filter cannot fragment on capitalisation; shown
+// title-cased.
+function tagLabel(tag) {
+  return (tag || '').replace(/\b[a-z]/g, c => c.toUpperCase());
+}
+function productHasAllTags(p, tags) {
+  if (!tags || !tags.size) return true;
+  const own = p.tags || [];
+  // AND, not OR. "Infant" + "Allergy" must mean infant allergy formulas; OR
+  // would return everything infant PLUS everything allergy, which is noise.
+  for (const t of tags) if (own.indexOf(t) === -1) return false;
+  return true;
+}
+
 // ══ PRODUCT SEARCH ══════════════════════════════════════════════════════════
 // Requested 2026-09-09. The problem it solves, in the user's words: dietitians
 // search by NAME, so they can only reach the products they already remember —
@@ -4581,6 +4676,7 @@ function productSearchBlob(p) {
   if (blob === undefined) {
     blob = normaliseSearch([
       p.name, p.id, p.category, p.manufacturer, p.variant,
+      (p.tags || []).join(' '),
       (SEARCH_KEYWORDS[p.id] || []).join(' ')
     ].filter(Boolean).join(' '));
     _searchBlobCache.map.set(p.id, blob);
@@ -4637,6 +4733,9 @@ function renderProducts() {
   // exclusive (see setCat/setProdTag) — at most one of these filters applies.
   if (S.prodTag) list=list.filter(p=>productHasNsTag(p, S.prodTag));
   else if (S.prodCat!=='All') list=list.filter(p=>p.category===S.prodCat);
+  // Discovery tags STACK on whatever the pill above selected, and combine with
+  // each other by AND — see productHasAllTags.
+  if (S.prodTags.size) list=list.filter(p=>productHasAllTags(p, S.prodTags));
   // Shared matcher (see PRODUCT SEARCH above) — name, code, category,
   // manufacturer, variant and curated clinical keywords, with synonyms.
   if (q) {
@@ -4711,6 +4810,17 @@ function productSrcHtml(p){
     .map(v=>escapeHtml(String(v)));
   return bits.length?`<span class="pi-src" dir="ltr">${bits.join(' · ')}</span>`:'';
 }
+// Read-only tag chips on a product row. Capped at 4 with a "+n" remainder:
+// a renal infant peptide formula can legitimately carry six tags, and six
+// chips would push the name and status out of view on a phone. Tapping the
+// row still shows everything.
+function productTagsHtml(p){
+  const tags = p.tags || [];
+  if (!tags.length) return '';
+  const shown = tags.slice(0,4).map(t=>`<span class="ptag">${escapeHtml(tagLabel(t))}</span>`).join('');
+  const rest  = tags.length>4 ? `<span class="ptag">+${tags.length-4}</span>` : '';
+  return `<span class="ptags">${shown}${rest}</span>`;
+}
 
 function renderStorageRows(list) {
   return list.map(p=>{
@@ -4768,6 +4878,7 @@ function dietitianRowHTML(p) {
         ${p.inpatientOnly?`<span class="io-badge">${HOSPITAL_ICON} In-Patient Only</span>`:''}
         ${p.lifeline?`<span class="ll-badge">${ALERT_TRI_ICON} Lifeline</span>`:''}
       </div>
+      ${productTagsHtml(p)}
     </div>
     ${hasNut?`<button class="qa-btn ns-info-btn" onclick="event.stopPropagation();openNsDetailForProduct('${p.id}')" title="Formulary details"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></button>`:''}
     <button class="pin-star ${pinned?'pinned':''}" onclick="event.stopPropagation();togglePin('${p.id}')">${pinned?STAR_FILLED:STAR_OUTLINE}</button>
@@ -4795,8 +4906,24 @@ function togglePin(id) {
 function openAlternatives(productId) {
   const p = S.products.find(x=>x.id===productId);
   if (!p) return;
-  const alts = S.products.filter(x=>x.id!==productId && x.category===p.category && x.status==='available')
-    .sort((a,b)=> (b.dispenseFirst?1:0)-(a.dispenseFirst?1:0) || a.name.localeCompare(b.name));
+  // TAG-AWARE ALTERNATIVES (Phase 2, 2026-09-09). This used to be
+  // `x.category === p.category`, which for Neocate LCP offered every Allergy
+  // product — including Elemental 028, an ADULT feed. Shared tags express
+  // clinical similarity that one category cannot: an infant allergy formula
+  // now surfaces other INFANT ALLERGY formulas first.
+  //
+  // Category is kept as the fallback so this degrades to the old behaviour for
+  // an untagged product (and for a backend too old to serve tags at all),
+  // rather than showing an empty sheet — which would read as "no alternatives
+  // exist" when it really means "nothing has been tagged yet".
+  const myTags = p.tags || [];
+  const shared = x => (x.tags || []).filter(t => myTags.indexOf(t) !== -1).length;
+  const alts = S.products
+    .filter(x => x.id !== productId && x.status === 'available'
+              && (myTags.length ? shared(x) > 0 : x.category === p.category))
+    .sort((a,b)=> shared(b) - shared(a)                      // most clinically alike first
+              || (b.dispenseFirst?1:0)-(a.dispenseFirst?1:0) // then use-me-first stock
+              || a.name.localeCompare(b.name));
   const rows = alts.length ? alts.map(a=>`<div class="alt-row">
       ${a.dispenseFirst?`<span class="df-badge sm">${REFRESH_ICON}</span>`:''}
       <span class="alt-name">${escapeHtml(a.name)}</span>
@@ -6052,6 +6179,53 @@ function buildProdTagPills() {
     `<button class="cpill ns-tag-pill ${S.prodTag===tag?'on':''}" data-tag="${escapeHtml(tag)}" onclick="setProdTag(this)"><svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg> ${escapeHtml(nsTagLabel(tag))}</button>`
   ).join('');
   box.insertAdjacentHTML('beforeend', html);
+  buildDiscoveryTagPills();
+}
+// ── Discovery tag pills (Phase 2) ───────────────────────────────────────────
+// Rendered into their own row BELOW the category pills, not mixed into them:
+// they behave differently (multi-select, AND) and stack on top of the category
+// selection, so putting them in the same row would imply they replace it.
+//
+// Each pill shows the count of products it would leave AFTER the current
+// filters — an AND filter reaches zero fast, and a pill that silently empties
+// the list reads as a broken app. A pill that would yield zero is disabled
+// rather than hidden, so the vocabulary stays stable while you narrow.
+function buildDiscoveryTagPills() {
+  const box = el('prod-tag-row');
+  if (!box) return;
+  if (!S.allTags || !S.allTags.length) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  // Base list = everything the NON-tag filters allow, so counts reflect reality.
+  let base = S.products;
+  if (S.prodTag) base = base.filter(p => productHasNsTag(p, S.prodTag));
+  else if (S.prodCat !== 'All') base = base.filter(p => p.category === S.prodCat);
+  const q = (el('prod-search')?.value || '');
+  if (q) base = base.filter(p => productMatchesQuery(p, q));
+
+  const pills = S.allTags.map(tag => {
+    const on = S.prodTags.has(tag);
+    // Count with this tag ADDED to the current selection.
+    const probe = new Set(S.prodTags); probe.add(tag);
+    const n = base.filter(p => productHasAllTags(p, probe)).length;
+    const dead = !on && n === 0;
+    return `<button class="tpill${on?' on':''}${dead?' dead':''}" data-tag="${escapeHtml(tag)}"
+      ${dead?'disabled aria-disabled="true"':''} aria-pressed="${on?'true':'false'}"
+      onclick="toggleProdTag(this)">${escapeHtml(tagLabel(tag))}<span class="tpill-n">${n}</span></button>`;
+  }).join('');
+  const clear = S.prodTags.size
+    ? `<button class="tpill tpill-clear" onclick="clearProdTags()">${escapeHtml(t('tags_clear'))}</button>` : '';
+  box.innerHTML = pills + clear;
+}
+function toggleProdTag(btn) {
+  const tag = btn.dataset.tag;
+  if (S.prodTags.has(tag)) S.prodTags.delete(tag); else S.prodTags.add(tag);
+  renderProducts();
+  buildDiscoveryTagPills();
+}
+function clearProdTags() {
+  S.prodTags.clear();
+  renderProducts();
+  buildDiscoveryTagPills();
 }
 // Ledger 32: a pill must never filter down to zero products, so the pill
 // list is derived from tags carried by ≥1 LIVE product — iterating every
