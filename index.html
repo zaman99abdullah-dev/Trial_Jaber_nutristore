@@ -2739,6 +2739,17 @@ const T = {
   // auth
   foot_credit:['Created by','من تطوير'],
   tags_clear:['Clear tags','مسح الوسوم'],
+  // NS emphasis pills, spelled out. The PDF encodes these as arrows (↑ Kcal);
+  // the department reads them as "high energy" / "low energy" and so on.
+  ns_hi_kcal:['High Energy','عالي السعرات'],   ns_lo_kcal:['Low Energy','منخفض السعرات'],
+  ns_hi_pro:['High Protein','عالي البروتين'],  ns_lo_pro:['Low Protein','منخفض البروتين'],
+  ns_hi_cho:['High Carb','عالي الكربوهيدرات'], ns_lo_cho:['Low Carb','منخفض الكربوهيدرات'],
+  ns_hi_fat:['High Fat','عالي الدهون'],        ns_lo_fat:['Low Fat','منخفض الدهون'],
+  ns_hi_fib:['High Fibre','عالي الألياف'],     ns_lo_fib:['Low Fibre','منخفض الألياف'],
+  ns_hi_min:['High Minerals','عالي المعادن'],  ns_lo_min:['Low Minerals','منخفض المعادن'],
+  ns_hi_na:['High Sodium','عالي الصوديوم'],    ns_lo_na:['Low Sodium','منخفض الصوديوم'],
+  alt_sub_tags:['Similar in stock — {s}:','بدائل متوفرة — {s}:'],
+  alt_sub_cat:['Alternatives in stock ({s}):','بدائل متوفرة ({s}):'],
   min_hint_will_be:['will show {s}','ستظهر {s}'],
   qa_io_on:['Mark In-Patient Only','تحديد كمرضى داخليين فقط'],
   qa_io_off:['Unflag In-Patient Only','إلغاء مرضى داخليين فقط'],
@@ -4933,6 +4944,19 @@ function togglePin(id) {
 }
 
 // ══ Alternatives bottom sheet ═══════════════════════════════════
+// Says WHY these products are being offered. It used to read "Alternatives in
+// stock (Pediatric)" — the out-of-stock product's category — which became a
+// falsehood the moment matching moved to tags: for Rena Start it announced
+// "(Pediatric)" above three ADULT renal feeds. The subtitle now names the
+// clinical tags that actually drove the match, falling back to the category
+// only when the product has no clinical tags and category-matching is what ran.
+function altReasonLabel(p) {
+  const catTags = new Set(CATS.map(c => c.toLowerCase()));
+  const clinical = (p.tags || []).filter(t => !catTags.has(t));
+  return clinical.length
+    ? tf('alt_sub_tags', { s: clinical.map(tagLabel).join(', ') })
+    : tf('alt_sub_cat',  { s: p.category || '' });
+}
 function openAlternatives(productId) {
   const p = S.products.find(x=>x.id===productId);
   if (!p) return;
@@ -4978,7 +5002,7 @@ function openAlternatives(productId) {
       <div class="sheet-panel">
         <div class="sheet-handle"></div>
         <div class="sheet-title">${escapeHtml(p.name)} — Not available</div>
-        <div class="sheet-sub">Alternatives in stock (${escapeHtml(p.category)}):</div>
+        <div class="sheet-sub">${escapeHtml(altReasonLabel(p))}</div>
         ${rows}
         <button class="btn-submit" style="margin-top:16px" onclick="closeAltSheet()">Close</button>
       </div>
@@ -6206,9 +6230,25 @@ function nsEmphTags(nut) {
 function nsOtherTags(nut) {
   return [ ...(nut.dm?['DM']:[]), ...(nut.tubeFeed?['Tube feed']:[]) ];
 }
+// The arrow tags are DATA keys — "↑ Kcal" is what nsEmphTags() builds from the
+// PDF's arrow graphics, and what productHasNsTag() filters on. They must not be
+// renamed. But the arrow notation only reads correctly if you already know the
+// convention, so this maps each one to what it actually MEANS, in the
+// department's own words: ↑ Kcal = high energy, ↓ Pro = low protein, and so on.
+// Display only — the underlying key is untouched.
+const NS_EMPH_LABEL = {
+  '↑ Kcal':'ns_hi_kcal', '↓ Kcal':'ns_lo_kcal',
+  '↑ Pro':'ns_hi_pro',   '↓ Pro':'ns_lo_pro',
+  '↑ CHO':'ns_hi_cho',   '↓ CHO':'ns_lo_cho',
+  '↑ Fat':'ns_hi_fat',   '↓ Fat':'ns_lo_fat',
+  '↑ Fiber':'ns_hi_fib', '↓ Fiber':'ns_lo_fib',
+  '↑ Minerals':'ns_hi_min', '↓ Minerals':'ns_lo_min',
+  '↑ Na':'ns_hi_na',     '↓ Na':'ns_lo_na',
+};
 function nsTagLabel(tag) {
+  if (NS_EMPH_LABEL[tag]) return t(NS_EMPH_LABEL[tag]);
   const key = { All:'cat_All', Liquid:'calc_form_liquid', Powder:'calc_form_powder' }[tag];
-  return key ? t(key) : tag; // data tag strings (DM, ↑ CHO…) stay verbatim/English
+  return key ? t(key) : tag; // remaining data tags (DM, Tube feed) stay verbatim
 }
 // ── NS tag pills — appended to the Products view category row (Ledger 14) ──
 // The Formulary segment's chip row/sort UI and its render functions
@@ -6261,6 +6301,14 @@ function buildDiscoveryTagPills() {
   //    costs a row of vertical space on the phone this is used on. They remain
   //    fully searchable; typing "ibd" still finds Modulen.
   const catTags = new Set(CATS.map(c => c.toLowerCase()));
+  // 3. NO PILL for a tag whose axis an NS emphasis pill already covers. Both of
+  //    these are now re-seeded FROM product_nutrition.emph_* — the same data the
+  //    "High Energy" / "High Fibre" pills are derived from — so a pill here
+  //    would be a second control for one clinical fact. They are kept as TAGS
+  //    because the alternatives sheet and search both match on tags, not on NS
+  //    data: stripping them would quietly make Infatrini's alternatives fall
+  //    back to "any Infant product", all forty of them.
+  const nsMirrored = new Set(['high energy','fibre']);
   const MIN_FOR_PILL = 3;
   // Rule 2 is measured against the WHOLE catalogue, not the filtered view — a
   // tag must be small in absolute terms to lose its pill, otherwise pills would
@@ -6268,7 +6316,7 @@ function buildDiscoveryTagPills() {
   // "disable, don't hide" behaviour exists to avoid.
   const totalFor = tag => S.products.filter(p => (p.tags||[]).indexOf(tag) !== -1).length;
   const pills = S.allTags
-    .filter(tag => !catTags.has(tag))
+    .filter(tag => !catTags.has(tag) && !nsMirrored.has(tag))
     .filter(tag => S.prodTags.has(tag) || totalFor(tag) >= MIN_FOR_PILL)
     .map(tag => {
     const on = S.prodTags.has(tag);
