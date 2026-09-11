@@ -365,6 +365,16 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .batch-qty-input{width:80px;padding:7px 10px;font-size:.875rem;text-align:center}
 .btn-save-qty{padding:7px 14px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--grad);color:#fff;flex-shrink:0}
 .btn-remove{padding:7px 12px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--red-bg);color:var(--red-t);border:1px solid rgba(239,68,68,.25);flex-shrink:0}
+/* Batch correction. Styled as a quiet secondary action, NOT like "Save Qty":
+   the two must not look interchangeable, because one records dispensing and
+   the other records a data-entry fix. */
+.btn-fix{padding:7px 12px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--surface2);color:var(--text2);border:1px solid var(--border2);flex-shrink:0}
+.batch-edit{margin-top:10px;padding:12px;border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border2)}
+.batch-edit-note{font-size:.75rem;color:#fbbf24;line-height:1.5;margin-bottom:10px}
+.batch-edit-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.batch-edit-row label{font-size:.75rem;color:var(--text2);min-width:96px}
+.batch-edit-row input{flex:1;min-width:0}
+.batch-edit-actions{display:flex;gap:8px;margin-top:10px}
 .btn-remove:hover{background:rgba(239,68,68,.15)}
 .add-batch-form{background:rgba(63,169,220,.05);border:1px dashed rgba(63,169,220,.25);border-radius:var(--rs);padding:14px;margin-top:12px}
 .add-batch-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -465,6 +475,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .settings-row:last-child{border-bottom:none}
 .settings-lbl{font-size:.875rem;font-weight:600}
 .settings-desc{font-size:.75rem;color:var(--text2);margin-top:3px}
+/* Auto Status OFF is a consequential state (the product stops tracking stock),
+   so it reads as a warning rather than as neutral help text. */
+.settings-desc.as-hint-warn{color:#fbbf24;font-weight:600}
 .settings-input{width:90px;text-align:center;padding:8px 10px}
 
 /* Empty */
@@ -1959,6 +1972,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <span class="as-toggle-lbl" data-i18n="as_toggle">🤖 Auto Status (Available / Low / Not Available from stock)</span>
             <span class="as-switch" id="su-as-switch"></span>
           </div>
+          <div id="su-as-hint" class="settings-desc" style="margin:-8px 0 12px"></div>
           <div class="status-grid">
             <button class="sbtn sb-available"   id="su-s-available"   onclick="pickSuStatus('available')">🟢 Available</button>
             <button class="sbtn sb-low"         id="su-s-low"         onclick="pickSuStatus('low')">🟡 Low Stock</button>
@@ -1984,7 +1998,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           <div class="row2">
             <div class="field">
               <label for="su-min" data-i18n="lbl_min_units">Min Units for Low Stock</label>
-              <input type="number" id="su-min" min="1" placeholder="5">
+              <input type="number" id="su-min" min="1" placeholder="5" oninput="updateSuMinHint()">
             </div>
             <div class="field">
               <label for="su-pack" data-i18n="lbl_pack_units">Units per Package</label>
@@ -2623,7 +2637,7 @@ const STATUS_CFG = {
   '':          { label:'Not Set',       cls:'s-empty',       dot:'#475569' },
 };
 
-const CATS = ['All','Adult','Pediatric','Infant','Metabolic','Renal','Supplements','Gluten Free'];
+const CATS = ['All','Adult','Pediatric','Infant','Metabolic','Allergy','Renal','Supplements','Gluten Free'];
 
 // ══ i18n (English / العربية) ═══════════════════════════════════
 // Product names stay in English (brand names); the UI chrome, statuses,
@@ -2646,6 +2660,20 @@ const T = {
   load_hosp:['Jaber Al Ahmad Al Sabah Hospital','مستشفى جابر الأحمد الصباح'],
   // auth
   foot_credit:['Created by','من تطوير'],
+  min_hint_will_be:['will show {s}','ستظهر {s}'],
+  btn_save_qty:['Save Qty','حفظ الكمية'],
+  btn_fix:['✏️ Fix','✏️ تصحيح'],
+  correct_note:['Correcting a mistake — this does NOT record stock as dispensed. Use “Save Qty” when stock was actually used.','تصحيح خطأ إدخال — لا يُسجَّل كصرف للمخزون. استخدم «حفظ الكمية» عند صرف المخزون فعلياً.'],
+  correct_lbl_expiry:['Expiry date','تاريخ الانتهاء'],
+  correct_lbl_qty:['Units','الوحدات'],
+  correct_save:['Save correction','حفظ التصحيح'],
+  correct_cancel:['Cancel','إلغاء'],
+  t_batch_fixed:['Batch corrected','تم تصحيح الدفعة'],
+  t_need_expiry:['Enter an expiry date','أدخل تاريخ الانتهاء'],
+  t_need_qty:['Enter a valid number of units','أدخل عدد وحدات صحيح'],
+  t_no_change:['Nothing changed','لا يوجد تغيير'],
+  as_hint_on:['Status is set automatically from units on hand and Min Units.','تُحدَّد الحالة تلقائياً من الوحدات المتوفرة والحد الأدنى.'],
+  as_hint_off:['Automatic status is OFF — this product’s status stays exactly as you set it and will NOT change when stock is added or used.','التحديث التلقائي متوقف — تبقى حالة هذا المنتج كما ضبطتها ولن تتغير عند إضافة أو استهلاك المخزون.'],
   cs_auto_off_hint:['Auto Status was turned off so “Coming Soon” is not overwritten by stock levels. Turn it back on when the stock arrives.','تم إيقاف الحالة التلقائية حتى لا يتم استبدال «قريباً» حسب المخزون. أعد تشغيلها عند وصول المخزون.'],
   auth_signin_h:['Staff Sign In','تسجيل دخول الموظفين'],
   auth_signin_sub:['Sign in with your hospital email to access storage.','سجّل الدخول ببريدك الإلكتروني للوصول إلى المخزن.'],
@@ -2675,7 +2703,7 @@ const T = {
   // products pane
   ph_search:['Search products…','ابحث عن المنتجات…'],
   cat_All:['All','الكل'], cat_Adult:['Adult','البالغون'], cat_Pediatric:['Pediatric','الأطفال'],
-  cat_Infant:['Infant','الرضّع'], cat_Metabolic:['Metabolic','استقلابي'], cat_Renal:['Renal','كلوي'],
+  cat_Infant:['Infant','الرضّع'], cat_Metabolic:['Metabolic','استقلابي'], cat_Allergy:['Allergy','حساسية'], cat_Renal:['Renal','كلوي'],
   cat_Supplements:['Supplements','المكملات'], 'cat_Gluten Free':['Gluten Free','خالٍ من الغلوتين'],
   empty_products:['No products found','لا توجد منتجات'],
   lbl_pinned:['⭐ Pinned','⭐ المثبّتة'], lbl_all_products:['All Products','جميع المنتجات'],
@@ -6874,16 +6902,17 @@ function applySuCardState(existing) {
   S.suLifeline = !!existing?.lifeline;
   S.suAutoStatus = !existing?.manualStatus; // old backend omits the field → automation on
   S.suDfAuto = existing?.dfAuto !== false;  // old backend omits the field → automation on
-  const onHand=existing?.batchSummary?existing.batchSummary.totalValid:null;
-  el('su-min-hint').textContent = (onHand!==null
-    ? tf('min_hint',{u:onHand, m:existing?.minUnits||S.settings.defaultMinUnits||5}) : '')
-    + (!S.suAutoStatus ? (onHand!==null?' · ':'')+t('min_hint_off') : '');
+  // Remember on-hand units so the Min Units hint can recompute LIVE as the user
+  // types, instead of only when the product is selected.
+  S.suOnHand = existing?.batchSummary ? existing.batchSummary.totalValid : null;
+  updateSuMinHint();
   el('su-df-switch').classList.toggle('on', S.suDispenseFirst);
   el('su-io-switch').classList.toggle('on', S.suInpatientOnly);
   el('su-ll-switch').classList.toggle('on', S.suLifeline);
   el('su-as-switch').classList.toggle('on', S.suAutoStatus);
   el('su-dfa-chip')?.classList.toggle('on-df', S.suDfAuto);
   updateSuDfHint();
+  updateSuAsHint();
   updateSuStatusGridVisibility();
   clearSuHighlight(); highlightSuStatus(S.suStatus);
   updateSuComingHint();
@@ -6912,6 +6941,43 @@ function updateSuDfHint() {
   const hint = el('su-df-hint'); if (!hint) return;
   hint.textContent = S.suDfAuto ? tf('df_auto_hint_on',{d:S.settings.expiryWarningDays}) : t('df_auto_hint_off');
 }
+// ── Min Units hint, recomputed LIVE from whatever is currently TYPED ──────────
+// 2026-09-09, from a real report: a staffer set Min Units to 100 on a product
+// holding 99 units and still saw "Available". The automation was right — at the
+// moment the batch was added the minimum was still the default 5 — but nothing
+// on screen said what the new minimum would DO, so the natural next move was to
+// switch Auto Status off and set the status by hand, which freezes it forever.
+// Eleven products ended up frozen that way. Showing the resulting status while
+// they type removes the reason to reach for that switch at all.
+function suPlainStatusLabel(code) {
+  // The st_* entries carry an inline SVG dot; strip markup for a text hint.
+  return t('st_' + code).replace(/<[^>]*>/g, '').trim();
+}
+function updateSuMinHint() {
+  const hint = el('su-min-hint'); if (!hint) return;
+  const onHand = S.suOnHand;
+  const typed  = parseInt(el('su-min')?.value);
+  const min    = Number.isFinite(typed) && typed > 0 ? typed : (S.settings.defaultMinUnits || 5);
+  let txt = (onHand !== null && onHand !== undefined) ? tf('min_hint', {u:onHand, m:min}) : '';
+  if (!S.suAutoStatus) {
+    txt += (txt ? ' · ' : '') + t('min_hint_off');
+  } else if (onHand !== null && onHand !== undefined) {
+    // Mirrors apply_status_automation exactly: 0 => unavailable, below the
+    // minimum => low, otherwise available. Keep these three in step with
+    // 20260823090000_out_of_stock_detection.sql if that logic ever changes.
+    const next = onHand === 0 ? 'unavailable' : (onHand < min ? 'low' : 'available');
+    txt += ' · ' + tf('min_hint_will_be', {s: suPlainStatusLabel(next)});
+  }
+  hint.textContent = txt;
+}
+// Explains what the Auto Status switch actually does — and, more importantly,
+// what turning it OFF costs. Without this the switch reads as a harmless
+// preference rather than "this product stops tracking stock from now on".
+function updateSuAsHint() {
+  const hint = el('su-as-hint'); if (!hint) return;
+  hint.textContent = S.suAutoStatus ? t('as_hint_on') : t('as_hint_off');
+  hint.classList.toggle('as-hint-warn', !S.suAutoStatus);
+}
 function toggleSuInpatientOnly() {
   S.suInpatientOnly = !S.suInpatientOnly;
   el('su-io-switch').classList.toggle('on', S.suInpatientOnly);
@@ -6929,6 +6995,8 @@ function toggleSuAutoStatus() {
   el('su-as-switch').classList.toggle('on', S.suAutoStatus);
   updateSuStatusGridVisibility();
   updateSuComingHint(); // turning automation back on retires the pin explanation
+  updateSuAsHint();
+  updateSuMinHint(); // the hint's meaning flips with the switch
 }
 // When Auto Status is ON, Available/Low/Not-Available are ALL computed — not
 // pickable (avoids a manual pick getting silently overwritten by the next batch
@@ -7357,8 +7425,30 @@ function renderBatches() {
       <div class="batch-qty-row">
         <input type="number" class="batch-qty-input" id="bq-${b.batchId}" value="${b.quantity}" min="0">
         <span style="font-size:.8125rem;color:var(--text2)">${t('units')}</span>
-        <button class="btn-save-qty" onclick="submitUpdateBatch('${batchIdEnc}')">Save Qty</button>
+        <button class="btn-save-qty" onclick="submitUpdateBatch('${batchIdEnc}')">${t('btn_save_qty')}</button>
+        <button class="btn-fix" onclick="toggleBatchEdit('${batchIdEnc}')">${t('btn_fix')}</button>
         <button class="btn-remove" onclick="submitRemoveBatch('${batchIdEnc}','${expDateEnc}')">Remove</button>
+      </div>
+      <!-- Correction panel. Kept visually and functionally SEPARATE from
+           "Save Qty": that button records DISPENSING (stock leaving the
+           shelf), this one records a data-entry FIX. They write to different
+           places — see correct_batch()'s header. The note below spells the
+           difference out for staff, because picking the wrong one silently
+           skews the dispensing report. -->
+      <div class="batch-edit hidden" id="be-${b.batchId}">
+        <div class="batch-edit-note">${t('correct_note')}</div>
+        <div class="batch-edit-row">
+          <label for="be-date-${b.batchId}">${t('correct_lbl_expiry')}</label>
+          <input type="date" id="be-date-${b.batchId}" value="${escapeHtml(b.expiryDate||'')}">
+        </div>
+        <div class="batch-edit-row">
+          <label for="be-qty-${b.batchId}">${t('correct_lbl_qty')}</label>
+          <input type="number" id="be-qty-${b.batchId}" min="0" value="${b.quantity}">
+        </div>
+        <div class="batch-edit-actions">
+          <button class="btn-save-qty" onclick="submitCorrectBatch('${batchIdEnc}')">${t('correct_save')}</button>
+          <button class="btn-remove" onclick="toggleBatchEdit('${batchIdEnc}')">${t('correct_cancel')}</button>
+        </div>
       </div>
       ${b.lastUpdatedBy?`<div style="font-size:.75rem;color:var(--text3);margin-top:6px">Last updated by ${escapeHtml(b.lastUpdatedBy)}</div>`:''}
     </div>`;
@@ -7442,6 +7532,65 @@ async function submitAddBatch() {
     setTimeout(()=>el('ab-date-shorthand')?.focus(), 100);
   } catch(e){toast(t('t_failed')+e.message,'err');}
   finally{btn.disabled=false;lbl.textContent=t('add_batch');}
+}
+
+// ── Batch CORRECTION (2026-09-09, requested) ────────────────────────────────
+// Fixing a mistyped expiry date or quantity used to mean removing the batch and
+// adding a new one, which threw away the batch's identity and its history.
+//
+// This is deliberately NOT submitUpdateBatch. That path calls
+// update_batch_quantity, which models DISPENSING and writes a dispensing_events
+// row for every decrease — so "fixing" a typo of 1000 to 100 there would record
+// 900 units as dispensed and quietly inflate the dispensing report, the monthly
+// comparison and the waste metric. correctBatch writes no dispensing row.
+function toggleBatchEdit(batchIdEnc) {
+  const batchId = decodeURIComponent(batchIdEnc);
+  const panel = el('be-' + batchId);
+  if (!panel) return;
+  const opening = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden');
+  if (opening) {
+    // Re-seed from current server truth every time it opens, so an abandoned
+    // edit never leaves stale numbers sitting in the form.
+    const b = S.suBatches.find(x => x.batchId === batchId);
+    if (b) {
+      const d = el('be-date-' + batchId), q = el('be-qty-' + batchId);
+      if (d) d.value = b.expiryDate || '';
+      if (q) q.value = b.quantity;
+    }
+  }
+}
+async function submitCorrectBatch(batchIdEnc) {
+  const batchId = decodeURIComponent(batchIdEnc);
+  const by = currentActorName();
+  if (!by) { toast(t('t_signin_first'),'warn'); toggleMode(); return; }
+  const b = S.suBatches.find(x => x.batchId === batchId);
+  if (!b) return;
+
+  const newDate = el('be-date-' + batchId)?.value || '';
+  const qtyRaw  = parseInt(el('be-qty-' + batchId)?.value);
+  const newQty  = Number.isFinite(qtyRaw) && qtyRaw >= 0 ? qtyRaw : null;
+
+  if (!newDate) { toast(t('t_need_expiry'),'err'); return; }
+  if (newQty === null) { toast(t('t_need_qty'),'err'); return; }
+
+  // Send ONLY what actually changed. NULL means "leave alone" server-side, so
+  // an unchanged field must not be sent at all — that is what stops this form
+  // from overwriting a value the user never touched.
+  const params = { action:'correctBatch', batchId: batchUuid(batchId), updatedBy: encodeURIComponent(by) };
+  if (newDate !== (b.expiryDate || '')) params.expiryDate = newDate;
+  if (newQty !== b.quantity)            params.quantity   = newQty;
+
+  if (params.expiryDate === undefined && params.quantity === undefined) {
+    toast(t('t_no_change'),'warn'); return;
+  }
+  try {
+    await api(params);
+    toast(t('t_batch_fixed'),'ok');
+    toggleBatchEdit(batchIdEnc);
+    await loadBatches(S.suProduct.id);
+    await resyncSuCardFromServer(); // a corrected expiry/qty can flip the status
+  } catch(e) { toast(t('t_failed')+e.message,'err'); }
 }
 
 async function submitUpdateBatch(batchIdEnc) {
