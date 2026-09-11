@@ -4839,7 +4839,13 @@ function productSrcHtml(p){
 // chips would push the name and status out of view on a phone. Tapping the
 // row still shows everything.
 function productTagsHtml(p){
-  const tags = p.tags || [];
+  // Drop the tag that merely repeats the category badge already on this row.
+  // Seen live 2026-09-09: Osmolite showed a badge reading "Adult" and then a
+  // single chip reading "ADULT" — a whole extra line of row height saying the
+  // thing directly above it. This is the same rule the pill row uses, applied
+  // one level down; the population tag still powers search and alternatives.
+  const cat = (p.category || '').toLowerCase();
+  const tags = (p.tags || []).filter(t => t !== cat);
   if (!tags.length) return '';
   const shown = tags.slice(0,4).map(t=>`<span class="ptag">${escapeHtml(tagLabel(t))}</span>`).join('');
   const rest  = tags.length>4 ? `<span class="ptag">+${tags.length-4}</span>` : '';
@@ -4940,12 +4946,26 @@ function openAlternatives(productId) {
   // an untagged product (and for a backend too old to serve tags at all),
   // rather than showing an empty sheet — which would read as "no alternatives
   // exist" when it really means "nothing has been tagged yet".
-  const myTags = p.tags || [];
-  const shared = x => (x.tags || []).filter(t => myTags.indexOf(t) !== -1).length;
+  // POPULATION TAGS DO NOT COUNT AS SIMILARITY. Found live 2026-09-09, right
+  // after category became population-only: Rena Start (pediatric, renal) began
+  // offering SIXTEEN alternatives — more than the old category rule's thirteen —
+  // because every paediatric product now "shares a tag" with it. Neocate
+  // (allergy), Heparon (liver) and Pediasure were all being offered as
+  // substitutes for a renal feed.
+  //
+  // Sharing "pediatric" with 21 other products is not a clinical reason to
+  // suggest one. Only INDICATION and FORM tags express similarity; population
+  // is demoted to a tie-breaker, so a paediatric renal feed still outranks an
+  // adult one.
+  const catTags = new Set(CATS.map(c => c.toLowerCase()));
+  const clinicalOf = x => (x.tags || []).filter(t => !catTags.has(t));
+  const myClinical = clinicalOf(p);
+  const shared = x => clinicalOf(x).filter(t => myClinical.indexOf(t) !== -1).length;
   const alts = S.products
     .filter(x => x.id !== productId && x.status === 'available'
-              && (myTags.length ? shared(x) > 0 : x.category === p.category))
+              && (myClinical.length ? shared(x) > 0 : x.category === p.category))
     .sort((a,b)=> shared(b) - shared(a)                      // most clinically alike first
+              || ((b.category===p.category?1:0)-(a.category===p.category?1:0)) // same population next
               || (b.dispenseFirst?1:0)-(a.dispenseFirst?1:0) // then use-me-first stock
               || a.name.localeCompare(b.name));
   const rows = alts.length ? alts.map(a=>`<div class="alt-row">
