@@ -361,20 +361,55 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .batch-item.expired-batch{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.04)}
 .batch-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
 .batch-exp{font-size:.875rem;font-weight:600}
-.batch-qty-row{display:flex;align-items:center;gap:8px}
-.batch-qty-input{width:80px;padding:7px 10px;font-size:.875rem;text-align:center}
+/* Wraps because this row now carries four controls (qty, Save Qty, Fix,
+   Remove). Without wrapping it overflowed a 375px phone, which is the screen
+   this is actually used on. 8px gap = the minimum spacing between adjacent
+   touch targets. */
+.batch-qty-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.batch-qty-input{width:88px;min-height:44px;padding:7px 10px;font-size:.875rem;text-align:center}
 .btn-save-qty{padding:7px 14px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--grad);color:#fff;flex-shrink:0}
 .btn-remove{padding:7px 12px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--red-bg);color:var(--red-t);border:1px solid rgba(239,68,68,.25);flex-shrink:0}
-/* Batch correction. Styled as a quiet secondary action, NOT like "Save Qty":
-   the two must not look interchangeable, because one records dispensing and
-   the other records a data-entry fix. */
-.btn-fix{padding:7px 12px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--surface2);color:var(--text2);border:1px solid var(--border2);flex-shrink:0}
-.batch-edit{margin-top:10px;padding:12px;border-radius:var(--rs);background:var(--surface2);border:1px solid var(--border2)}
-.batch-edit-note{font-size:.75rem;color:#fbbf24;line-height:1.5;margin-bottom:10px}
-.batch-edit-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.batch-edit-row label{font-size:.75rem;color:var(--text2);min-width:96px}
-.batch-edit-row input{flex:1;min-width:0}
-.batch-edit-actions{display:flex;gap:8px;margin-top:10px}
+/* ── Batch correction ────────────────────────────────────────────────────────
+   THREE-STEP BUTTON HIERARCHY in this row, deliberately distinct so the two
+   write paths are never confused: "Save Qty" is the PRIMARY action (gradient,
+   records dispensing), "Remove" is DESTRUCTIVE (red), and "Fix" is a QUIET
+   SECONDARY — bordered, no fill, accent-tinted icon. It must read as available
+   without competing with the primary, because choosing it by accident is
+   harmless while choosing Save Qty by accident skews the dispensing report.
+   Label contrast --text2 on --surface2 = 5.57:1 (AA). */
+.btn-fix{
+  min-height:44px;padding:7px 14px;border-radius:var(--rs);
+  font-size:.8rem;font-weight:700;
+  background:transparent;color:var(--text2);
+  border:1px solid var(--border2);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  flex-shrink:0;transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.btn-fix:hover{background:var(--surface2);border-color:var(--accent);color:var(--text)}
+.btn-fix:active{background:var(--border2)}
+.btn-fix .qa-icon{color:var(--accent)}
+/* Match the 44px target on the two pre-existing buttons too, rather than
+   leaving one compliant control among three that are not. */
+.btn-save-qty,.btn-remove{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+
+/* The panel is a CAUTION surface, not a neutral one: the amber edge carries
+   the same meaning as the note inside it, so the warning survives even if the
+   text is skimmed. Left border flips automatically in RTL via border-inline. */
+.batch-edit{
+  margin-top:10px;padding:14px;border-radius:var(--rs);
+  background:var(--surface);border:1px solid var(--border2);
+  border-inline-start:3px solid #fbbf24;
+}
+.batch-edit-note{font-size:.75rem;color:#fbbf24;line-height:1.55;margin-bottom:12px}
+.batch-edit-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.batch-edit-row label{font-size:.6875rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);min-width:92px}
+.batch-edit-row input{flex:1;min-width:120px;min-height:44px}
+.batch-edit-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+/* Cancel is NOT destructive — it only closes the panel. Styling it red (as it
+   first was) borrows the Remove button's meaning and implies data loss. */
+.btn-quiet{min-height:44px;padding:7px 16px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:transparent;color:var(--text2);border:1px solid var(--border2);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-quiet:hover{background:var(--surface2);color:var(--text)}
+@media (prefers-reduced-motion:reduce){ .btn-fix{transition:none} }
 .btn-remove:hover{background:rgba(239,68,68,.15)}
 .add-batch-form{background:rgba(63,169,220,.05);border:1px dashed rgba(63,169,220,.25);border-radius:var(--rs);padding:14px;margin-top:12px}
 .add-batch-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -405,6 +440,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ddopt:hover{background:rgba(63,169,220,.06)}
 .ddn{font-weight:500;color:var(--text)}
 .ddc{font-size:.75rem;color:var(--text2)}
+/* "why this matched" chip in the type-ahead — shown only when a hit did not
+   match on its name, so an unfamiliar product does not look like a bad result. */
+.dd-why{color:var(--accent);font-weight:700}
 
 /* Selected chip */
 .sel-chip{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(63,169,220,.07);border:1px solid rgba(63,169,220,.2);border-radius:var(--rs);margin-top:4px}
@@ -2661,8 +2699,14 @@ const T = {
   // auth
   foot_credit:['Created by','من تطوير'],
   min_hint_will_be:['will show {s}','ستظهر {s}'],
+  qa_io_on:['Mark In-Patient Only','تحديد كمرضى داخليين فقط'],
+  qa_io_off:['Unflag In-Patient Only','إلغاء مرضى داخليين فقط'],
+  t_io_on:['Marked In-Patient Only','تم التحديد كمرضى داخليين فقط'],
+  t_io_off:['Unflagged In-Patient Only','تم إلغاء مرضى داخليين فقط'],
+  qa_auto_note:['Status is set automatically from stock for this product.','تُحدَّد حالة هذا المنتج تلقائياً من المخزون.'],
   btn_save_qty:['Save Qty','حفظ الكمية'],
-  btn_fix:['✏️ Fix','✏️ تصحيح'],
+  btn_fix:['Fix','تصحيح'],
+  correct_aria:['Correct this batch record','تصحيح سجل هذه الدفعة'],
   correct_note:['Correcting a mistake — this does NOT record stock as dispensed. Use “Save Qty” when stock was actually used.','تصحيح خطأ إدخال — لا يُسجَّل كصرف للمخزون. استخدم «حفظ الكمية» عند صرف المخزون فعلياً.'],
   correct_lbl_expiry:['Expiry date','تاريخ الانتهاء'],
   correct_lbl_qty:['Units','الوحدات'],
@@ -4454,6 +4498,135 @@ function renderLastSynced() {
   el2.textContent = mins < 1 ? t('updated_now') : tf('updated_ago',{n:mins});
 }
 
+// ══ PRODUCT SEARCH ══════════════════════════════════════════════════════════
+// Requested 2026-09-09. The problem it solves, in the user's words: dietitians
+// search by NAME, so they can only reach the products they already remember —
+// and the rest of an extensive catalogue sits unused until it expires.
+//
+// The concrete trigger: typing "nephro" returned NOTHING. The product is
+// spelled "Nepro", and the two searches in this file matched different fields
+// (Products tab: name + manufacturer; type-ahead: name + product code), so
+// neither could bridge a clinical term to a brand name. Both now share the one
+// matcher below.
+//
+// WHAT IT MATCHES: product name, product code, category, manufacturer, variant,
+// plus curated clinical keywords. Multi-word queries are AND — every word must
+// match something, though different words may match different fields
+// ("ensure plus", "renal powder").
+//
+// WHY CURATED, NOT FUZZY: fuzzy matching on drug-like names surfaces the WRONG
+// formula (Nepro/Nutren, Peptamen/Pepti-Junior). In a clinical tool a confident
+// wrong hit is worse than no hit, so every expansion here is explicit and
+// reviewable. Synonyms match as WHOLE WORDS for the same reason — a substring
+// rule would make "dm" match "admix".
+const SEARCH_SYNONYMS = {
+  // kidney
+  nephro:['renal'], nephrology:['renal'], kidney:['renal'], dialysis:['renal'],
+  ckd:['renal'], renal:['renal'],
+  // cow's milk protein allergy
+  cma:['allergy'], cmpa:['allergy'], hypoallergenic:['allergy'],
+  allergic:['allergy'], allergy:['allergy'], elemental:['allergy','amino acid'],
+  // inborn errors of metabolism
+  pku:['metabolic'], msud:['metabolic'], iem:['metabolic'], urea:['metabolic'],
+  tyrosinaemia:['metabolic'], tyrosinemia:['metabolic'], ketogenic:['metabolic'],
+  metabolic:['metabolic'],
+  // other clinical concepts that have no category of their own (yet)
+  diabetes:['diabetes'], diabetic:['diabetes'], glycaemic:['diabetes'], glycemic:['diabetes'],
+  preterm:['preterm'], premature:['preterm'], lbw:['preterm'],
+  reflux:['reflux'], regurgitation:['reflux'],
+  dysphagia:['thickener'], thickening:['thickener'], thickener:['thickener'],
+  hepatic:['hepatic'], liver:['hepatic'],
+  ibd:['ibd'], crohn:['ibd'], crohns:['ibd'],
+  respiratory:['respiratory'], pulmonary:['respiratory'], copd:['respiratory'],
+  peptide:['peptide'], peptides:['peptide'], hydrolysed:['peptide'], hydrolyzed:['peptide'],
+  fibre:['fibre'], fiber:['fibre'],
+};
+// Curated clinical keywords per product code. DELIBERATELY the same shape as
+// the Phase-2 product_tags data — this map is the seed for it, so the curation
+// effort here is not thrown away when tags land in the database.
+const SEARCH_KEYWORDS = {
+  P005:['respiratory'], P010:['respiratory'],
+  P007:['diabetes'], P016:['diabetes'], P029:['diabetes'], P121:['diabetes'],
+  P022:['ibd'], P032:['hepatic'],
+  P011:['peptide'], P013:['peptide'], P018:['peptide'], P021:['peptide'],
+  P030:['peptide'], P035:['peptide'], P036:['peptide'], P042:['peptide'],
+  P044:['peptide'], P088:['peptide','allergy'],
+  P023:['amino acid'], P081:['amino acid'], P082:['amino acid'], P083:['amino acid'],
+  P084:['amino acid'], P086:['amino acid'], P089:['amino acid'], P091:['amino acid'],
+  P045:['preterm'], P046:['preterm'], P047:['preterm'], P048:['preterm'],
+  P049:['preterm'], P050:['preterm'], P060:['preterm'], P061:['preterm'],
+  P063:['reflux'], P064:['reflux'], P065:['reflux'], P066:['reflux'],
+  P067:['reflux'], P068:['reflux'],
+  P099:['thickener'], P100:['thickener'],
+  P009:['fibre'], P020:['fibre'], P108:['fibre'], P124:['fibre'],
+};
+// Latin diacritics and Arabic orthographic variants both normalise away, so a
+// name typed with or without them still matches.
+function normaliseSearch(s) {
+  return (s == null ? '' : String(s)).toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[ً-ْٰ]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .replace(/\s+/g, ' ').trim();
+}
+// Cached per product; S.products is replaced wholesale on every refresh, so the
+// cache is keyed on the array identity and rebuilt when that changes.
+let _searchBlobCache = { src: null, map: null };
+function productSearchBlob(p) {
+  if (_searchBlobCache.src !== S.products) {
+    _searchBlobCache = { src: S.products, map: new Map() };
+  }
+  let blob = _searchBlobCache.map.get(p.id);
+  if (blob === undefined) {
+    blob = normaliseSearch([
+      p.name, p.id, p.category, p.manufacturer, p.variant,
+      (SEARCH_KEYWORDS[p.id] || []).join(' ')
+    ].filter(Boolean).join(' '));
+    _searchBlobCache.map.set(p.id, blob);
+  }
+  return blob;
+}
+// One query word -> the set of strings that satisfy it. A synonym ADDS terms,
+// it never replaces the typed word, so searching "renal" still matches a
+// product whose NAME contains "renal" even if it is not categorised Renal.
+function expandSearchWord(w) {
+  const syn = SEARCH_SYNONYMS[w];
+  return syn ? [w].concat(syn) : [w];
+}
+function productMatchesQuery(p, rawQuery) {
+  const q = normaliseSearch(rawQuery);
+  if (!q) return true;
+  const blob = productSearchBlob(p);
+  // AND across words, OR across each word's synonyms.
+  return q.split(' ').every(w => expandSearchWord(w).some(term => blob.includes(term)));
+}
+// Ranking so the thing you typed the name of comes first, not an incidental
+// category match. Lower score sorts earlier.
+function productSearchRank(p, rawQuery) {
+  const q = normaliseSearch(rawQuery);
+  const name = normaliseSearch(p.name);
+  const code = normaliseSearch(p.id);
+  if (!q) return 5;
+  if (name === q) return 0;
+  if (name.startsWith(q)) return 1;
+  if (name.includes(q)) return 2;
+  if (code.includes(q)) return 3;
+  return 4; // matched only via category / manufacturer / clinical keyword
+}
+// Shown in the type-ahead when a hit did NOT match on its name, so the user can
+// see WHY an unfamiliar product is being offered rather than distrusting it.
+function productMatchReason(p, rawQuery) {
+  if (productSearchRank(p, rawQuery) < 4) return '';
+  const q = normaliseSearch(rawQuery);
+  const words = q.split(' ');
+  const terms = [].concat(...words.map(expandSearchWord));
+  if (p.category && terms.some(t => normaliseSearch(p.category).includes(t))) return p.category;
+  if (p.manufacturer && terms.some(t => normaliseSearch(p.manufacturer).includes(t))) return p.manufacturer;
+  const kw = (SEARCH_KEYWORDS[p.id] || []).find(k => terms.some(t => k.includes(t) || t.includes(k)));
+  return kw || '';
+}
+
 function renderProducts() {
   const q = (el('prod-search')?.value||'').toLowerCase();
   let list = S.products;
@@ -4464,7 +4637,13 @@ function renderProducts() {
   // exclusive (see setCat/setProdTag) — at most one of these filters applies.
   if (S.prodTag) list=list.filter(p=>productHasNsTag(p, S.prodTag));
   else if (S.prodCat!=='All') list=list.filter(p=>p.category===S.prodCat);
-  if (q) list=list.filter(p=>p.name.toLowerCase().includes(q) || (p.manufacturer||'').toLowerCase().includes(q));
+  // Shared matcher (see PRODUCT SEARCH above) — name, code, category,
+  // manufacturer, variant and curated clinical keywords, with synonyms.
+  if (q) {
+    list = list.filter(p => productMatchesQuery(p, q))
+               .sort((a,b) => productSearchRank(a,q) - productSearchRank(b,q)
+                           || a.name.localeCompare(b.name));
+  }
 
   renderLastSynced();
 
@@ -4765,6 +4944,27 @@ async function quickToggleDispenseFirst(productId) {
   closeQuickActions();
 }
 
+// Requested 2026-09-09: the ⋮ menu offered Dispense First and Lifeline but not
+// In-Patient Only, so that flag could only be changed by opening Update &
+// Batches and selecting the product. Same shape as the two toggles either side
+// of it — the flag is independent of the status automation, so there is no
+// pinning to worry about here.
+async function quickToggleInpatientOnly(productId) {
+  const p = S.products.find(x=>x.id===productId);
+  if (!p) return;
+  const name = getStorageName();
+  if (!name) return;
+  const next = !p.inpatientOnly;
+  try {
+    await api({action:'update', id:productUuid(p), inpatientOnly:next, updatedBy:encodeURIComponent(name)});
+    p.inpatientOnly = next;
+    toast(next ? t('t_io_on') : t('t_io_off'),'ok');
+    renderExpiring(); // the outpatient expiry guard keys off this flag
+    renderProducts();
+  } catch(e) { toast(t('t_failed')+e.message,'err'); }
+  closeQuickActions();
+}
+
 async function quickToggleLifeline(productId) {
   const p = S.products.find(x=>x.id===productId);
   if (!p) return;
@@ -4790,10 +4990,13 @@ function openQuickActions(productId) {
         <div class="sheet-handle"></div>
         <div class="sheet-title">${escapeHtml(p.name)}</div>
         <div class="sheet-sub">Quick actions</div>
+        ${p.manualStatus ? `
         <div class="qa-option" role="button" tabindex="0" onclick="quickSetStatus('${p.id}','low')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" style="color:#f59e0b"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg> Mark Low Stock</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="quickSetStatus('${p.id}','unavailable')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" style="color:#ef4444"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg> Mark Not Available</div>
+        <div class="qa-option" role="button" tabindex="0" onclick="quickSetStatus('${p.id}','unavailable')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" style="color:#ef4444"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg> Mark Not Available</div>`
+        : `<div class="qa-note">${t('qa_auto_note')}</div>`}
         <div class="qa-option" role="button" tabindex="0" onclick="quickAddBatchFor('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Add Batch</div>
         <div class="qa-option" role="button" tabindex="0" onclick="quickToggleDispenseFirst('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.dispenseFirst ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Unflag Dispense First' : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Flag Dispense First'}</div>
+        <div class="qa-option" role="button" tabindex="0" onclick="quickToggleInpatientOnly('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.inpatientOnly ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ' + t('qa_io_off') : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#818cf8"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg> ' + t('qa_io_on')}</div>
         <div class="qa-option" role="button" tabindex="0" onclick="quickToggleLifeline('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.lifeline ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Unflag Lifeline' : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f43f5e"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Flag Lifeline'}</div>
         <button class="btn-submit" style="margin-top:12px" onclick="closeQuickActions()">Cancel</button>
       </div>
@@ -7426,7 +7629,7 @@ function renderBatches() {
         <input type="number" class="batch-qty-input" id="bq-${b.batchId}" value="${b.quantity}" min="0">
         <span style="font-size:.8125rem;color:var(--text2)">${t('units')}</span>
         <button class="btn-save-qty" onclick="submitUpdateBatch('${batchIdEnc}')">${t('btn_save_qty')}</button>
-        <button class="btn-fix" onclick="toggleBatchEdit('${batchIdEnc}')">${t('btn_fix')}</button>
+        <button class="btn-fix" id="bf-${b.batchId}" aria-expanded="false" aria-controls="be-${b.batchId}" onclick="toggleBatchEdit('${batchIdEnc}')"><svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>${t('btn_fix')}</button>
         <button class="btn-remove" onclick="submitRemoveBatch('${batchIdEnc}','${expDateEnc}')">Remove</button>
       </div>
       <!-- Correction panel. Kept visually and functionally SEPARATE from
@@ -7435,8 +7638,8 @@ function renderBatches() {
            places — see correct_batch()'s header. The note below spells the
            difference out for staff, because picking the wrong one silently
            skews the dispensing report. -->
-      <div class="batch-edit hidden" id="be-${b.batchId}">
-        <div class="batch-edit-note">${t('correct_note')}</div>
+      <div class="batch-edit hidden" id="be-${b.batchId}" role="group" aria-label="${t('correct_aria')}">
+        <div class="batch-edit-note" role="note">${t('correct_note')}</div>
         <div class="batch-edit-row">
           <label for="be-date-${b.batchId}">${t('correct_lbl_expiry')}</label>
           <input type="date" id="be-date-${b.batchId}" value="${escapeHtml(b.expiryDate||'')}">
@@ -7447,7 +7650,7 @@ function renderBatches() {
         </div>
         <div class="batch-edit-actions">
           <button class="btn-save-qty" onclick="submitCorrectBatch('${batchIdEnc}')">${t('correct_save')}</button>
-          <button class="btn-remove" onclick="toggleBatchEdit('${batchIdEnc}')">${t('correct_cancel')}</button>
+          <button class="btn-quiet" onclick="toggleBatchEdit('${batchIdEnc}')">${t('correct_cancel')}</button>
         </div>
       </div>
       ${b.lastUpdatedBy?`<div style="font-size:.75rem;color:var(--text3);margin-top:6px">Last updated by ${escapeHtml(b.lastUpdatedBy)}</div>`:''}
@@ -7549,6 +7752,9 @@ function toggleBatchEdit(batchIdEnc) {
   if (!panel) return;
   const opening = panel.classList.contains('hidden');
   panel.classList.toggle('hidden');
+  // Keep the trigger's state in the accessibility tree, not just visually.
+  const trigger = el('bf-' + batchId);
+  if (trigger) trigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
   if (opening) {
     // Re-seed from current server truth every time it opens, so an abandoned
     // edit never leaves stale numbers sitting in the form.
@@ -9042,16 +9248,28 @@ function buildDropdown(cid,query,onSelect) {
   const dropEl=el(cid);
   DD_CALLBACKS[cid]=onSelect;
   if(!query||query.length<1){hide(cid);return;}
-  const q=query.toLowerCase();
-  const hits=S.products.filter(p=>p.name.toLowerCase().includes(q)||p.id.toLowerCase().includes(q)).slice(0,10);
+  const q=query;
+  // Same matcher and ranking as the Products tab — the two used to search
+  // different fields, so a term could find a product in one and not the other.
+  const hits=S.products.filter(p=>productMatchesQuery(p,q))
+    .sort((a,b)=>productSearchRank(a,q)-productSearchRank(b,q) || a.name.localeCompare(b.name))
+    .slice(0,10);
   if(!hits.length){hide(cid);return;}
   const pm={};S.products.forEach(p=>{pm[p.id]=p;});
   dropEl.onclick=(ev)=>ddPick(cid,ev);
   dropEl.innerHTML=hits.map(p=>{
     const cfg=STATUS_CFG[(pm[p.id]?.status)||''];
+    // When a hit did not match on its name, say why — otherwise an unfamiliar
+    // product appearing under "nephro" just looks like a broken search.
+    // Suppress it when the reason IS the category — that is already in the
+    // caption, and "Renal · Available · Renal" reads as a bug. The chip earns
+    // its place only for reasons the caption does not already show, like a
+    // manufacturer or a clinical keyword ("diabetes").
+    const reason=productMatchReason(p,q);
+    const why=(reason && reason!==p.category)?reason:'';
     return `<div class="ddopt" data-pid="${escapeHtml(p.id)}">
       <span class="ddn">${escapeHtml(p.name)}</span>
-      <span class="ddc">${escapeHtml(p.category)} · <span style="color:${cfg.dot}">${cfg.label}</span></span>
+      <span class="ddc">${escapeHtml(p.category)} · <span style="color:${cfg.dot}">${cfg.label}</span>${why?` · <span class="dd-why">${escapeHtml(why)}</span>`:''}</span>
     </div>`;
   }).join('');
   show(cid);
