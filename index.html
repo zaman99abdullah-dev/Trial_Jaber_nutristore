@@ -803,6 +803,18 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .qa-icon{flex-shrink:0}
 .qa-option:last-child{border-bottom:none}
 .qa-option:active{background:rgba(63,169,220,.06)}
+/* .qa-note carried NO rule at all — the "status is automatic" explanation
+   rendered as unstyled body text in the middle of a list of bold options, which
+   is part of why this sheet read as broken rather than as informative. */
+.qa-note{padding:12px 4px;border-bottom:1px solid var(--border);
+  font-size:.8125rem;line-height:1.5;color:var(--text3b)}
+.qa-option-txt{display:flex;flex-direction:column;min-width:0}
+.qa-sub{font-size:.6875rem;font-weight:600;color:var(--text3b);margin-top:2px}
+/* The status the product is ALREADY on is shown, not offered: re-picking it
+   would write an audit row recording no change. */
+.qa-current{cursor:default;color:var(--text2)}
+.qa-current:active{background:none}
+.qa-tick{margin-inline-start:auto;display:inline-flex;color:var(--accent)}
 
 /* V12 P3.1: quantity stepper + expiry shorthand */
 .qty-stepper{display:flex;align-items:center;gap:6px}
@@ -2869,6 +2881,21 @@ const T = {
   t_io_on:['Marked In-Patient Only','تم التحديد كمرضى داخليين فقط'],
   t_io_off:['Unflagged In-Patient Only','تم إلغاء مرضى داخليين فقط'],
   qa_auto_note:['Status is set automatically from stock for this product.','تُحدَّد حالة هذا المنتج تلقائياً من المخزون.'],
+  qa_st_available:['Mark Available','تحديد كمتوفر'],
+  qa_st_low:['Mark Low Stock','تحديد كمخزون منخفض'],
+  qa_st_unavailable:['Mark Not Available','تحديد كغير متوفر'],
+  qa_st_coming:['Mark Coming Soon','تحديد كقريباً'],
+  qa_st_current:['Current status','الحالة الحالية'],
+  qa_title:['Quick actions','إجراءات سريعة'],
+  // Pre-existing gap found while fixing this sheet (2026-09-13): Add Batch,
+  // Dispense First and Lifeline were hardcoded English, so in Arabic the quick
+  // actions rendered half-translated. Wording follows the terms already used
+  // elsewhere in the dictionary — c_df «يُصرف أولاً», c_lifeline «حيوي».
+  qa_df_on:['Flag Dispense First','تحديد «يُصرف أولاً»'],
+  qa_df_off:['Unflag Dispense First','إلغاء «يُصرف أولاً»'],
+  qa_ll_on:['Flag Lifeline','تحديد كصنف حيوي'],
+  qa_ll_off:['Unflag Lifeline','إلغاء الصنف الحيوي'],
+  qa_coming_pins:['Turns automatic status off for this product','يوقف الحالة التلقائية لهذا المنتج'],
   btn_save_qty:['Save Qty','حفظ الكمية'],
   btn_fix:['Fix','تصحيح'],
   correct_aria:['Correct this batch record','تصحيح سجل هذه الدفعة'],
@@ -5426,6 +5453,57 @@ async function quickToggleLifeline(productId) {
 }
 
 // ══ Quick status actions (⋮ menu) ════════════════════════════════
+// ── Quick-actions: the status section ───────────────────────────────────────
+// THIS MIRRORS THE UPDATE & BATCHES STATUS GRID, and it has to. A supervisor who
+// turns Auto Status off expects the same choices wherever they are standing.
+// Until 2026-09-13 this menu offered Low Stock and Not Available and nothing
+// else — no Available, no Coming Soon — so a product could be marked DOWN from
+// here but never back up, and the user reported it as "the available quick
+// action is not appearing" after turning automation off on Neocate.
+//
+// WHICH ONES APPEAR follows exactly one rule, the same one
+// updateSuStatusGridVisibility() applies: automation owns available / low /
+// unavailable, so while Auto Status is ON those three are not offered — picking
+// one would be overwritten by apply_status_automation at the next recompute,
+// the silent "reports success, does nothing" failure this project keeps hitting.
+//
+// COMING SOON is the exception in BOTH places: it is offered even under
+// automation, because it PINS the product (see pickSuStatus and quickSetStatus)
+// — "we have ordered more" is precisely the state where stock is zero or low,
+// so without the pin the next recompute takes it straight back off again.
+const QA_STATUSES = [
+  ['available',   'qa_st_available'],
+  ['low',         'qa_st_low'],
+  ['unavailable', 'qa_st_unavailable'],
+];
+const QA_TICK = '<svg class="qa-tick" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+function qaStatusRow(p, status, key, hint) {
+  // Colour and the plain status name both come from STATUS_CFG — the same
+  // source the row badge reads — so this sheet cannot drift from the badge it
+  // is about to change. STATUS_CFG.label is a LOCALISED getter (see the
+  // defineProperty near applyLang), which is why the "current" row can use it
+  // directly while the action rows need their own "Mark …" wording.
+  const cfg = STATUS_CFG[status] || STATUS_CFG[''];
+  const dot = `<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" style="color:${cfg.dot}"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>`;
+  if ((p.status || '') === status) {
+    return `<div class="qa-option qa-current" aria-current="true">${dot}
+      <span class="qa-option-txt">${escapeHtml(cfg.label)}<span class="qa-sub">${escapeHtml(t('qa_st_current'))}</span></span>${QA_TICK}</div>`;
+  }
+  const sub = hint ? `<span class="qa-sub">${escapeHtml(hint)}</span>` : '';
+  return `<div class="qa-option" role="button" tabindex="0"
+    onclick="quickSetStatus('${p.id}','${status}')"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${dot}
+    <span class="qa-option-txt">${escapeHtml(t(key))}${sub}</span></div>`;
+}
+function qaStatusSection(p) {
+  const rows = p.manualStatus
+    ? QA_STATUSES.map(([s,k]) => qaStatusRow(p, s, k)).join('')
+    : `<div class="qa-note">${escapeHtml(t('qa_auto_note'))}</div>`;
+  // The pin is a real consequence, so it is spelled out — but only in the mode
+  // where it actually changes something the user has not already chosen.
+  return rows + qaStatusRow(p, 'coming', 'qa_st_coming',
+                            p.manualStatus ? '' : t('qa_coming_pins'));
+}
 function openQuickActions(productId) {
   const p = S.products.find(x=>x.id===productId);
   if (!p) return;
@@ -5434,16 +5512,13 @@ function openQuickActions(productId) {
       <div class="sheet-panel">
         <div class="sheet-handle"></div>
         <div class="sheet-title">${escapeHtml(p.name)}</div>
-        <div class="sheet-sub">Quick actions</div>
-        ${p.manualStatus ? `
-        <div class="qa-option" role="button" tabindex="0" onclick="quickSetStatus('${p.id}','low')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" style="color:#f59e0b"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg> Mark Low Stock</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="quickSetStatus('${p.id}','unavailable')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" style="color:#ef4444"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg> Mark Not Available</div>`
-        : `<div class="qa-note">${t('qa_auto_note')}</div>`}
-        <div class="qa-option" role="button" tabindex="0" onclick="quickAddBatchFor('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Add Batch</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="quickToggleDispenseFirst('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.dispenseFirst ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Unflag Dispense First' : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> Flag Dispense First'}</div>
+        <div class="sheet-sub">${escapeHtml(t('qa_title'))}</div>
+        ${qaStatusSection(p)}
+        <div class="qa-option" role="button" tabindex="0" onclick="quickAddBatchFor('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> ${escapeHtml(t('add_batch'))}</div>
+        <div class="qa-option" role="button" tabindex="0" onclick="quickToggleDispenseFirst('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.dispenseFirst ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ' + escapeHtml(t('qa_df_off')) : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg> ' + escapeHtml(t('qa_df_on'))}</div>
         <div class="qa-option" role="button" tabindex="0" onclick="quickToggleInpatientOnly('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.inpatientOnly ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ' + t('qa_io_off') : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#818cf8"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg> ' + t('qa_io_on')}</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="quickToggleLifeline('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.lifeline ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Unflag Lifeline' : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f43f5e"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Flag Lifeline'}</div>
-        <button class="btn-submit" style="margin-top:12px" onclick="closeQuickActions()">Cancel</button>
+        <div class="qa-option" role="button" tabindex="0" onclick="quickToggleLifeline('${p.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${p.lifeline ? '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ' + escapeHtml(t('qa_ll_off')) : '<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f43f5e"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> ' + escapeHtml(t('qa_ll_on'))}</div>
+        <button class="btn-submit" style="margin-top:12px" onclick="closeQuickActions()">${escapeHtml(t('btn_cancel'))}</button>
       </div>
     </div>`;
 }
@@ -5453,10 +5528,27 @@ async function quickSetStatus(productId, status) {
   const name = getStorageName();
   if (!name) return;
   closeQuickActions();
+  // EVERY status set from this menu pins the product, statusAuto:false.
+  //
+  // For available/low/unavailable that is already true — qaStatusSection only
+  // offers them on a product whose automation is off — so saying it explicitly
+  // changes nothing and closes the race where something else turned automation
+  // back on between render and tap. For 'coming' it is REQUIRED: "we have
+  // ordered more" is exactly the state where stock is zero or low, so without
+  // the pin apply_status_automation overwrites it at the next recompute and the
+  // supervisor gets a success toast for nothing. pickSuStatus applies the same
+  // rule in the Update pane.
+  //
+  // Sent as a plain literal rather than a conditional spread on purpose:
+  // check_frontend_contract.py reported the spread as UNRESOLVED, meaning the
+  // one parameter most likely to silently stop binding (Ledger 37: this flag
+  // was sent as `manualStatus` for months and never bound at all) would have
+  // been the one parameter the checker could not see.
   try {
-    await api({action:'update', id:productUuid(productId), status, updatedBy:encodeURIComponent(name)});
+    await api({action:'update', id:productUuid(productId), status,
+               statusAuto:false, updatedBy:encodeURIComponent(name)});
     const p = S.products.find(x=>x.id===productId);
-    if (p) p.status = status;
+    if (p) { p.status = status; p.manualStatus = true; }
     toast(`Status updated to ${STATUS_CFG[status].label}`,'ok');
     renderProducts();
   } catch(e) { toast(t('t_failed')+e.message,'err'); }
