@@ -2253,6 +2253,27 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             </div>
           </div>
 
+          <!-- Supervisor-only: CORRECT A MIS-ENTERED NAME (2026-09-20).
+               Saved SEPARATELY from the source fields below, on the same
+               reasoning as the tag editor further down: a rename goes through
+               update_product's supervisor-gated p_name and is the one change
+               here that alters what every other user, report and audit row
+               displays, so it gets its own button and its own confirm step
+               rather than riding along with an optional-detail save. The
+               confirm shows the exact before and after string, because the
+               thing being fixed is a typo and a typo fix can contain one. -->
+          <div id="su-rename-card" class="card hidden">
+            <div class="card-title"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> <span data-i18n="su_rename_title">Product Name</span></div>
+            <div class="settings-desc" style="margin:-6px 0 12px" data-i18n="su_rename_desc">Fix a name that was entered wrong. The product keeps its code, its batches and its full history — only the label changes.</div>
+            <div class="field">
+              <label for="su-rename" data-i18n="addp_name">Product Name</label>
+              <input type="text" id="su-rename" autocomplete="off" oninput="syncRenameBtn()">
+            </div>
+            <button class="btn-submit" id="su-rename-btn" onclick="submitRename()" disabled>
+              <span id="su-rename-btn-lbl" data-i18n="su_rename_btn">Save New Name</span>
+            </button>
+          </div>
+
           <!-- Supervisor-only: product source details (manufacturer/variant/density/form). -->
           <div id="su-source-card" class="card hidden">
             <div class="card-title"><svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> <span data-i18n="su_src_title">Product Source</span></div>
@@ -3010,6 +3031,18 @@ const T = {
   part1_title:['Part 1 · Edit Existing Product','الجزء ١ · تعديل منتج موجود'],
   part2_title:['Part 2 · Add New Product','الجزء ٢ · إضافة منتج جديد'],
   part3_title:['Part 3 · Delete a Product','الجزء ٣ · حذف منتج'],
+  // Rename an existing product (2026-09-20). su_rename_confirm deliberately
+  // shows the OLD and NEW strings on their own lines rather than inline: the
+  // difference being checked is often a single character ("200ml" -> "250ml"),
+  // which is exactly the kind of thing a reader skims past in running text.
+  su_rename_title:['Product Name','اسم المنتج'],
+  su_rename_desc:['Fix a name that was entered wrong. The product keeps its code, its batches and its full history — only the label changes.','تصحيح اسم أُدخل بشكل خاطئ. يحتفظ المنتج برمزه ودفعاته وسجله الكامل — يتغير الاسم فقط.'],
+  su_rename_btn:['Save New Name','حفظ الاسم الجديد'],
+  su_rename_saving:['Renaming…','جارٍ إعادة التسمية…'],
+  su_rename_confirm_title:['Rename this product?','إعادة تسمية هذا المنتج؟'],
+  su_rename_confirm:['From:  {old}\nTo:  {new}\n\nThe code, batches and history stay with the product. Every user sees the new name.','من:  {old}\nإلى:  {new}\n\nيبقى الرمز والدفعات والسجل مع المنتج. سيرى جميع المستخدمين الاسم الجديد.'],
+  su_rename_saved:['Product renamed','تمت إعادة تسمية المنتج'],
+  su_rename_unchanged:['That is already the name','هذا هو الاسم الحالي بالفعل'],
   su_src_title:['Product Source','مصدر المنتج'],
   su_src_desc:['Company, flavour, caloric density and form. Optional — shown under the product name in every view.','الشركة، النكهة، الكثافة الحرارية، والشكل. اختياري — يظهر تحت اسم المنتج في كل شاشة.'],
   su_src_save_btn:['Save Product Source','حفظ مصدر المنتج'],
@@ -3489,6 +3522,7 @@ const I18N_TEXT = {
   'su-s-available':'st_available','su-s-low':'st_low','su-s-coming':'st_coming','su-s-unavailable':'st_unavailable',
   'bs-available':'st_available','bs-low':'st_low','bs-coming':'st_coming','bs-unavailable':'st_unavailable',
   'su-btn-lbl':'save_status','ab-btn-lbl':'add_batch','bs-btn-lbl':'save_changes','ap-btn-lbl':'addp_btn',
+  'su-rename-btn-lbl':'su_rename_btn',
   'set-btn-lbl':'save_settings','cp-btn-lbl':'cp_btn','bulk-all-lbl':'select_all',
 };
 const I18N_PH = {
@@ -4053,7 +4087,11 @@ async function bootFromCache() {
     if (!raw) return false;
     const c = JSON.parse(raw);
     if (!c.products || !c.products.length) return false;
-    S.products  = c.products;
+    // Re-sorted on the way in, not trusted from the snapshot: a cache written
+    // by a build older than 2026-09-20 holds the products in the old heap
+    // order, and an offline boot would otherwise show the shuffled list that
+    // getAll no longer produces.
+    S.products  = sortProductsByName(c.products);
     // After S.products, never before: applyProductTags joins onto the list.
     // A snapshot taken before this field existed simply has no tags — the
     // products keep whatever p.tags they were serialised with and the filter
@@ -4345,6 +4383,33 @@ function reshapeBatch(r) {
   return o;
 }
 
+// ══ Catalogue order (2026-09-20) ══════════════════════════════════════════
+// Reported as "products appear randomly, not alphabetically", and "randomly"
+// was literally right. v_products_full carries NO `order by`, so PostgREST
+// returns products in Postgres HEAP order — and an UPDATE in Postgres writes a
+// new row version at the end of the heap. Verified on a real database: after
+// `update products set note=… ` on the row that was first, that product came
+// back LAST. So every supervisor save silently teleported that product to the
+// bottom of the product list, of the Start Count queue, and of everything else
+// fed by getAll. There was no order to speak of; it reshuffled as staff worked.
+//
+// Sorted HERE, where product objects are born, for the same reason the tag
+// graft below lives here: five separate paths replace S.products wholesale, and
+// patching each one leaves the sixth that someone adds next month broken in the
+// same silent way. A product cannot now exist in an unsorted list.
+//
+// `numeric: true` matters for this catalogue specifically — it is full of names
+// like "… 200ml" / "… 1000ml", which sort 1000 before 200 as plain strings.
+// `sensitivity: 'base'` keeps "Ensure" and "ensure" adjacent instead of putting
+// every capitalised name first. Locale is pinned to 'en': product names are
+// stored in English only (there is no Arabic name column), so the order must
+// not change when the user switches the interface to Arabic.
+const PRODUCT_NAME_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+function sortProductsByName(list) {
+  return (list || []).slice().sort((a, b) =>
+    PRODUCT_NAME_COLLATOR.compare(a && a.name || '', b && b.name || ''));
+}
+
 const RESHAPE = {
   // Phase 2 discovery tags (2026-09-09). PostgREST returns product_tags as a
   // BARE ARRAY of {hospital_id, product_id, tag} rows — one per product-tag —
@@ -4364,7 +4429,7 @@ const RESHAPE = {
     return { tagsByUuid: byUuid };
   },
   getAll(rows) {
-    const products = (rows || []).map(reshapeProduct);
+    const products = sortProductsByName((rows || []).map(reshapeProduct));
     // Rebuild, don't accumulate. This map was previously only ever written to,
     // so a deleted product lingered in it until a full reload and kept resolving
     // its old name — reshapeBatch and the audit log both read names through it.
@@ -8008,6 +8073,84 @@ async function submitSource() {
   finally{ btn.disabled=false; }
 }
 
+// ══ Products Admin — CORRECT A MIS-ENTERED PRODUCT NAME (2026-09-20) ═══════
+// Reported as: "Ensure Plus Liq 200ml is actually Ensure Plus Liq 250ml" and
+// there was nowhere in the app to fix it. The only route to a corrected name
+// was delete + re-add, and deleteProduct is a HARD delete — it would have
+// taken the product's batches, nutrition panel and entire dispensing history
+// with it, to fix three characters.
+//
+// Goes through the SAME `update` action as everything else on this tab; the
+// backend gained a supervisor-gated p_name on 2026-09-20
+// (20260920120000_rename_product.sql). Nothing here needs its own endpoint.
+//
+// The button stays DISABLED until the text differs from the current name, so
+// the most likely mis-tap on this card — opening it, reading the name,
+// pressing Save — cannot write a no-op audit row.
+function syncRenameBtn() {
+  const btn = el('su-rename-btn'); if (!btn) return;
+  const cur  = (S.srcProduct && S.srcProduct.name || '').trim();
+  const next = (el('su-rename')?.value || '').trim();
+  btn.disabled = !next || next === cur;
+}
+function submitRename() {
+  if (!S.srcProduct) { toast(t('t_sel_product'),'err'); return; }
+  if (!S.isSupervisor) return;
+  const next = el('su-rename').value.trim();
+  // Guarded three ways on purpose, because an empty name is the one input
+  // products.name (NOT NULL) cannot survive: here, then in the gateway (p_name
+  // is deliberately not `clearable`, so an empty value is dropped before the
+  // call), then in SQL (NAME_REQUIRED).
+  if (!next) { toast(t('addp_name_required'),'err'); return; }
+  if (next === (S.srcProduct.name || '').trim()) { toast(t('su_rename_unchanged'),'warn'); return; }
+  // Same in-page confirm sheet as Add Product, for the same stated reason: a
+  // native confirm() cannot be driven by the browser automation this project
+  // tests with, and the rest of the app has already moved off it.
+  el('qa-sheet').innerHTML = `
+    <div class="sheet-backdrop" onclick="if(event.target===this) closeQuickActions()">
+      <div class="sheet-panel">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">${escapeHtml(t('su_rename_confirm_title'))}</div>
+        <div class="sheet-sub" style="white-space:pre-line">${tf('su_rename_confirm',{
+          old: escapeHtml(S.srcProduct.name || ''), new: escapeHtml(next)})}</div>
+        <button class="btn-submit" onclick="closeQuickActions();confirmRename()">${t('su_rename_btn')}</button>
+        <button class="btn-submit" style="margin-top:8px;background:var(--surface2);color:var(--text2);box-shadow:none" onclick="closeQuickActions()">${t('btn_cancel')}</button>
+      </div>
+    </div>`;
+}
+async function confirmRename() {
+  if (!S.srcProduct) { toast(t('t_sel_product'),'err'); return; }
+  if (!S.isSupervisor) return;
+  const by = currentActorName();
+  if (!by) { toast(t('t_signin_first'),'err'); toggleMode(); return; }
+  const next = el('su-rename').value.trim();
+  if (!next) { toast(t('addp_name_required'),'err'); return; }
+  const btn = el('su-rename-btn'), lbl = el('su-rename-btn-lbl');
+  btn.disabled = true; lbl.innerHTML = '<span class="spinner-sm"></span>'+t('su_rename_saving');
+  try {
+    await api({action:'update', id:productUuid(S.srcProduct),
+               updatedBy:encodeURIComponent(by), name:next});
+    // Patch the live object rather than re-fetching: the name is the only
+    // column that changed, and a full getAll here would cost a round trip on
+    // the phone for nothing. S.srcProduct and the S.products entry are the
+    // same object (selectSrcProduct stores the found element, not a copy), so
+    // one assignment updates the chip, the list and PRODUCT_BY_UUID together.
+    const p = S.products.find(x => x.id === S.srcProduct.id) || S.srcProduct;
+    p.name = next;
+    if (p !== S.srcProduct) S.srcProduct.name = next;
+    el('src-chip-name').textContent = next;
+    // Re-sort: the list is held alphabetically (see sortProductsByName), and a
+    // rename is the one edit that changes where a product belongs in it.
+    // Without this the renamed product sits at its OLD alphabetical position
+    // until the next full refresh — the exact "why is it out of order" the
+    // sort was added to stop.
+    S.products = sortProductsByName(S.products);
+    toast(t('su_rename_saved'),'ok');
+    renderProducts();
+  } catch(e) { toast(t('t_failed')+e.message,'err'); }
+  finally { btn.disabled = true; lbl.textContent = t('su_rename_btn'); syncRenameBtn(); }
+}
+
 // ══ Products Admin — Source-tab picker (Ledger 8c: own picker, decoupled
 // from the Update-tab su-search so a product picked in Update never bleeds
 // into what the Source form shows) ══════════════════════════════
@@ -8028,12 +8171,21 @@ function selectSrcProduct(id) {
   // abandoning a half-finished edit changes nothing on the server.
   S.srcTags = [...(ex.tags || [])];
   renderSrcTagEditor();
+  // Prefill with the CURRENT name so the supervisor edits the existing string
+  // (fixing "200ml" to "250ml") instead of retyping a long clinical name from
+  // scratch, which is its own source of typos. syncRenameBtn then keeps Save
+  // disabled until it actually differs.
+  el('su-rename').value = ex.name || '';
+  syncRenameBtn();
+  show('su-rename-card');
   show('su-source-card');
 }
 function clearSrc() {
   S.srcProduct = null;
-  hide('src-chip'); hide('su-source-card');
+  hide('src-chip'); hide('su-source-card'); hide('su-rename-card');
   el('src-search').value = '';
+  el('su-rename').value='';
+  syncRenameBtn();
   el('su-manufacturer').value=''; el('su-variant').value='';
   el('su-density').value=''; el('su-form').value='';
   S.srcTags = [];
@@ -8688,6 +8840,17 @@ async function startWeeklyCount() {
     S.countBatches = byProduct;
     // Ledger 11-FE: derive from the live S.products (not the static PRODUCTS
     // seed list) so newly added products are countable immediately.
+    //
+    // ORDER: alphabetical, inherited from S.products — .filter and .map both
+    // preserve it, and S.products is sorted where products are born (see
+    // sortProductsByName). Counting 30-40 products off a shelf means walking
+    // the shelf, so the queue has to follow a predictable order; before
+    // 2026-09-20 it followed Postgres heap order and reshuffled whenever a
+    // supervisor saved anything. Anything added here that reorders the list —
+    // grouping by category, "most urgent first" — must keep it predictable, and
+    // must keep it STABLE across a session: the draft-resume check below
+    // compares saved ids to fresh ids POSITIONALLY, so an order that changes
+    // mid-count silently discards the counter's unfinished work.
     S.countProducts = S.products
       .filter(p=>byProduct[p.id] && byProduct[p.id].some(b=>!b.expired))
       .map(p=>{
