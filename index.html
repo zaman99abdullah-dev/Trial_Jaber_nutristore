@@ -772,6 +772,15 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .mode-seg{display:inline-flex;background:var(--surface2);border-radius:100px;padding:3px;gap:2px}
 .mode-seg-btn{padding:8px 16px;border-radius:100px;font-size:.8125rem;font-weight:700;background:none;color:var(--text2);border:none;cursor:pointer;transition:all .15s}
 .mode-seg-btn.on{background:var(--grad);color:#fff;box-shadow:0 2px 12px rgba(63,169,220,.25)}
+/* Four routes on a 375px phone: tighter type and padding so every label stays
+   on one line in English and Arabic. */
+.calc-route-seg .mode-seg-btn{font-size:.75rem;padding:8px 4px;white-space:nowrap;min-width:0}
+/* A card's number is its POSITION in the current route, filled by
+   calcReorderCards — the same card is 1. in Oral and 3. in Parenteral. */
+.calc-num{flex-shrink:0;font-weight:800;font-size:.9375rem;color:var(--text2);min-width:1.5em}
+.calc-pn-coming{border-style:dashed}
+.calc-pn-coming .card-title{margin-bottom:6px}
+.calc-pn-coming-body{font-size:.8125rem;line-height:1.55;color:var(--text2);margin:0}
 
 /* V12 P1.1: dietitian-first product row */
 .d-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
@@ -1253,18 +1262,34 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
       </div>
 
       <div class="card" style="padding:14px 18px">
-        <div class="mode-seg" id="calc-seg" style="display:flex;width:100%">
-          <button class="mode-seg-btn on" id="calc-seg-ip" style="flex:1" onclick="calcSetSection('ip')" data-i18n="calc_seg_ip">🏥 Inpatient</button>
-          <button class="mode-seg-btn" id="calc-seg-op" style="flex:1" onclick="calcSetSection('op')" data-i18n="calc_seg_op">🚶 Outpatient</button>
+        <div class="mode-seg calc-route-seg" id="calc-seg" role="group" style="display:flex;width:100%">
+          <!-- ROUTES (2026-10-18), replacing Inpatient | Outpatient. The
+               department divides inpatient work by route — oral, enteral,
+               parenteral — not by ward, so the cards are grouped the way the
+               decision is actually made. Membership and order live in ONE
+               place, CALC_ROUTES; a card may belong to several routes and is
+               still one DOM node, so a value typed in Enteral is the same
+               value in Oral. -->
+          <button class="mode-seg-btn on" id="calc-seg-oral" style="flex:1" aria-pressed="true" onclick="calcSetRoute('oral')" data-i18n="calc_route_oral">Oral</button>
+          <button class="mode-seg-btn" id="calc-seg-enteral" style="flex:1" aria-pressed="false" onclick="calcSetRoute('enteral')" data-i18n="calc_route_enteral">Enteral</button>
+          <button class="mode-seg-btn" id="calc-seg-pn" style="flex:1" aria-pressed="false" onclick="calcSetRoute('pn')" data-i18n="calc_route_pn">Parenteral</button>
+          <button class="mode-seg-btn" id="calc-seg-op" style="flex:1" aria-pressed="false" onclick="calcSetRoute('op')" data-i18n="calc_route_op">Outpatient</button>
         </div>
       </div>
 
-      <div id="calc-sec-ip">
+      <div id="calc-cards">
+      <!-- Parenteral has no calculator of its own yet (TPN/PPN is a later
+           step). An honest placeholder beats an empty route, and the cards
+           that genuinely apply to PN planning are shown beneath it. -->
+      <div class="card calc-pn-coming hidden" id="calc-card-pn-coming">
+        <div class="card-title" data-i18n="calc_pn_coming_title">TPN / PPN calculator</div>
+        <p class="calc-pn-coming-body" data-i18n="calc_pn_coming_body">Coming in a later step. Until then, the cards below cover targets (Quick Method), energy equations and propofol lipid calories.</p>
+      </div>
       <!-- 1. Quick Method -->
       <div class="card" id="calc-card-quick-ip">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','quick-ip',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_quick_title">1. ⚡ Quick Method</div>
-          <button class="pin-star" id="calc-pin-quick-ip" onclick="event.stopPropagation();calcTogglePin('ip','quick-ip')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('quick-ip',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-quick-ip"></span><div class="card-title" data-i18n="calc_quick_title">⚡ Quick Method</div>
+          <button class="pin-star" id="calc-pin-quick-ip" onclick="event.stopPropagation();calcTogglePin('quick-ip')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-quick-ip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-quick-ip">
@@ -1305,9 +1330,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 2. Energy Requirement -->
       <div class="card" id="calc-card-ce">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','ce',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_energy_title">2. 🔥 Energy Requirement</div>
-          <button class="pin-star" id="calc-pin-ce" onclick="event.stopPropagation();calcTogglePin('ip','ce')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ce',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-ce"></span><div class="card-title" data-i18n="calc_energy_title">🔥 Energy Requirement</div>
+          <button class="pin-star" id="calc-pin-ce" onclick="event.stopPropagation();calcTogglePin('ce')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-ce"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-ce">
@@ -1407,9 +1432,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 3. Propofol Calories -->
       <div class="card" id="calc-card-propofol">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','propofol',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_propofol_title">3. 💉 Propofol Calories</div>
-          <button class="pin-star" id="calc-pin-propofol" onclick="event.stopPropagation();calcTogglePin('ip','propofol')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('propofol',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-propofol"></span><div class="card-title" data-i18n="calc_propofol_title">💉 Propofol Calories</div>
+          <button class="pin-star" id="calc-pin-propofol" onclick="event.stopPropagation();calcTogglePin('propofol')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-propofol"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-propofol">
@@ -1434,9 +1459,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 4. Tube-Feeding Rate -->
       <div class="card" id="calc-card-fr">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','fr',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_rate_title">4. 💧 Tube-Feeding Rate</div>
-          <button class="pin-star" id="calc-pin-fr" onclick="event.stopPropagation();calcTogglePin('ip','fr')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('fr',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-fr"></span><div class="card-title" data-i18n="calc_rate_title">💧 Tube-Feeding Rate</div>
+          <button class="pin-star" id="calc-pin-fr" onclick="event.stopPropagation();calcTogglePin('fr')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-fr"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-fr">
@@ -1483,9 +1508,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 5. Dry Weight -->
       <div class="card" id="calc-card-dryweight">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','dryweight',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_dw_title">5. 🩺 Dry Weight</div>
-          <button class="pin-star" id="calc-pin-dryweight" onclick="event.stopPropagation();calcTogglePin('ip','dryweight')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('dryweight',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-dryweight"></span><div class="card-title" data-i18n="calc_dw_title">🩺 Dry Weight</div>
+          <button class="pin-star" id="calc-pin-dryweight" onclick="event.stopPropagation();calcTogglePin('dryweight')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-dryweight"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-dryweight">
@@ -1512,9 +1537,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 6. Water Deficit -->
       <div class="card" id="calc-card-waterdeficit">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','waterdeficit',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_wd_title">6. 💧 Water Deficit</div>
-          <button class="pin-star" id="calc-pin-waterdeficit" onclick="event.stopPropagation();calcTogglePin('ip','waterdeficit')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('waterdeficit',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-waterdeficit"></span><div class="card-title" data-i18n="calc_wd_title">💧 Water Deficit</div>
+          <button class="pin-star" id="calc-pin-waterdeficit" onclick="event.stopPropagation();calcTogglePin('waterdeficit')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-waterdeficit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-waterdeficit">
@@ -1549,9 +1574,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 7. Est. Amputation Body Mass -->
       <div class="card" id="calc-card-amputation">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','amputation',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_amp_title">7. 🦿 Est. Amputation Body Mass</div>
-          <button class="pin-star" id="calc-pin-amputation" onclick="event.stopPropagation();calcTogglePin('ip','amputation')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('amputation',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-amputation"></span><div class="card-title" data-i18n="calc_amp_title">🦿 Est. Amputation Body Mass</div>
+          <button class="pin-star" id="calc-pin-amputation" onclick="event.stopPropagation();calcTogglePin('amputation')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-amputation"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-amputation">
@@ -1579,9 +1604,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
       <!-- 8. Macronutrient Distribution -->
       <div class="card" id="calc-card-macro-ip">
-        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('ip','macro-ip',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-          <div class="card-title" data-i18n="calc_md_title">8. 🍽️ Macronutrient Distribution</div>
-          <button class="pin-star" id="calc-pin-macro-ip" onclick="event.stopPropagation();calcTogglePin('ip','macro-ip')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+        <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('macro-ip',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+          <span class="calc-num" id="calc-num-macro-ip"></span><div class="card-title" data-i18n="calc_md_title">🍽️ Macronutrient Distribution</div>
+          <button class="pin-star" id="calc-pin-macro-ip" onclick="event.stopPropagation();calcTogglePin('macro-ip')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
           <span class="calc-chevron" id="calc-chevron-macro-ip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </div>
         <div class="calc-body collapsed" id="calc-body-macro-ip">
@@ -1608,15 +1633,13 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <div id="md-result" class="calc-result hidden"></div>
         </div>
       </div>
-      </div><!-- /calc-sec-ip -->
 
-      <!-- ═══ OUTPATIENT ═══ -->
-      <div id="calc-sec-op" class="hidden">
+      <!-- ═══ OUTPATIENT CARDS — same container; shown on the Outpatient route ═══ -->
         <!-- O1. Energy & Protein Needs -->
         <div class="card" id="calc-card-energy-op">
-          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('op','energy-op',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-title" data-i18n="calc_op1_title">1. 🧍 Energy &amp; Protein Needs (Outpatient)</div>
-            <button class="pin-star" id="calc-pin-energy-op" onclick="event.stopPropagation();calcTogglePin('op','energy-op')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('energy-op',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <span class="calc-num" id="calc-num-energy-op"></span><div class="card-title" data-i18n="calc_op1_title">🧍 Energy &amp; Protein Needs (Outpatient)</div>
+            <button class="pin-star" id="calc-pin-energy-op" onclick="event.stopPropagation();calcTogglePin('energy-op')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
             <span class="calc-chevron" id="calc-chevron-energy-op"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="calc-body collapsed" id="calc-body-energy-op">
@@ -1681,9 +1704,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
         <!-- O2. Supplement Serving Planner -->
         <div class="card" id="calc-card-planner">
-          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('op','planner',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-title" data-i18n="calc_op2_title">2. 🥤 Supplement Serving Planner</div>
-            <button class="pin-star" id="calc-pin-planner" onclick="event.stopPropagation();calcTogglePin('op','planner')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('planner',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <span class="calc-num" id="calc-num-planner"></span><div class="card-title" data-i18n="calc_op2_title">🥤 Supplement Serving Planner</div>
+            <button class="pin-star" id="calc-pin-planner" onclick="event.stopPropagation();calcTogglePin('planner')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
             <span class="calc-chevron" id="calc-chevron-planner"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="calc-body collapsed" id="calc-body-planner">
@@ -1711,9 +1734,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
         <!-- O3. Quick Method (clinic instance) -->
         <div class="card" id="calc-card-quick-op">
-          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('op','quick-op',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-title" data-i18n="calc_opqm_title">3. ⚡ Quick Method</div>
-            <button class="pin-star" id="calc-pin-quick-op" onclick="event.stopPropagation();calcTogglePin('op','quick-op')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('quick-op',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <span class="calc-num" id="calc-num-quick-op"></span><div class="card-title" data-i18n="calc_opqm_title">⚡ Quick Method</div>
+            <button class="pin-star" id="calc-pin-quick-op" onclick="event.stopPropagation();calcTogglePin('quick-op')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
             <span class="calc-chevron" id="calc-chevron-quick-op"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="calc-body collapsed" id="calc-body-quick-op">
@@ -1754,9 +1777,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
         <!-- O4. Macronutrient Distribution (clinic instance) -->
         <div class="card" id="calc-card-macro-op">
-          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('op','macro-op',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-title" data-i18n="calc_omd_title">4. 🍽️ Macronutrient Distribution</div>
-            <button class="pin-star" id="calc-pin-macro-op" onclick="event.stopPropagation();calcTogglePin('op','macro-op')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('macro-op',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <span class="calc-num" id="calc-num-macro-op"></span><div class="card-title" data-i18n="calc_omd_title">🍽️ Macronutrient Distribution</div>
+            <button class="pin-star" id="calc-pin-macro-op" onclick="event.stopPropagation();calcTogglePin('macro-op')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
             <span class="calc-chevron" id="calc-chevron-macro-op"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="calc-body collapsed" id="calc-body-macro-op">
@@ -1786,9 +1809,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
         <!-- O5. Pediatric Needs -->
         <div class="card" id="calc-card-peds">
-          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('op','peds',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-title" data-i18n="calc_ped_title">5. 🧒 Pediatric Needs</div>
-            <button class="pin-star" id="calc-pin-peds" onclick="event.stopPropagation();calcTogglePin('op','peds')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('peds',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <span class="calc-num" id="calc-num-peds"></span><div class="card-title" data-i18n="calc_ped_title">🧒 Pediatric Needs</div>
+            <button class="pin-star" id="calc-pin-peds" onclick="event.stopPropagation();calcTogglePin('peds')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
             <span class="calc-chevron" id="calc-chevron-peds"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="calc-body collapsed" id="calc-body-peds">
@@ -1915,9 +1938,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
         <!-- O6. Insulin Calculations (Ledger 8) -->
         <div class="card" id="calc-card-insulin">
-          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('op','insulin',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
-            <div class="card-title" data-i18n="calc_ins_title">6. 💉 Insulin Calculations</div>
-            <button class="pin-star" id="calc-pin-insulin" onclick="event.stopPropagation();calcTogglePin('op','insulin')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
+          <div class="calc-card-header" role="button" tabindex="0" aria-expanded="false" onclick="calcToggleExpand('insulin',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">
+            <span class="calc-num" id="calc-num-insulin"></span><div class="card-title" data-i18n="calc_ins_title">💉 Insulin Calculations</div>
+            <button class="pin-star" id="calc-pin-insulin" onclick="event.stopPropagation();calcTogglePin('insulin')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg></button>
             <span class="calc-chevron" id="calc-chevron-insulin"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
           </div>
           <div class="calc-body collapsed" id="calc-body-insulin">
@@ -1986,7 +2009,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           <div id="ins-result" class="calc-result hidden"></div>
           </div>
         </div>
-      </div><!-- /calc-sec-op -->
+      </div><!-- /calc-cards -->
 
     </div>
 
@@ -3238,13 +3261,19 @@ const T = {
   calc_entry_title:['🧮 Clinical Calculators','🧮 الحاسبات السريرية'],
   calc_entry_desc:['Tube-feeding energy requirement, quick per-kg estimate, and feeding rate','احتياجات الطاقة للتغذية الأنبوبية، تقدير سريع لكل كيلوغرام، ومعدل التغذية'],
   calc_open_btn:['Open Calculators','فتح الحاسبات'], calc_back:['← Back to Products','← عودة إلى المنتجات'],
-  calc_energy_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> 2. Energy Requirement','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> 2. احتياج الطاقة'],
+  calc_energy_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Energy Requirement','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> احتياج الطاقة'],
   calc_adjauto_toggle:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2"/><path d="M15 2v2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M20 9h2"/><path d="M20 15h2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg> Auto-Detect Obesity Adjustment (BMI ≥ 30)','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2"/><path d="M15 2v2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M20 9h2"/><path d="M20 15h2"/><path d="M2 9h2"/><path d="M2 15h2"/></svg> اكتشاف تلقائي لتعديل السمنة (مؤشر كتلة الجسم ≥ ٣٠)'],
   calc_adjmanual_toggle:['Use Adjusted Body Weight','استخدام الوزن المعدّل'],
   calc_energy_desc:['Mifflin-St Jeor resting energy, adjusted for obesity and clinical stress','معادلة ميفلين-سانت جيور لطاقة الراحة، معدّلة للسمنة والإجهاد السريري'],
   calc_lbl_gender:['Gender','الجنس'], calc_male:['Male','ذكر'], calc_female:['Female','أنثى'],
   lbl_age:['Age (years)','العمر (سنوات)'],
   calc_lbl_weight:['Weight (kg)','الوزن (كغم)'], calc_lbl_height:['Height (cm)','الطول (سم)'],
+  calc_route_oral:['Oral','فموي'],
+  calc_route_enteral:['Enteral','معوي'],
+  calc_route_pn:['Parenteral','وريدي'],
+  calc_route_op:['Outpatient','خارجي'],
+  calc_pn_coming_title:['TPN / PPN calculator','حاسبة التغذية الوريدية'],
+  calc_pn_coming_body:['Coming in a later step. Until then, the cards below cover targets (Quick Method), energy equations and propofol lipid calories.','قيد الإعداد في مرحلة لاحقة. حتى ذلك الحين، تغطي البطاقات أدناه الأهداف (الطريقة السريعة) ومعادلات الطاقة وسعرات دهون البروبوفول.'],
   calc_pt_title:['Patient','المريض'],
   calc_pt_next:['Next patient','المريض التالي'],
   calc_pt_cleared:['Cleared — ready for the next patient','تم المسح — جاهز للمريض التالي'],
@@ -3271,19 +3300,19 @@ const T = {
   calc_stress_burn20:['Burns <20% TBSA (×1.5)','حروق أقل من ٢٠٪ من سطح الجسم (×1.5)'],
   calc_stress_burn40:['Burns 20–40% TBSA (×1.8)','حروق ٢٠-٤٠٪ من سطح الجسم (×1.8)'],
   calc_stress_burn40p:['Burns >40% TBSA (×2.0)','حروق أكثر من ٤٠٪ من سطح الجسم (×2.0)'],
-  calc_quick_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> 1. Quick Method','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> 1. الطريقة السريعة'],
+  calc_quick_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> Quick Method','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> الطريقة السريعة'],
   calc_quick_desc:['Bedside per-kg estimate — independent of the detailed calculation below','تقدير سريع عند السرير لكل كيلوغرام — مستقل عن الحساب التفصيلي أدناه'],
   calc_lbl_energy_range:['Energy (kcal/kg)','الطاقة (سعرة/كغم)'],
   calc_lbl_protein_range:['Protein (g/kg)','البروتين (غم/كغم)'],
   calc_lbl_fluid_range:['Fluid (mL/kg)','السوائل (مل/كغم)'],
-  calc_rate_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> 4. Tube-Feeding Rate','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> 4. معدل التغذية الأنبوبية'],
+  calc_rate_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> Tube-Feeding Rate','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> معدل التغذية الأنبوبية'],
   calc_rate_desc:['Daily volume and hourly infusion rate from an energy target and formula density','الحجم اليومي ومعدل التسريب بالساعة من هدف الطاقة وكثافة التركيبة'],
   calc_lbl_target:['Daily Energy Target (kcal/day)','هدف الطاقة اليومي (سعرة/يوم)'],
   calc_lbl_density:['Formula Density (kcal/mL)','كثافة التركيبة (سعرة/مل)'],
   calc_lbl_hours:['Feeding Duration (hours/day)','مدة التغذية (ساعات/يوم)'],
   calc_lbl_infusion_rate:['Infusion Rate (mL/hr)','معدل التسريب (مل/ساعة)'],
   calc_lbl_propofol_density:['Propofol Calorie Density (kcal/mL)','كثافة سعرات البروبوفول (سعرة/مل)'],
-  calc_propofol_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 3. Propofol Calories','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 3. سعرات البروبوفول'],
+  calc_propofol_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Propofol Calories','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> سعرات البروبوفول'],
   calc_propofol_desc:['Propofol\'s lipid-emulsion vehicle contributes calories that should be subtracted from the nutrition energy target','يساهم المحلول الدهني الحامل للبروبوفول بسعرات حرارية يجب طرحها من هدف الطاقة الغذائي'],
   calc_res_energy:['Energy Requirement','احتياج الطاقة'], calc_res_fluid:['Fluid Requirement','احتياج السوائل'],
   calc_res_adjnote:['<svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> BMI ≥ 30 — energy calculated using Adjusted Body Weight ({w} kg) instead of actual weight.','<svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> مؤشر كتلة الجسم ≥ ٣٠ — تم حساب الطاقة باستخدام الوزن المعدّل ({w} كغم) بدلاً من الوزن الفعلي.'],
@@ -3312,7 +3341,7 @@ const T = {
   calc_fr_modular_protein:['Added Protein','البروتين المضاف'],
   calc_fr_modular_note:['Informational only — not added to the rate or energy-target math above','لأغراض المعلومات فقط — لا تُضاف إلى حساب المعدل أو هدف الطاقة أعلاه'],
   // clinical calculators — Outpatient card 1: Energy & Protein Needs
-  calc_op1_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg> 1. Energy & Protein Needs (Outpatient)','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg> 1. احتياج الطاقة والبروتين (خارجي)'],
+  calc_op1_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg> Energy & Protein Needs (Outpatient)','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg> احتياج الطاقة والبروتين (خارجي)'],
   calc_op1_desc:['Mifflin-St Jeor resting energy × activity level, plus a BMI band and protein estimate for ambulatory patients','معادلة ميفلين-سانت جيور لطاقة الراحة × مستوى النشاط، مع تصنيف مؤشر كتلة الجسم وتقدير البروتين للمرضى المتنقلين'],
   calc_op_lbl_activity:['Activity Level','مستوى النشاط'],
   calc_act_sedentary:['Sedentary (×1.2)','قليل الحركة (×1.2)'],
@@ -3325,7 +3354,7 @@ const T = {
   calc_bmi_under:['Underweight','نقص الوزن'], calc_bmi_normal:['Normal','طبيعي'],
   calc_bmi_over:['Overweight','زيادة الوزن'], calc_bmi_obese:['Obese','سمنة'],
   // clinical calculators — Outpatient card 2: Supplement Serving Planner
-  calc_op2_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.5 12a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8Z"/><path d="M6 8 5 4h14l-1 4"/></svg> 2. Supplement Serving Planner','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.5 12a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8Z"/><path d="M6 8 5 4h14l-1 4"/></svg> 2. مخطط حصص المكملات'],
+  calc_op2_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.5 12a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8Z"/><path d="M6 8 5 4h14l-1 4"/></svg> Supplement Serving Planner','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1.5 12a2 2 0 0 1-2 1.8H9.5a2 2 0 0 1-2-1.8Z"/><path d="M6 8 5 4h14l-1 4"/></svg> مخطط حصص المكملات'],
   calc_op2_desc:['Servings-to-energy math for a selected oral supplement, from the pack or scoop size','حساب الطاقة من عدد الحصص لمكمل غذائي فموي مختار، بناءً على حجم العبوة أو الملعقة'],
   calc_sp_lbl_product:['Product','المنتج'], calc_sp_product_none:['Select a product…','اختر منتجاً…'],
   calc_sp_lbl_servings:['Servings / day','الحصص / يوم'], calc_sp_lbl_kcaltarget:['Target (kcal/day)','الهدف (سعرة/يوم)'],
@@ -3354,7 +3383,7 @@ const T = {
   calc_ce_psu_variant_obese:['PSU 2010 (modified, obese &gt; 60y)','PSU 2010 (المعدّلة، سمنة &gt; ٦٠ سنة)'],
   calc_ce_need_psu:['Enter Tmax and VE for the Penn State equation','أدخل Tmax وVE لمعادلة بِن ستيت'],
   // Dry Weight (Inpatient card 5)
-  calc_dw_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg> 5. Dry Weight','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg> 5. الوزن الجاف'],
+  calc_dw_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg> Dry Weight','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg> الوزن الجاف'],
   calc_dw_desc:['Estimated dry weight for patients with ascites or peripheral edema, by clinical severity','الوزن الجاف التقديري لمرضى الاستسقاء أو الوذمة الطرفية، حسب الشدة السريرية'],
   calc_dw_lbl_severity:['Ascites / Edema Severity','شدة الاستسقاء / الوذمة'],
   calc_dw_none:['None (no deduction)','لا يوجد (بدون خصم)'],
@@ -3368,7 +3397,7 @@ const T = {
   calc_dw_res_deduction:['Fluid Deduction','خصم السوائل'],
   calc_dw_eqname:['Newsome (2012) severity adjustment','تعديل الشدة — Newsome (2012)'],
   // Water Deficit (Inpatient card 6)
-  calc_wd_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> 6. Water Deficit','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> 6. عجز الماء'],
+  calc_wd_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> Water Deficit','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.4-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg> عجز الماء'],
   calc_wd_desc:['Free-water deficit estimate for hypernatremia','تقدير عجز الماء الحر لفرط صوديوم الدم'],
   calc_wd_caution:['Correction rate is a medical decision — risk of osmotic demyelination with rapid correction. For reference only.','معدل التصحيح قرار طبي — خطر إزالة الميالين التناضحي عند التصحيح السريع. للاستئناس فقط.'],
   calc_wd_lbl_na:['Serum Sodium (mEq/L)','صوديوم المصل (مكافئ/لتر)'],
@@ -3376,7 +3405,7 @@ const T = {
   calc_wd_res_tbw:['Total Body Water','ماء الجسم الكلي'],
   calc_wd_eqname:['Free-water deficit — TBW × (Na⁄140 − 1)','عجز الماء الحر — TBW × (Na⁄140 − 1)'],
   // Amputation Body Mass (Inpatient card 7)
-  calc_amp_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> 7. Est. Amputation Body Mass','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> 7. كتلة الجسم التقديرية بعد البتر'],
+  calc_amp_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Est. Amputation Body Mass','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> كتلة الجسم التقديرية بعد البتر'],
   calc_amp_desc:['Adjusts Hamwi ideal body weight for one or more missing limb segments','يعدّل الوزن المثالي (Hamwi) لواحد أو أكثر من الأطراف المفقودة'],
   calc_amp_lbl_segments:['Missing Segment(s) — select all that apply','الأجزاء المفقودة — اختر كل ما ينطبق'],
   calc_amp_res_adjweight:['Amputation-Adjusted Weight','الوزن المعدّل للبتر'],
@@ -3391,7 +3420,7 @@ const T = {
   amp_seg_entirearm:['Entire Arm (5.0%)','ذراع كاملة (٥٫٠٪)'], amp_seg_entirearms:['Both Arms (10.0%)','كلتا الذراعين (١٠٫٠٪)'],
   amp_seg_aboveknee:['Above Knee (10.1%)','فوق الركبة (١٠٫١٪)'], amp_seg_aboveknees:['Above Both Knees (20.2%)','فوق الركبتين (٢٠٫٢٪)'],
   // Macronutrient Distribution (Inpatient card 8 / Outpatient card 4)
-  calc_md_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> 8. Macronutrient Distribution','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> 8. توزيع المغذيات الكبرى'],
+  calc_md_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> Macronutrient Distribution','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> توزيع المغذيات الكبرى'],
   calc_md_desc:['Splits a daily energy target into carbohydrate, protein and fat grams','يوزّع هدف الطاقة اليومي إلى غرامات كربوهيدرات وبروتين ودهون'],
   calc_md_lbl_kcal:['Energy Target (kcal/day)','هدف الطاقة (سعرة/يوم)'],
   calc_md_lbl_cho:['Carbohydrate (%)','الكربوهيدرات (٪)'],
@@ -3403,7 +3432,7 @@ const T = {
   calc_md_sum_ok:['Splits total 100%','مجموع النسب ١٠٠٪'],
   calc_md_sum_warn:['<svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Percentages total {sum}% (not 100%)','<svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> مجموع النسب {sum}٪ (ليس ١٠٠٪)'],
   calc_md_hint_net:['Auto-filled from Energy Requirement net target','تعبئة تلقائية من صافي هدف احتياج الطاقة'],
-  calc_omd_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> 4. Macronutrient Distribution','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> 4. توزيع المغذيات الكبرى'],
+  calc_omd_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> Macronutrient Distribution','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7.07 7.07"/></svg> توزيع المغذيات الكبرى'],
   calc_omd_hint_energy:['Auto-filled from the Energy & Protein result above','تعبئة تلقائية من نتيجة الطاقة والبروتين أعلاه'],
   // Outpatient equation alternates (Outpatient card 1)
   calc_op_eq_cunningham:['Cunningham (athletic, LBM-based)','كننغهام (رياضي، حسب الكتلة الخالية من الدهون)'],
@@ -3417,9 +3446,9 @@ const T = {
   calc_op_res_pibw:['% of Ideal Body Weight','٪ من الوزن المثالي'],
   calc_op_need_lbm:['Enter lean body mass for the Cunningham equation','أدخل الكتلة الخالية من الدهون لمعادلة كننغهام'],
   // Outpatient Quick Method (Outpatient card 3)
-  calc_opqm_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> 3. Quick Method','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> 3. الطريقة السريعة'],
+  calc_opqm_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> Quick Method','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> الطريقة السريعة'],
   // Pediatric Needs (Outpatient card 5)
-  calc_ped_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6Z"/></svg> 5. Pediatric Needs','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6Z"/></svg> 5. احتياجات الأطفال'],
+  calc_ped_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6Z"/></svg> Pediatric Needs','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6Z"/></svg> احتياجات الأطفال'],
   calc_ped_caution:['Pediatric estimates — verify against clinical judgment and current guidelines before use.','تقديرات للأطفال — تحقّق منها بالحكم السريري والإرشادات الحالية قبل الاستخدام.'],
   calc_ped_lbl_mode:['Calculation','الحساب'],
   calc_ped_mode_rda:['RDA — Calories & Protein (per kg)','RDA — السعرات والبروتين (لكل كغم)'],
@@ -3459,7 +3488,7 @@ const T = {
   calc_ped_eqname_macro:['4/4/9 kcal distribution','توزيع 4/4/9 سعرة'],
   calc_ped_eqname_special:['Culley & Middleton / condition-specific kcal per cm','Culley & Middleton / سعرات لكل سم حسب الحالة'],
   // Insulin Calculations (Outpatient card 6, Ledger 8)
-  calc_ins_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 6. Insulin Calculations','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 6. حسابات الإنسولين'],
+  calc_ins_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Insulin Calculations','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> حسابات الإنسولين'],
   calc_ins_disclaimer:['Educational tool — insulin dosing must follow the treating team\'s protocol. Never act on these numbers without medical confirmation.','أداة تعليمية — يجب أن تتبع جرعة الإنسولين بروتوكول الفريق المعالج. لا تتصرّف بناءً على هذه الأرقام دون تأكيد طبي.'],
   calc_ins_lbl_mode:['Calculation','الحساب'],
   calc_ins_mode_icr:['Insulin-to-Carb Ratio (500 / 450 rule)','نسبة الإنسولين للكربوهيدرات (قاعدة 500 / 450)'],
@@ -4092,7 +4121,7 @@ window.onload = async () => {
   // set each equation/mode selector's initial per-option field visibility.
   renderAmpSegments();
   calcCeEquationChange(); calcOpEquationChange(); calcPedModeChange(); calcInsModeChange();
-  calcInitPins(); // Ledger 6-12 — restore calculator card pin state/order (all cards start collapsed regardless)
+  calcInitRoutes(); // route (remembered per device) + its pins, order and numbering; every card starts collapsed
   // Patient strip (2026-10-18). The touched listeners must be attached before
   // anyone can type; the staleness tick is cheap and only ever toggles one
   // amber bar, so it rides at the same cadence as the rest of the UI clock.
@@ -6127,9 +6156,62 @@ function screeningRun() {
 // Holliday-Segar fluid) sourced from the cited literature (Mueller's
 // Essential Pocket Guide for Clinical Nutrition 2024; Pai & Paloucek 2000,
 // Ann Pharmacother 34(9):1066) — not derived from any competitor's app.
+// ══ CALCULATOR ROUTES (2026-10-18) ══════════════════════════════════════════
+// The department divides inpatient work by route — oral, enteral, parenteral —
+// with outpatient as a fourth. This object is the ONE source of truth for both
+// which cards a route shows and the order it shows them in: a card is visible
+// on a route iff its token is in that route's list. A card can sit in several
+// routes and is still one DOM node, so its typed values and results are shared.
+//
+// Order follows the decision as the department described it. Enteral: targets
+// (Quick Method, the workhorse) → formal equations → minus propofol → feed
+// rate → macro split. Oral: targets → ONS (Serving Planner) → macro split.
+//
+// render_test asserts that every calculator card in the markup appears in at
+// least one route — a card dropped from all four would become invisible with
+// no error, which is exactly the failure shape this project keeps finding.
+const CALC_ROUTES = {
+  oral:    ['quick-ip','planner','macro-ip','dryweight','amputation'],
+  enteral: ['quick-ip','ce','propofol','fr','macro-ip','waterdeficit','dryweight','amputation'],
+  pn:      ['pn-coming','quick-ip','ce','propofol','waterdeficit','dryweight','amputation'],
+  op:      ['energy-op','planner','quick-op','macro-op','peds','insulin'],
+};
+const CALC_ROUTE_IDS = ['oral','enteral','pn','op'];
+const CALC_ALL_TOKENS = [...new Set(CALC_ROUTE_IDS.flatMap(r => CALC_ROUTES[r]))];
+// A placeholder is shown but not numbered — numbers count calculators.
+const CALC_UNNUMBERED = new Set(['pn-coming']);
+
+// Pins are PER ROUTE (Quick Method can be pinned in Enteral and not in Oral).
+// Read defensively: the previous version parsed localStorage at load time with
+// no try/catch, so one corrupt value threw at module evaluation and took the
+// whole script down with it.
+//
+// One-time migration: the old Inpatient pins (`ns_calc_pinned_ip`) seed all
+// three inpatient routes, filtered to the cards each one actually shows. The
+// Outpatient key is unchanged (`ns_calc_pinned_op`), so it needs nothing.
+// The legacy key is read, never deleted.
+function calcLoadPins() {
+  const read = k => {
+    try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return Array.isArray(v) ? v : null; }
+    catch (e) { return null; }
+  };
+  const legacyIp = read('ns_calc_pinned_ip') || [];
+  const out = {};
+  CALC_ROUTE_IDS.forEach(r => {
+    let list = read('ns_calc_pinned_' + r);
+    if (list === null && r !== 'op') list = legacyIp;
+    out[r] = new Set((list || []).filter(t => CALC_ROUTES[r].indexOf(t) !== -1));
+  });
+  return out;
+}
+
 const CALC = {
   ceGender: 'male', ceAdjAuto: true, ceAdjManual: false, lastEnergy: null, lastPropofol: null,
-  section: 'ip',            // 'ip' | 'op' — Ledger 5 segment, in-memory only (Ledger 14: Formulary segment removed)
+  // The route on screen. Remembered per device, like pins: it is about the
+  // dietitian's habits (an enteral-heavy round starts on Enteral), never about
+  // a patient.
+  route: (() => { try { const r = localStorage.getItem('ns_calc_route'); return CALC_ROUTES[r] ? r : 'oral'; }
+                  catch (e) { return 'oral'; } })(),
   frDensityTouched: false,  // guards fr-density from the product-picker once the user types (Ledger 9)
   opGender: 'male',
   spLastEdited: null,       // 'servings' | 'kcal' | null — Supplement Serving Planner last-edited-wins (Ledger 6)
@@ -6137,23 +6219,17 @@ const CALC = {
   ceIjTrauma: false, ceIjBurn: false, ceIjObesity: false,   // Ireton-Jones flags
   wdGender: 'male', ampGender: 'male', pedGender: 'male',    // gender for new cards
   mdTouched: false, omdTouched: false,                      // macro-distribution manual-entry guards
-  // Ledger 6-12 — collapsible + pinnable calculator cards. Expand state is
-  // in-memory only (resets on reload, survives Inpatient/Outpatient segment
-  // switches); pin state persists to localStorage, mirroring S.pinnedIds.
+  // Collapsible + pinnable cards. Expand state now lives on the card itself
+  // (its body's `collapsed` class) rather than in per-section Sets that
+  // nothing else read — one card, one state, whichever route shows it.
   // The patient strip. IN MEMORY ONLY and deliberately absent from
   // localStorage — see the markup comment. `at` is when it was last edited,
   // which drives the staleness nudge on a ward round.
   patient: { sex:'male', age:null, weight:null, height:null, at:null },
-  expandedIp: new Set(), expandedOp: new Set(),
-  pinnedIp: new Set(JSON.parse(localStorage.getItem('ns_calc_pinned_ip')||'[]')),
-  pinnedOp: new Set(JSON.parse(localStorage.getItem('ns_calc_pinned_op')||'[]')),
+  pinned: calcLoadPins(),
 };
 
-// Canonical (natural, numbered) card order per segment — calcReorderCards
-// restores this before promoting pinned cards, so unpinning a card returns
-// it to its correct numbered position instead of leaving it stranded.
-const CALC_ORDER_IP = ['quick-ip','ce','propofol','fr','dryweight','waterdeficit','amputation','macro-ip'];
-const CALC_ORDER_OP = ['energy-op','planner','quick-op','macro-op','peds','insulin'];
+// (Card order per route lives in CALC_ROUTES, above CALC.)
 
 function calcSetGender(prefix, g) {
   CALC[prefix+'Gender'] = g;
@@ -6302,14 +6378,18 @@ function calcNextPatient() {
 }
 
 // ══ Section segment (Inpatient / Outpatient) — Ledger 5, trimmed by Ledger 14 ═
-function calcSetSection(sec) {
-  if (sec !== 'ip' && sec !== 'op') sec = 'ip'; // safe fallback (e.g. a stale 'forms' value)
-  CALC.section = sec;
-  ['ip','op'].forEach(s=>{
-    el('calc-seg-'+s)?.classList.toggle('on', s===sec);
-    el('calc-sec-'+s)?.classList.toggle('hidden', s!==sec);
+function calcSetRoute(route) {
+  if (!CALC_ROUTES[route]) route = 'oral';   // e.g. a stale value from an older build
+  CALC.route = route;
+  try { localStorage.setItem('ns_calc_route', route); } catch (e) {}
+  CALC_ROUTE_IDS.forEach(r => {
+    const b = el('calc-seg-' + r); if (!b) return;
+    b.classList.toggle('on', r === route);
+    b.setAttribute('aria-pressed', r === route ? 'true' : 'false');
   });
-  if (sec==='op') calcOutpatientRun();
+  calcSyncPinButtons();
+  calcReorderCards();
+  if (route === 'op') calcOutpatientRun();
 }
 
 // ══ Ledger 6-12 — collapsible + pinnable calculator cards ═══════════════
@@ -6319,32 +6399,42 @@ function calcSetSection(sec) {
 // survive collapse untouched) and "pin" re-orders the existing .card DOM
 // nodes in place via insertBefore (never innerHTML), so no input is ever
 // destroyed or recreated.
-function calcToggleExpand(section, token, headerEl) {
-  const expandedSet = section==='ip' ? CALC.expandedIp : CALC.expandedOp;
-  const body = el('calc-body-'+token), chevron = el('calc-chevron-'+token);
-  const nowExpanded = !expandedSet.has(token);
-  if (nowExpanded) expandedSet.add(token); else expandedSet.delete(token);
-  body?.classList.toggle('collapsed', !nowExpanded);
+function calcToggleExpand(token, headerEl) {
+  const body = el('calc-body-' + token), chevron = el('calc-chevron-' + token);
+  if (!body) return;
+  const nowExpanded = body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', !nowExpanded);
   chevron?.classList.toggle('open', nowExpanded);
   headerEl?.setAttribute('aria-expanded', String(nowExpanded));
 }
 
-function calcTogglePin(section, token) {
-  const pinnedSet = section==='ip' ? CALC.pinnedIp : CALC.pinnedOp;
-  const key = section==='ip' ? 'ns_calc_pinned_ip' : 'ns_calc_pinned_op';
-  if (pinnedSet.has(token)) pinnedSet.delete(token); else pinnedSet.add(token);
-  localStorage.setItem(key, JSON.stringify([...pinnedSet]));
-  calcSyncPinButton(section, token);
-  calcReorderCards(section);   // ordering only — expand/collapse state untouched
+function calcTogglePin(token) {
+  const set = CALC.pinned[CALC.route];
+  if (!set) return;
+  if (set.has(token)) set.delete(token); else set.add(token);
+  try { localStorage.setItem('ns_calc_pinned_' + CALC.route, JSON.stringify([...set])); } catch (e) {}
+  calcSyncPinButtons();
+  calcReorderCards();   // ordering only — expand/collapse state untouched
 }
 
-function calcSyncPinButton(section, token) {
-  const pinnedSet = section==='ip' ? CALC.pinnedIp : CALC.pinnedOp;
-  const btn = el('calc-pin-'+token);
-  if (!btn) return;
-  const pinned = pinnedSet.has(token);
-  btn.classList.toggle('pinned', pinned);
-  btn.innerHTML = pinned ? STAR_FILLED : STAR_OUTLINE;
+function calcSyncPinButtons() {
+  const set = CALC.pinned[CALC.route] || new Set();
+  CALC_ALL_TOKENS.forEach(token => {
+    const btn = el('calc-pin-' + token);
+    if (!btn) return;
+    const pinned = set.has(token);
+    btn.classList.toggle('pinned', pinned);
+    btn.innerHTML = pinned ? STAR_FILLED : STAR_OUTLINE;
+  });
+}
+
+// What the current route shows, top to bottom: its pinned cards first
+// (earliest-pinned first, as before), then the rest in the route's own order.
+// A pure function so the order can be tested without a real DOM.
+function calcRouteDisplayOrder(route) {
+  const members = CALC_ROUTES[route] || [];
+  const pinned = [...((CALC.pinned && CALC.pinned[route]) || [])].filter(t => members.indexOf(t) !== -1);
+  return pinned.concat(members.filter(t => pinned.indexOf(t) === -1));
 }
 
 // Restores canonical numbered order, then moves pinned cards' existing DOM
@@ -6352,18 +6442,27 @@ function calcSyncPinButton(section, token) {
 // appendChild only (never innerHTML), so any typed values or select state
 // inside a moved card is preserved exactly. Restoring canonical order first
 // means unpinning a card returns it to its correct numbered position.
-function calcReorderCards(section) {
-  const container = el(section==='ip' ? 'calc-sec-ip' : 'calc-sec-op');
-  const order = section==='ip' ? CALC_ORDER_IP : CALC_ORDER_OP;
-  const pinnedSet = section==='ip' ? CALC.pinnedIp : CALC.pinnedOp;
+function calcReorderCards() {
+  const container = el('calc-cards');
   if (!container) return;
-  order.forEach(token => {
-    const cardEl = el('calc-card-'+token);
-    if (cardEl) container.appendChild(cardEl);
+  const route = CALC.route, members = CALC_ROUTES[route] || [];
+  // Show only this route's cards. Hidden cards keep every typed value — the
+  // DOM node is never removed or recreated, only display-toggled.
+  CALC_ALL_TOKENS.forEach(t => {
+    const c = el('calc-card-' + t);
+    if (c) c.classList.toggle('hidden', members.indexOf(t) === -1);
   });
-  [...pinnedSet].reverse().forEach(token => {
-    const cardEl = el('calc-card-'+token);
-    if (cardEl) container.insertBefore(cardEl, container.firstElementChild);
+  // appendChild in display order moves the visible cards, in order, to the
+  // end; the hidden ones are left in front where they are not seen.
+  const order = calcRouteDisplayOrder(route);
+  order.forEach(t => { const c = el('calc-card-' + t); if (c) container.appendChild(c); });
+  // Number by position. The same card is "1." in Oral and "2." in
+  // Parenteral, which is why the numbers left the title text.
+  let n = 0;
+  order.forEach(t => {
+    if (CALC_UNNUMBERED.has(t)) return;
+    const num = el('calc-num-' + t);
+    if (num) num.textContent = (++n) + '.';
   });
 }
 
@@ -6371,12 +6470,8 @@ function calcReorderCards(section) {
 // both segments. Expand state deliberately does nothing here — Ledger 4
 // requires every card to start collapsed on first render, which the static
 // markup's .collapsed class already guarantees.
-function calcInitPins() {
-  ['ip','op'].forEach(section => {
-    const pinnedSet = section==='ip' ? CALC.pinnedIp : CALC.pinnedOp;
-    pinnedSet.forEach(token => calcSyncPinButton(section, token));
-    calcReorderCards(section);
-  });
+function calcInitRoutes() {
+  calcSetRoute(CALC.route);   // syncs the stars, shows/orders/numbers the cards
 }
 
 // ══ Supervisor Dashboard — collapsible sections ═════════════════════════
