@@ -88,6 +88,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .pin-card p{color:var(--text2);font-size:.875rem;margin-bottom:24px;line-height:1.5}
 #pin-input{text-align:center;font-size:2rem;letter-spacing:.5rem;font-weight:800;color:var(--blue-t);background:rgba(63,169,220,.06);border-color:rgba(63,169,220,.3);max-width:160px;display:block;margin:0 auto}
 .pin-err{color:var(--red-t);font-size:.8125rem;margin-top:10px;min-height:18px;font-weight:500}
+#pin-overlay.locked .btn-pin-cancel{display:none}
 .btn-pin-cancel{background:none;color:var(--text2);padding:10px 20px;font-size:.875rem;margin-top:10px;border-radius:var(--rs)}
 
 /* Auth card (sign in / sign up / break-glass) */
@@ -2941,13 +2942,13 @@ const T = {
   as_hint_off:['Automatic status is OFF — this product’s status stays exactly as you set it and will NOT change when stock is added or used.','التحديث التلقائي متوقف — تبقى حالة هذا المنتج كما ضبطتها ولن تتغير عند إضافة أو استهلاك المخزون.'],
   cs_auto_off_hint:['Auto Status was turned off so “Coming Soon” is not overwritten by stock levels. Turn it back on when the stock arrives.','تم إيقاف الحالة التلقائية حتى لا يتم استبدال «قريباً» حسب المخزون. أعد تشغيلها عند وصول المخزون.'],
   auth_signin_h:['Staff Sign In','تسجيل دخول الموظفين'],
-  auth_signin_sub:['Sign in with your hospital email to access storage.','سجّل الدخول ببريدك الإلكتروني للوصول إلى المخزن.'],
+  auth_signin_sub:['Sign in with your work email. NutriStore now requires an account for every part of the app.','سجّل الدخول ببريد العمل. يتطلب نيوتريستور الآن حساباً للوصول إلى جميع أقسام التطبيق.'],
   lbl_email:['Email','البريد الإلكتروني'], lbl_password:['Password','كلمة المرور'],
   login_btn:['Sign In','تسجيل الدخول'],
   auth_link_signup:['First time? Create account','أول مرة؟ أنشئ حساباً'],
   auth_link_pin:['Supervisor PIN','رمز المشرف PIN'], btn_cancel:['Cancel','إلغاء'], btn_confirm:['Confirm','تأكيد'],
   auth_signup_h:['Create Account','إنشاء حساب'],
-  auth_signup_sub:['A supervisor approves your account before first sign-in.','يعتمد المشرف حسابك قبل أول تسجيل دخول.'],
+  auth_signup_sub:['Use your work email. A supervisor approves your account before first sign-in.','استخدم بريد العمل. يعتمد المشرف حسابك قبل أول تسجيل دخول.'],
   lbl_fullname:['Full Name','الاسم الكامل'], lbl_confirm_pw:['Confirm Password','تأكيد كلمة المرور'],
   signup_btn:['Create Account','إنشاء حساب'], auth_back:['← Back to sign in','→ العودة لتسجيل الدخول'],
   auth_pin_h:['Supervisor PIN','رمز المشرف PIN'], auth_pin_sub:['Emergency supervisor access.','دخول المشرف للطوارئ.'],
@@ -3944,6 +3945,9 @@ const S = {
   // every keystroke of the search box, so a DOM-only flag would collapse under
   // the user mid-read.
   tagRowsOpen: new Set(),
+  // Closed system: true while the sign-in wall is up and there is nothing
+  // behind it. Guards closePin() and tells doLogin to do a full reload.
+  locked: false,
   srcTags:   [],   // staged tag edits in Products Admin (committed by Save tags)
   tagsByUuid:{},
   allTags:   [],
@@ -3992,6 +3996,12 @@ const S = {
 
 // ══ Boot ══════════════════════════════════════════════════════
 window.onload = async () => {
+  // THE WALL GOES UP BEFORE ANY FETCH. Checking localStorage rather than
+  // calling the server first: with no stored session there is certainly no
+  // session, so four round trips that can only return [] are pointless, and
+  // more importantly the empty render never happens at all.
+  if (!localStorage.getItem('ns_session')) { applyLang(); lockApp(); return; }
+
   buildCats('prod-cats','prodCat',renderProducts);
   buildProdTagPills();
   buildCats('bulk-cats','bulkCat',renderBulkList);
@@ -4070,6 +4080,11 @@ async function finishBoot(offline) {
   renderBulkList();
   renderExpiring();
   await restoreSession();
+  // restoreSession clears the session on a real auth rejection (expired,
+  // deleted, no longer approved) but deliberately KEEPS it on a network
+  // failure so an offline boot still works. So re-check here rather than
+  // assuming: a rejected session must meet the wall, not an empty app.
+  if (!S.session && !offline) { lockApp(); return; }
   hide('screen-loading');
   el('app').style.display = 'flex';
   setInterval(renderLastSynced, 30000);
@@ -5652,7 +5667,13 @@ function toggleMode() {
   if (S.session) { logout(); }
   else { showAuthView('login'); show('pin-overlay'); setTimeout(()=>el('lg-email')?.focus(),80); }
 }
-function closePin() { hide('pin-overlay'); }
+function closePin() {
+  // While locked there is nothing to go back to — dismissing would reveal an
+  // empty app. The Cancel button is hidden by CSS too; this is the guard for
+  // every other route to here (Escape handlers, backdrop clicks, future code).
+  if (S.locked) return;
+  hide('pin-overlay');
+}
 
 function showAuthView(view) {
   ['login','signup','pin','newpw'].forEach(v => el('auth-'+v).classList.toggle('hidden', v!==view));
@@ -5713,6 +5734,11 @@ async function doLogin() {
     S.session.role = prof.role;
     localStorage.setItem('ns_session', JSON.stringify(S.session));
 
+    // Signing in FROM THE WALL means the app behind it was never booted —
+    // window.onload returned before fetching anything. A full reload is the
+    // honest way to get a correct first screen; patching state by hand here
+    // would mean maintaining a second, subtly different boot path.
+    if (S.locked) { location.reload(); return; }
     hide('pin-overlay');
     applyUser();
     goTab(S.session.role==='supervisor' ? 'supervisor' : 'products');
@@ -5767,8 +5793,31 @@ async function doSignup() {
 async function logout() {
   try { if (S.session && S.session.access_token) await api({action:'logout'}); } catch(e) {}
   S.session=null; S._pendingCred=null; localStorage.removeItem('ns_session');
-  applyUser(); goTab('products');
+  // Closed system: there is no signed-out view to drop back into.
   toast(t('t_signed_out'), 'ok');
+  setTimeout(()=>location.reload(), 600);
+}
+
+// ══ THE SIGN-IN WALL (closed system, 2026-10-17) ═══════════════════════════
+// The six anonymous read policies are gone (20261017140000), so a signed-out
+// visitor's getAll now returns []. WITHOUT THIS WALL that renders as a fully
+// working app containing nothing — no products, no error, no explanation —
+// which is the exact "shows empty, no error" failure this project keeps
+// producing. The lock is only half done in the database; this is the half the
+// user actually sees.
+//
+// `S.locked` exists because the overlay was previously dismissible: it was an
+// optional sign-in for storage staff, with a Cancel button that returned you
+// to the public dietitian view. There is no public view to return to any
+// more, so Cancel is hidden and closePin() refuses while locked.
+function lockApp() {
+  S.locked = true;
+  el('app').style.display = 'none';      // nothing behind the wall to glimpse
+  hide('screen-loading');
+  el('pin-overlay').classList.add('locked');
+  showAuthView('login');
+  show('pin-overlay');
+  setTimeout(()=>el('lg-email')?.focus(), 80);
 }
 
 // Restore a saved session on boot. The server re-validates on every request,
