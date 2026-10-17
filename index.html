@@ -34,6 +34,7 @@
   --blue:#3fa9dc;  --blue-bg:rgba(63,169,220,.1);  --blue-t:#7cc7ea;
   --grey:#475569;  --grey-bg:rgba(71,85,105,.15);  --grey-t:#94a3b8;
   --purple:#8b5cf6; --purple-bg:rgba(139,92,246,.1); --purple-t:#a78bfa;
+  --fuchsia:#d946ef; --fuchsia-bg:rgba(217,70,239,.12); --fuchsia-t:#e9a6f5;
   --teal:#14b8a6; --teal-bg:rgba(20,184,166,.12); --teal-t:#2dd4bf;
   --indigo:#6366f1; --indigo-bg:rgba(99,102,241,.12); --indigo-t:#818cf8;
   --rose:#f43f5e; --rose-bg:rgba(244,63,94,.12); --rose-t:#fb7185;
@@ -285,6 +286,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .sbar-b{background:var(--blue-bg); color:var(--blue-t); border-color:rgba(63,169,220,.2)}
 .sbar-r{background:var(--red-bg);  color:var(--red-t);  border-color:rgba(239,68,68,.2)}
 .sbar-x{background:var(--grey-bg); color:var(--grey-t); border-color:rgba(71,85,105,.2)}
+.sbar-u{background:var(--fuchsia-bg);color:var(--fuchsia-t);border-color:rgba(217,70,239,.2)}
 .sbar-i{background:var(--indigo-bg);color:var(--indigo-t);border-color:rgba(99,102,241,.2)}
 .sdot{display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
 .sbar.on{color:#fff;box-shadow:0 2px 12px rgba(0,0,0,.25)}
@@ -421,6 +423,8 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .s-low        {background:var(--amber-bg);color:var(--amber-t)}
 .s-coming     {background:var(--blue-bg); color:var(--blue-t)}
 .s-unavailable{background:var(--red-bg);  color:var(--red-t)}
+.s-unlisted   {background:var(--fuchsia-bg); color:var(--fuchsia-t)}
+.s-owner      {background:var(--purple-bg); color:var(--purple-t); margin-inline-start:6px}
 .s-empty      {background:var(--grey-bg); color:var(--grey-t)}
 
 /* Urgency badges */
@@ -511,6 +515,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .sb-available  {border-color:rgba(34,197,94,.35);  color:var(--green-t);background:var(--green-bg)}
 .sb-low        {border-color:rgba(245,158,11,.35); color:var(--amber-t);background:var(--amber-bg)}
 .sb-coming     {border-color:rgba(63,169,220,.35); color:var(--blue-t); background:var(--blue-bg)}
+.sb-unlisted   {border-color:rgba(217,70,239,.35); color:var(--fuchsia-t); background:var(--fuchsia-bg)}
 .sb-unavailable{border-color:rgba(239,68,68,.35);  color:var(--red-t);  background:var(--red-bg)}
 .sb-clear      {border-color:var(--border2);        color:var(--grey-t); background:var(--grey-bg);grid-column:1/-1}
 
@@ -2132,6 +2137,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <button class="sbtn sb-low"         id="su-s-low"         onclick="pickSuStatus('low')">🟡 Low Stock</button>
             <button class="sbtn sb-coming"      id="su-s-coming"      onclick="pickSuStatus('coming')">🔵 Coming Soon</button>
             <button class="sbtn sb-unavailable" id="su-s-unavailable" onclick="pickSuStatus('unavailable')">🔴 Not Available</button>
+            <button class="sbtn sb-unlisted"    id="su-s-unlisted"    onclick="pickSuStatus('unlisted')">⚪ Unlisted</button>
             <button class="sbtn sb-clear"                             onclick="pickSuStatus('')" data-i18n="st_clear">🗑️ Clear / Not Set</button>
           </div>
           <!-- Explains the automatic Auto-Status pin that picking Coming Soon
@@ -2187,6 +2193,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <button class="sbtn sb-low"         id="bs-low"         onclick="pickBulkStatus('low')">🟡 Low Stock</button>
             <button class="sbtn sb-coming"      id="bs-coming"      onclick="pickBulkStatus('coming')">🔵 Coming Soon</button>
             <button class="sbtn sb-unavailable" id="bs-unavailable" onclick="pickBulkStatus('unavailable')">🔴 Not Available</button>
+            <button class="sbtn sb-unlisted"    id="bs-unlisted"    onclick="pickBulkStatus('unlisted')">⚪ Unlisted</button>
             <button class="sbtn sb-clear"                           onclick="pickBulkStatus('')" data-i18n="st_clear">🗑️ Clear / Not Set</button>
           </div>
           <div id="bs-date-wrap" class="field hidden">
@@ -2834,6 +2841,7 @@ const STATUS_CFG = {
   low:         { label:'Low Stock',     cls:'s-low',         dot:'#f59e0b' },
   coming:      { label:'Coming Soon',   cls:'s-coming',      dot:'#3fa9dc' },
   unavailable: { label:'Not Available', cls:'s-unavailable', dot:'#ef4444' },
+  unlisted:    { label:'Unlisted',      cls:'s-unlisted',    dot:'#d946ef' },
   '':          { label:'Not Set',       cls:'s-empty',       dot:'#475569' },
 };
 
@@ -3499,6 +3507,13 @@ const T = {
   v_cur_pw_wrong:['Your current password is not correct.','كلمة المرور الحالية غير صحيحة.'],
   t_wait:['Please wait…','يرجى الانتظار…'],
   c_coming:['Coming','قريباً'],
+  c_unlisted:['Unlisted','غير مُدرج'],
+  s_unlisted:['Unlisted','غير مُدرج'],
+  stf_owner:['Owner','المالك'],
+  stf_owner_hint:['This account owns the system. Its role, status and password cannot be changed by another supervisor.','هذا الحساب يملك النظام. لا يمكن لمشرف آخر تغيير دوره أو حالته أو كلمة مروره.'],
+  st_unlisted:['<span class="sdot"></span> Unlisted','<span class="sdot"></span> غير مُدرج'],
+  qa_st_unlisted:['Mark Unlisted','تحديد كغير مُدرج'],
+  qa_unlisted_pins:['No longer ordered — stays out of reorder and Most Needed','لم يعد يُطلب — يبقى خارج إعادة الطلب والأكثر حاجة'],
   updated_now:['● Updated just now','● حُدّث الآن'],
   updated_ago:['● Updated {n} min ago','● حُدّث قبل {n} دقيقة'],
   expired_ago:['Expired {n}d ago','منتهية منذ {n} يوم'],
@@ -3519,8 +3534,8 @@ const I18N_TEXT = {
   'tab-supervisor-lbl':'nav_supervisor','tab-staff-lbl':'nav_staff','tab-settings-lbl':'nav_settings','tab-changes-lbl':'nav_changes',
   'tab-source-lbl':'nav_source',
   'pull-indicator':'pull_refresh',
-  'su-s-available':'st_available','su-s-low':'st_low','su-s-coming':'st_coming','su-s-unavailable':'st_unavailable',
-  'bs-available':'st_available','bs-low':'st_low','bs-coming':'st_coming','bs-unavailable':'st_unavailable',
+  'su-s-available':'st_available','su-s-low':'st_low','su-s-coming':'st_coming','su-s-unavailable':'st_unavailable','su-s-unlisted':'st_unlisted',
+  'bs-available':'st_available','bs-low':'st_low','bs-coming':'st_coming','bs-unavailable':'st_unavailable','bs-unlisted':'st_unlisted',
   'su-btn-lbl':'save_status','ab-btn-lbl':'add_batch','bs-btn-lbl':'save_changes','ap-btn-lbl':'addp_btn',
   'su-rename-btn-lbl':'su_rename_btn',
   'set-btn-lbl':'save_settings','cp-btn-lbl':'cp_btn','bulk-all-lbl':'select_all',
@@ -3631,7 +3646,7 @@ function toggleLang(){
 // Localised status labels without touching any renderer: STATUS_CFG.label
 // becomes a live getter that follows the current language.
 (function(){
-  const map = { available:'s_available', low:'s_low', coming:'s_coming', unavailable:'s_unavailable', '':'s_notset' };
+  const map = { available:'s_available', low:'s_low', coming:'s_coming', unavailable:'s_unavailable', unlisted:'s_unlisted', '':'s_notset' };
   Object.keys(STATUS_CFG).forEach(k=>{
     Object.defineProperty(STATUS_CFG[k], 'label', { get(){ return t(map[k]); } });
   });
@@ -5055,7 +5070,7 @@ function renderProducts() {
   renderLastSynced();
 
   if (S.isStorage) {
-    const c={available:0,low:0,coming:0,unavailable:0,'':0,inpatient:0,lifeline:0};
+    const c={available:0,low:0,coming:0,unavailable:0,unlisted:0,'':0,inpatient:0,lifeline:0};
     S.products.forEach(p=>{
       c[p.status||'']=(c[p.status||'']||0)+1;
       if(p.inpatientOnly) c.inpatient++;
@@ -5068,6 +5083,7 @@ function renderProducts() {
       schip('low','sbar-a',t('c_low'),c.low)+
       schip('coming','sbar-b',t('c_coming'),c.coming)+
       schip('unavailable','sbar-r',t('c_unavail'),c.unavailable)+
+      schip('unlisted','sbar-u',t('c_unlisted'),c.unlisted)+
       schip('notset','sbar-x',t('s_notset'),c[''])+
       schip('inpatientOnly','sbar-i',t('c_inpatient'),c.inpatient)+
       schip('lifeline','sbar-ll',t('c_lifeline'),c.lifeline);
@@ -5566,8 +5582,10 @@ function qaStatusSection(p) {
     : `<div class="qa-note">${escapeHtml(t('qa_auto_note'))}</div>`;
   // The pin is a real consequence, so it is spelled out — but only in the mode
   // where it actually changes something the user has not already chosen.
-  return rows + qaStatusRow(p, 'coming', 'qa_st_coming',
-                            p.manualStatus ? '' : t('qa_coming_pins'));
+  return rows
+       + qaStatusRow(p, 'coming', 'qa_st_coming',
+                     p.manualStatus ? '' : t('qa_coming_pins'))
+       + qaStatusRow(p, 'unlisted', 'qa_st_unlisted', t('qa_unlisted_pins'));
 }
 function openQuickActions(productId) {
   const p = S.products.find(x=>x.id===productId);
@@ -7730,15 +7748,22 @@ function renderStaff() {
       // pick a value and then bounce off an error.
       const isSelf = !!(S.session && S.session.email
                         && S.session.email.toLowerCase() === (s.email||'').toLowerCase());
-      const roleSel = isSelf
-        ? `<span class="staff-role" title="${escapeHtml(t('stf_role_self_hint'))}">${s.role==='supervisor'?t('stf_role_sv'):t('stf_role_st')}</span>`
+      // The protected owner (is_owner, migration 20261017120000). Three server
+      // guards refuse these actions — the CHECK constraint, the trigger, and
+      // admin-reset-password's own check — so this is purely so nobody has to
+      // discover that by failing.
+      const isOwner = !!s.isOwner;
+      const roleSel = (isSelf || isOwner)
+        ? `<span class="staff-role" title="${escapeHtml(isOwner ? t('stf_owner_hint') : t('stf_role_self_hint'))}">${s.role==='supervisor'?t('stf_role_sv'):t('stf_role_st')}</span>`
         : `<select class="staff-role-sel" aria-label="${escapeHtml(t('stf_role_change'))}"
              onchange="changeStaffRole('${esc}', this.value, this)">
              <option value="storage"    ${s.role==='storage'?'selected':''}>${escapeHtml(t('stf_opt_storage'))}</option>
              <option value="supervisor" ${s.role==='supervisor'?'selected':''}>${escapeHtml(t('stf_opt_supervisor'))}</option>
              <option value="dietitian"  ${s.role==='dietitian'?'selected':''}>${escapeHtml(t('stf_opt_dietitian'))}</option>
            </select>`;
-      actions = `${roleSel}
+      actions = isOwner
+        ? roleSel
+        : `${roleSel}
                  <button class="staff-btn" onclick="resetStaffPw('${esc}')">${t('stf_resetpw')}</button>
                  <button class="staff-btn no" onclick="setStaffStatus('${esc}','disabled')">${t('stf_disable')}</button>`;
     } else {
@@ -7748,7 +7773,7 @@ function renderStaff() {
     const last = s.lastLoginAt ? `${t('stf_last_in')} ${timeAgo(s.lastLoginAt)}` : '';
     return `<div class="staff-row">
       <div class="staff-main">
-        <div class="staff-nm">${escapeHtml(s.name)} <span class="sbadge ${st.cls}">${st.lbl}</span></div>
+        <div class="staff-nm">${escapeHtml(s.name)} <span class="sbadge ${st.cls}">${st.lbl}</span>${s.isOwner?`<span class="sbadge s-owner" title="${escapeHtml(t('stf_owner_hint'))}">${escapeHtml(t('stf_owner'))}</span>`:''}</div>
         <div class="staff-em">${escapeHtml(s.email)} ${last}</div>
       </div>
       <div class="staff-actions">${actions}</div>
@@ -7988,7 +8013,7 @@ function clearSu() {
 function pickSuStatus(s) {
   S.suStatus=s; clearSuHighlight(); highlightSuStatus(s);
   el('su-date-wrap').classList.toggle('hidden',s!=='coming');
-  if (s === 'coming' && S.suAutoStatus) {
+  if ((s === 'coming' || s === 'unlisted') && S.suAutoStatus) {
     S.suAutoStatus = false;
     el('su-as-switch')?.classList.remove('on');
     updateSuStatusGridVisibility();
@@ -8003,11 +8028,11 @@ function updateSuComingHint() {
   hint.textContent = (S.suStatus === 'coming' && !S.suAutoStatus) ? t('cs_auto_off_hint') : '';
 }
 function highlightSuStatus(s) {
-  const m={available:'su-s-available',low:'su-s-low',coming:'su-s-coming',unavailable:'su-s-unavailable'};
+  const m={available:'su-s-available',low:'su-s-low',coming:'su-s-coming',unavailable:'su-s-unavailable',unlisted:'su-s-unlisted'};
   if(m[s]) el(m[s])?.classList.add('picked');
 }
 function clearSuHighlight() {
-  ['su-s-available','su-s-low','su-s-coming','su-s-unavailable'].forEach(id=>el(id)?.classList.remove('picked'));
+  ['su-s-available','su-s-low','su-s-coming','su-s-unavailable','su-s-unlisted'].forEach(id=>el(id)?.classList.remove('picked'));
 }
 async function submitSingle() {
   if (!S.suProduct)        {toast(t('t_sel_product'),'err');return;}
@@ -9142,15 +9167,15 @@ function updateBulkStatusGridVisibility() {
 }
 function pickBulkStatus(s) {
   BULK.touched.status=true; BULK.values.status=s;
-  ['bs-available','bs-low','bs-coming','bs-unavailable'].forEach(id=>el(id)?.classList.remove('picked'));
-  const m={available:'bs-available',low:'bs-low',coming:'bs-coming',unavailable:'bs-unavailable'};
+  ['bs-available','bs-low','bs-coming','bs-unavailable','bs-unlisted'].forEach(id=>el(id)?.classList.remove('picked'));
+  const m={available:'bs-available',low:'bs-low',coming:'bs-coming',unavailable:'bs-unavailable',unlisted:'bs-unlisted'};
   if(m[s]) el(m[s])?.classList.add('picked');
   el('bs-date-wrap').classList.toggle('hidden',s!=='coming');
   // Same pin as the single-product path (see pickSuStatus): without turning
   // automation off, 'coming' is overwritten on every product in the selection
   // that has ever been stocked. Marking autoStatus `touched` is what makes the
   // flag actually get SENT — BULK deliberately transmits only touched fields.
-  if (s === 'coming') {
+  if (s === 'coming' || s === 'unlisted') {
     BULK.touched.autoStatus = true;
     BULK.values.autoStatus  = false;
     el('bs-chip-as')?.classList.remove('on-as');
