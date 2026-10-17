@@ -4018,6 +4018,26 @@ window.onload = async () => {
   calcCeEquationChange(); calcOpEquationChange(); calcPedModeChange(); calcInsModeChange();
   calcInitPins(); // Ledger 6-12 — restore calculator card pin state/order (all cards start collapsed regardless)
   svSecInit(); // restore Supervisor Dashboard section expand/collapse state
+
+  // ── RESTORE THE SESSION BEFORE THE FIRST FETCH (2026-10-18) ─────────────
+  // This used to happen at the END of finishBoot, after the five calls below
+  // had already run. api() reads the token out of S.session, so those calls
+  // went out with the ANON key — and that was invisible for as long as
+  // anonymous callers could read everything.
+  //
+  // Closing the system (20261017140000) turned it into a total outage in the
+  // same instant: every signed-in user booted, fetched as anon, got [] for
+  // all five, and landed in a fully working app reporting 0 Available, 0 Low,
+  // "No products found". Signed in, nothing wrong on screen, no data.
+  //
+  // Caught in production on the live site within minutes of the lock, by
+  // looking at it. No test layer saw it: the SQL suite proves an
+  // AUTHENTICATED caller reads 119 products (it does), the renderers never
+  // run the real boot, and both contract checkers look at shapes, not order.
+  // The bug was never in what the calls did — only in when they ran.
+  await restoreSession();
+  if (!S.session) { lockApp(); return; }
+
   try {
     const [pd, sd, ed, hp, tg] = await Promise.all([
       api({action:'getAll'}),
@@ -4079,12 +4099,14 @@ async function finishBoot(offline) {
   renderProducts();
   renderBulkList();
   renderExpiring();
-  await restoreSession();
-  // restoreSession clears the session on a real auth rejection (expired,
-  // deleted, no longer approved) but deliberately KEEPS it on a network
-  // failure so an offline boot still works. So re-check here rather than
-  // assuming: a rejected session must meet the wall, not an empty app.
-  if (!S.session && !offline) { lockApp(); return; }
+  // restoreSession() already ran in window.onload, BEFORE the first fetch —
+  // see the note there. It must not run twice: the second call would re-issue
+  // `me` on every boot for no reason, and on a flaky network could clear a
+  // session that the first call had just validated.
+  //
+  // The offline path still reaches here (bootFromCache -> finishBoot(true))
+  // with the session already restored, so the cached view keeps the signed-in
+  // identity it had.
   hide('screen-loading');
   el('app').style.display = 'flex';
   setInterval(renderLastSynced, 30000);
