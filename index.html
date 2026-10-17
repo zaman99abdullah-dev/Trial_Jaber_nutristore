@@ -237,6 +237,20 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 /* Calculators: collapsible + pinnable card headers (mirrors .d-row .pin-star
    and .staff-chevron patterns, re-scoped so they don't depend on those
    features' ancestor classes) */
+.calc-patient-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+/* The figures stay on screen whenever a patient is loaded. Carry-over between
+   patients on a round is only dangerous when it is invisible. */
+.calc-pt-summary{margin-top:12px;padding:10px 12px;border-radius:var(--rs);
+  background:rgba(63,169,220,.08);border:1px solid rgba(63,169,220,.22);
+  font-size:.8125rem;font-weight:700;color:var(--text);line-height:1.6}
+.calc-pt-summary .pt-sep{color:var(--text3);font-weight:400;margin:0 6px}
+.calc-pt-summary .pt-derived{display:block;margin-top:4px;font-size:.75rem;
+  font-weight:600;color:var(--text2)}
+/* Nudge, never auto-wipe: silently clearing mid-assessment would be its own
+   hazard. Amber because it is a question, not an error. */
+.calc-pt-stale{margin-bottom:12px;padding:9px 12px;border-radius:var(--rs);
+  background:var(--amber-bg);border:1px solid rgba(245,158,11,.3);
+  color:var(--amber-t);font-size:.75rem;font-weight:700;line-height:1.5}
 .calc-card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer}
 .calc-card-header .card-title{margin-bottom:0;flex:1;min-width:0}
 .calc-card-header .pin-star{font-size:1.25rem;line-height:1;flex-shrink:0;background:none;color:var(--text3);padding:4px}
@@ -1189,6 +1203,55 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 
     <!-- ═══ CLINICAL CALCULATORS (reached via its own nav tab) ═══ -->
     <div id="pane-calculators" class="hidden">
+
+      <!-- ═══ PATIENT STRIP ═══════════════════════════════════════════════
+           Entered ONCE and pushed into every card that needs it (15 inputs
+           carry data-patient). Sits above the segment control because it is
+           one patient, not an inpatient one and an outpatient one.
+
+           IN-PATIENT WORK IS A WARD ROUND — many patients in one sitting — so
+           the hazard this guards against is not re-typing, it is patient 3's
+           weight still sitting in a field while you calculate for patient 4.
+           Three things answer that: the figures stay visible above the cards,
+           "Next patient" is the way you move on rather than a tidy-up you can
+           forget, and the strip nudges when it has gone stale.
+
+           NOTHING HERE IS EVER STORED. In memory only — no localStorage, no
+           database, never sent to the gateway. Ward devices are shared. (The
+           pinned-card state next door DOES persist, correctly: a pin is about
+           the user, this is about the patient in front of you.) -->
+      <div class="card" id="calc-patient-card" style="padding:14px 18px">
+        <div class="calc-patient-head">
+          <div class="card-title" style="margin-bottom:0;flex:1" data-i18n="calc_pt_title">Patient</div>
+          <button class="staff-btn" id="calc-pt-next" onclick="calcNextPatient()" data-i18n="calc_pt_next">Next patient</button>
+        </div>
+        <div class="calc-pt-stale hidden" id="calc-pt-stale"></div>
+        <div class="row2">
+          <div class="field" style="margin-bottom:0">
+            <label data-i18n="calc_lbl_gender">Gender</label>
+            <div style="display:flex;gap:8px">
+              <button class="sbtn sb-available picked" id="pt-g-male" onclick="calcSetPatientSex('male')" style="flex:1" data-i18n="calc_male">Male</button>
+              <button class="sbtn sb-unavailable" id="pt-g-female" onclick="calcSetPatientSex('female')" style="flex:1" data-i18n="calc_female">Female</button>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label for="pt-age" data-i18n="lbl_age">Age (years)</label>
+            <input type="number" id="pt-age" min="0" placeholder="e.g. 55" oninput="calcPatientChanged()">
+          </div>
+        </div>
+        <div class="row2" style="margin-top:12px">
+          <div class="field" style="margin-bottom:0">
+            <label for="pt-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
+            <input type="number" id="pt-weight" min="0" step="0.1" placeholder="e.g. 70" oninput="calcPatientChanged()">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label for="pt-height" data-i18n="calc_lbl_height">Height (cm)</label>
+            <input type="number" id="pt-height" min="0" placeholder="e.g. 170" oninput="calcPatientChanged()">
+          </div>
+        </div>
+        <div class="calc-pt-summary hidden" id="calc-pt-summary"></div>
+      </div>
+
       <div class="card" style="padding:14px 18px">
         <div class="mode-seg" id="calc-seg" style="display:flex;width:100%">
           <button class="mode-seg-btn on" id="calc-seg-ip" style="flex:1" onclick="calcSetSection('ip')" data-i18n="calc_seg_ip">🏥 Inpatient</button>
@@ -1208,7 +1271,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <div style="font-size:.75rem;color:var(--text2);margin-bottom:12px;line-height:1.5" data-i18n="calc_quick_desc">Bedside per-kg estimate — independent of the detailed calculation below</div>
         <div class="field">
           <label for="qm-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-          <input type="number" id="qm-weight" min="0" placeholder="e.g. 70" oninput="calcQuickRun()">
+          <input type="number" id="qm-weight" data-patient="weight" min="0" placeholder="e.g. 70" oninput="calcQuickRun()">
         </div>
         <div class="row2">
           <div class="field" style="margin-bottom:0">
@@ -1269,17 +1332,17 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           </div>
           <div class="field" style="margin-bottom:0">
             <label for="ce-age" data-i18n="lbl_age">Age (years)</label>
-            <input type="number" id="ce-age" min="0" placeholder="e.g. 55" oninput="calcEnergyRun()">
+            <input type="number" id="ce-age" data-patient="age" min="0" placeholder="e.g. 55" oninput="calcEnergyRun()">
           </div>
         </div>
         <div class="row2" style="margin-top:12px">
           <div class="field" style="margin-bottom:0">
             <label for="ce-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-            <input type="number" id="ce-weight" min="0" placeholder="e.g. 70" oninput="calcEnergyRun()">
+            <input type="number" id="ce-weight" data-patient="weight" min="0" placeholder="e.g. 70" oninput="calcEnergyRun()">
           </div>
           <div class="field" style="margin-bottom:0">
             <label for="ce-height" data-i18n="calc_lbl_height">Height (cm)</label>
-            <input type="number" id="ce-height" min="0" placeholder="e.g. 170" oninput="calcEnergyRun()">
+            <input type="number" id="ce-height" data-patient="height" min="0" placeholder="e.g. 170" oninput="calcEnergyRun()">
           </div>
         </div>
         <!-- Ireton-Jones (Ventilator) — trauma/burn flags (Ledger 9a) -->
@@ -1429,7 +1492,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <div style="font-size:.75rem;color:var(--text2);margin-bottom:12px;line-height:1.5" data-i18n="calc_dw_desc">Estimated dry weight for patients with ascites or peripheral edema, by clinical severity</div>
         <div class="field">
           <label for="dw-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-          <input type="number" id="dw-weight" min="0" placeholder="e.g. 78" oninput="calcDryWeightRun()">
+          <input type="number" id="dw-weight" data-patient="weight" min="0" placeholder="e.g. 78" oninput="calcDryWeightRun()">
         </div>
         <div class="field" style="margin-top:12px">
           <label for="dw-severity" data-i18n="calc_dw_lbl_severity">Ascites / Edema Severity</label>
@@ -1467,13 +1530,13 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           </div>
           <div class="field" style="margin-bottom:0">
             <label for="wd-age" data-i18n="lbl_age">Age (years)</label>
-            <input type="number" id="wd-age" min="0" placeholder="e.g. 68" oninput="calcWaterDeficitRun()">
+            <input type="number" id="wd-age" data-patient="age" min="0" placeholder="e.g. 68" oninput="calcWaterDeficitRun()">
           </div>
         </div>
         <div class="row2" style="margin-top:12px">
           <div class="field" style="margin-bottom:0">
             <label for="wd-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-            <input type="number" id="wd-weight" min="0" placeholder="e.g. 70" oninput="calcWaterDeficitRun()">
+            <input type="number" id="wd-weight" data-patient="weight" min="0" placeholder="e.g. 70" oninput="calcWaterDeficitRun()">
           </div>
           <div class="field" style="margin-bottom:0">
             <label for="wd-na" data-i18n="calc_wd_lbl_na">Serum Sodium (mEq/L)</label>
@@ -1503,7 +1566,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           </div>
           <div class="field" style="margin-bottom:0">
             <label for="amp-height" data-i18n="calc_lbl_height">Height (cm)</label>
-            <input type="number" id="amp-height" min="0" placeholder="e.g. 170" oninput="calcAmpRun()">
+            <input type="number" id="amp-height" data-patient="height" min="0" placeholder="e.g. 170" oninput="calcAmpRun()">
           </div>
         </div>
         <div class="field" style="margin-top:12px">
@@ -1576,17 +1639,17 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             </div>
             <div class="field" style="margin-bottom:0">
               <label for="op-age" data-i18n="lbl_age">Age (years)</label>
-              <input type="number" id="op-age" min="0" placeholder="e.g. 45" oninput="calcOutpatientRun()">
+              <input type="number" id="op-age" data-patient="age" min="0" placeholder="e.g. 45" oninput="calcOutpatientRun()">
             </div>
           </div>
           <div class="row2" style="margin-top:12px">
             <div class="field" style="margin-bottom:0">
               <label for="op-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-              <input type="number" id="op-weight" min="0" placeholder="e.g. 65" oninput="calcOutpatientRun()">
+              <input type="number" id="op-weight" data-patient="weight" min="0" placeholder="e.g. 65" oninput="calcOutpatientRun()">
             </div>
             <div class="field" style="margin-bottom:0">
               <label for="op-height" data-i18n="calc_lbl_height">Height (cm)</label>
-              <input type="number" id="op-height" min="0" placeholder="e.g. 165" oninput="calcOutpatientRun()">
+              <input type="number" id="op-height" data-patient="height" min="0" placeholder="e.g. 165" oninput="calcOutpatientRun()">
             </div>
           </div>
           <div class="field hidden" id="op-lbm-field" style="margin-top:12px">
@@ -1657,7 +1720,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           <div style="font-size:.75rem;color:var(--text2);margin-bottom:12px;line-height:1.5" data-i18n="calc_quick_desc">Bedside per-kg estimate — independent of the detailed calculation below</div>
           <div class="field">
             <label for="oqm-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-            <input type="number" id="oqm-weight" min="0" placeholder="e.g. 65" oninput="calcOpQuickRun()">
+            <input type="number" id="oqm-weight" data-patient="weight" min="0" placeholder="e.g. 65" oninput="calcOpQuickRun()">
           </div>
           <div class="row2">
             <div class="field" style="margin-bottom:0">
@@ -1749,7 +1812,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             </div>
             <div class="field" style="margin-bottom:0" id="ped-weight-field">
               <label for="ped-weight" data-i18n="calc_lbl_weight">Weight (kg)</label>
-              <input type="number" id="ped-weight" min="0" step="0.1" placeholder="e.g. 18" oninput="calcPedRun()">
+              <input type="number" id="ped-weight" data-patient="weight" min="0" step="0.1" placeholder="e.g. 18" oninput="calcPedRun()">
             </div>
           </div>
           <!-- RDA age band -->
@@ -1770,11 +1833,11 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <div class="row2" style="margin-top:12px">
               <div class="field" style="margin-bottom:0">
                 <label for="ped-height" data-i18n="calc_lbl_height">Height (cm)</label>
-                <input type="number" id="ped-height" min="0" placeholder="e.g. 110" oninput="calcPedRun()">
+                <input type="number" id="ped-height" data-patient="height" min="0" placeholder="e.g. 110" oninput="calcPedRun()">
               </div>
               <div class="field" style="margin-bottom:0">
                 <label for="ped-age" data-i18n="lbl_age">Age (years)</label>
-                <input type="number" id="ped-age" min="0" step="0.1" placeholder="e.g. 6" oninput="calcPedRun()">
+                <input type="number" id="ped-age" data-patient="age" min="0" step="0.1" placeholder="e.g. 6" oninput="calcPedRun()">
               </div>
             </div>
             <div class="row2" style="margin-top:12px">
@@ -3182,6 +3245,18 @@ const T = {
   calc_lbl_gender:['Gender','الجنس'], calc_male:['Male','ذكر'], calc_female:['Female','أنثى'],
   lbl_age:['Age (years)','العمر (سنوات)'],
   calc_lbl_weight:['Weight (kg)','الوزن (كغم)'], calc_lbl_height:['Height (cm)','الطول (سم)'],
+  calc_pt_title:['Patient','المريض'],
+  calc_pt_next:['Next patient','المريض التالي'],
+  calc_pt_cleared:['Cleared — ready for the next patient','تم المسح — جاهز للمريض التالي'],
+  calc_pt_stale:['Entered {m} min ago — still the same patient?','أُدخلت قبل {m} دقيقة — هل ما زال المريض نفسه؟'],
+  calc_pt_bmi:['BMI','مؤشر الكتلة'],
+  calc_pt_ibw:['IBW','الوزن المثالي'],
+  calc_pt_adjbw:['Adjusted BW','الوزن المعدّل'],
+  calc_pt_male:['M','ذكر'],
+  calc_pt_female:['F','أنثى'],
+  calc_pt_yrs:['y','سنة'],
+  calc_pt_hint:['From Patient','من بيانات المريض'],
+  calc_pt_none:['Enter weight and height to see BMI','أدخل الوزن والطول لعرض مؤشر الكتلة'],
   calc_lbl_stress:['Clinical / Stress Factor','العامل السريري / عامل الإجهاد'],
   calc_stress_none:['None / Maintenance (×1.0)','لا يوجد / محافظة (×1.0)'],
   calc_stress_minorsurg:['Minor Surgery (×1.1)','جراحة بسيطة (×1.1)'],
@@ -3635,6 +3710,7 @@ function toggleLang(){
     calcDryWeightRun(); calcWaterDeficitRun(); calcAmpRun(); calcMacroIpRun();
     // Outpatient segment (Ledger 6/10) — same refresh-if-visible pattern
     calcOutpatientRun(); calcSpRun(null);
+    calcRenderPatient();   // strip summary + stale bar are built with t()/tf()
     // Ledger 9b/8 — new outpatient cards
     calcOpQuickRun(); calcMacroOpRun(); calcPedRun(); calcInsRun();
     // Food & Drug Interactions (Ledger 5/6/7) — picker + results rebuild their
@@ -4017,6 +4093,12 @@ window.onload = async () => {
   renderAmpSegments();
   calcCeEquationChange(); calcOpEquationChange(); calcPedModeChange(); calcInsModeChange();
   calcInitPins(); // Ledger 6-12 — restore calculator card pin state/order (all cards start collapsed regardless)
+  // Patient strip (2026-10-18). The touched listeners must be attached before
+  // anyone can type; the staleness tick is cheap and only ever toggles one
+  // amber bar, so it rides at the same cadence as the rest of the UI clock.
+  calcPatientInputsTouchedInit();
+  calcRenderPatient();
+  setInterval(calcPatientStaleCheck, 30000);
   svSecInit(); // restore Supervisor Dashboard section expand/collapse state
 
   // ── RESTORE THE SESSION BEFORE THE FIRST FETCH (2026-10-18) ─────────────
@@ -6058,6 +6140,10 @@ const CALC = {
   // Ledger 6-12 — collapsible + pinnable calculator cards. Expand state is
   // in-memory only (resets on reload, survives Inpatient/Outpatient segment
   // switches); pin state persists to localStorage, mirroring S.pinnedIds.
+  // The patient strip. IN MEMORY ONLY and deliberately absent from
+  // localStorage — see the markup comment. `at` is when it was last edited,
+  // which drives the staleness nudge on a ward round.
+  patient: { sex:'male', age:null, weight:null, height:null, at:null },
   expandedIp: new Set(), expandedOp: new Set(),
   pinnedIp: new Set(JSON.parse(localStorage.getItem('ns_calc_pinned_ip')||'[]')),
   pinnedOp: new Set(JSON.parse(localStorage.getItem('ns_calc_pinned_op')||'[]')),
@@ -6078,6 +6164,141 @@ function calcSetGender(prefix, g) {
   if (prefix==='wd') calcWaterDeficitRun();
   if (prefix==='amp') calcAmpRun();
   if (prefix==='ped') calcPedRun();
+}
+
+// ══ THE PATIENT STRIP (2026-10-18) ════════════════════════════════════════
+// The department enters sex/age/weight/height once and every card that needs
+// them is filled. Before this the same patient was typed into up to SEVEN
+// weight inputs, five height, four age and five sex pickers.
+//
+// ONE BRIDGE, NOT SEVEN CALL SITES. calcSyncPatient walks [data-patient], so
+// a card added next year needs an attribute, not an entry in yet another
+// hand-kept registry. That is the same reasoning as the RESHAPE.getAll fix on
+// 2026-09-12, where patching five call sites would have left the sixth broken.
+//
+// Modelled on calcUpdateNetTarget() below: write the value, say where it came
+// from, and never overwrite something the user typed.
+
+// Which runner each prefix belongs to, so a filled field actually recomputes.
+const CALC_PT_RUNNERS = {
+  qm: () => calcQuickRun(),        ce:  () => calcEnergyRun(),
+  dw: () => calcDryWeightRun(),    wd:  () => calcWaterDeficitRun(),
+  amp:() => calcAmpRun(),          op:  () => calcOutpatientRun(),
+  oqm:() => calcOpQuickRun(),      ped: () => calcPedRun(),
+};
+
+// A field the user has typed into is never overwritten while that patient is
+// on screen. The flag is set by a real `input` event only — assigning
+// el.value in code does not fire one, so the strip can fill without marking.
+// Same intent as CALC.frTouched / mdTouched, generalised to every linked
+// field. "Next patient" clears these: an override for patient 3 surviving
+// into patient 4 is precisely the bug this design exists to prevent.
+function calcPatientInputsTouchedInit() {
+  qsa('[data-patient]').forEach(n => {
+    n.addEventListener('input', () => { n.dataset.touched = '1'; });
+  });
+}
+
+function calcSetPatientSex(sex) {
+  CALC.patient.sex = sex;
+  el('pt-g-male')?.classList.toggle('picked', sex==='male');
+  el('pt-g-female')?.classList.toggle('picked', sex==='female');
+  calcPatientChanged();
+}
+
+function calcPatientChanged() {
+  const P = CALC.patient;
+  P.age    = calcNum('pt-age');
+  P.weight = calcNum('pt-weight');
+  P.height = calcNum('pt-height');
+  P.at     = (P.age || P.weight || P.height) ? Date.now() : null;
+  calcSyncPatient();
+  calcRenderPatient();
+}
+
+function calcSyncPatient() {
+  const P = CALC.patient;
+  const touchedRunners = new Set();
+  qsa('[data-patient]').forEach(n => {
+    if (n.dataset.touched === '1') return;         // the user's own value wins
+    const v = P[n.dataset.patient];
+    const next = (v === null || v === undefined) ? '' : String(v);
+    if (n.value === next) return;                  // no churn, no needless rerun
+    n.value = next;
+    const prefix = n.id.slice(0, n.id.lastIndexOf('-'));
+    if (CALC_PT_RUNNERS[prefix]) touchedRunners.add(prefix);
+  });
+  // Sex is a button pair, not an input — push it through the existing
+  // per-card setter so each card's own state and highlight stay correct.
+  ['ce','op','wd','amp','ped'].forEach(prefix => {
+    if (CALC[prefix+'Gender'] !== P.sex && el(prefix+'-g-male')) {
+      calcSetGender(prefix, P.sex);                // this already re-runs the card
+      touchedRunners.delete(prefix);
+    }
+  });
+  touchedRunners.forEach(prefix => { try { CALC_PT_RUNNERS[prefix](); } catch(e) {} });
+}
+
+// The figures stay on screen for as long as a patient is loaded. This is the
+// carry-over defence: you cannot be unknowingly working on the last patient's
+// numbers if they are in front of you.
+function calcRenderPatient() {
+  const P = CALC.patient, box = el('calc-pt-summary');
+  if (!box) return;
+  if (!P.age && !P.weight && !P.height) { box.classList.add('hidden'); box.innerHTML=''; calcPatientStaleCheck(); return; }
+  const bits = [ t(P.sex==='male' ? 'calc_pt_male' : 'calc_pt_female') ];
+  if (P.age)    bits.push(nsRound1(P.age) + ' ' + t('calc_pt_yrs'));
+  if (P.weight) bits.push(nsRound1(P.weight) + ' kg');
+  if (P.height) bits.push(nsRound1(P.height) + ' cm');
+  const bmi = calcBMI(P.weight, P.height);
+  const ibw = calcHamwiIBW(P.sex, P.height);
+  let derived = '';
+  if (bmi) {
+    const band = calcBmiBand(bmi);
+    derived = `${t('calc_pt_bmi')} ${calcBmiDisplay(bmi).toFixed(1)} · ${t('calc_bmi_'+band)}`;
+    if (ibw) {
+      derived += ` <span class="pt-sep">·</span> ${t('calc_pt_ibw')} ${nsRound1(ibw)} kg`;
+      // Adjusted BW is only meaningful above IBW; below it, it is misleading.
+      if (P.weight > ibw) derived += ` <span class="pt-sep">·</span> ${t('calc_pt_adjbw')} ${nsRound1(calcAdjBW(ibw, P.weight))} kg`;
+    }
+  } else {
+    derived = t('calc_pt_none');
+  }
+  box.classList.remove('hidden');
+  box.innerHTML = escapeHtml(bits.join(' · ')) + `<span class="pt-derived">${derived}</span>`;
+  calcPatientStaleCheck();
+}
+
+// NUDGE, NEVER AUTO-WIPE. The round failure mode is being interrupted and
+// coming back to numbers that look like they belong to whoever you are now
+// standing in front of. Clearing on a timer would be its own hazard —
+// silently emptying a field mid-assessment is worse than a stale one.
+const CALC_PT_STALE_MIN = 5;
+function calcPatientStaleCheck() {
+  const bar = el('calc-pt-stale'); if (!bar) return;
+  const at = CALC.patient.at;
+  if (!at) { bar.classList.add('hidden'); bar.textContent=''; return; }
+  const mins = Math.floor((Date.now() - at) / 60000);
+  if (mins < CALC_PT_STALE_MIN) { bar.classList.add('hidden'); bar.textContent=''; return; }
+  bar.classList.remove('hidden');
+  bar.textContent = tf('calc_pt_stale', { m: mins });
+}
+
+// The way you move on, not a tidy-up you can forget. Clears the strip, every
+// linked field, every touched flag and every result box.
+function calcNextPatient() {
+  CALC.patient = { sex:'male', age:null, weight:null, height:null, at:null };
+  ['pt-age','pt-weight','pt-height'].forEach(id => { const n=el(id); if (n) n.value=''; });
+  el('pt-g-male')?.classList.add('picked');
+  el('pt-g-female')?.classList.remove('picked');
+  qsa('[data-patient]').forEach(n => { n.value = ''; delete n.dataset.touched; });
+  // Results are stale the instant the inputs are: a left-behind result box is
+  // the same hazard as a left-behind field, and harder to notice.
+  qsa('.calc-result').forEach(n => { n.classList.add('hidden'); n.innerHTML=''; });
+  ['ce','op','wd','amp','ped'].forEach(prefix => { if (el(prefix+'-g-male')) calcSetGender(prefix, 'male'); });
+  calcRenderPatient();
+  toast(t('calc_pt_cleared'), 'ok');
+  setTimeout(()=>el('pt-weight')?.focus(), 60);
 }
 
 // ══ Section segment (Inpatient / Outpatient) — Ledger 5, trimmed by Ledger 14 ═
@@ -6219,7 +6440,7 @@ function calcToggleAdjManual() {
 // null/undefined = auto-detect via BMI≥30; true/false = explicit override.
 function calcEnergyRequirement({gender, weight, height, age, stressFactor, forceAdjusted}) {
   if (!weight || !height || !age) return null;
-  const bmi = weight / Math.pow(height/100, 2);
+  const bmi = calcBMI(weight, height);
   const useAdjusted = forceAdjusted === undefined || forceAdjusted === null ? bmi >= 30 : forceAdjusted;
   let usedWeight = weight;
   if (useAdjusted) {
@@ -6227,7 +6448,7 @@ function calcEnergyRequirement({gender, weight, height, age, stressFactor, force
     // duplicate of the old rounded formula; now consistent with every other
     // Adjusted Body Weight use in the app).
     const ibw = calcHamwiIBW(gender, height);
-    usedWeight = ibw + 0.4 * (weight - ibw);
+    usedWeight = calcAdjBW(ibw, weight);
   }
   const bmr = 10*usedWeight + 6.25*height - 5*age + (gender==='male' ? 5 : -161);
   const energy = bmr * stressFactor;
@@ -6247,6 +6468,50 @@ function calcFluidRequirement(weight) {
 // (Male: 106 lb + 6 lb/inch over 5 ft; Female: 100 lb + 5 lb/inch over 5 ft),
 // computed live from height in cm — NOT a rounded metric approximation
 // (48.08kg=106lb, 2.72kg/in=6lb/in, 45.36kg=100lb, 2.268kg/in=5lb/in).
+// ══ BODY-SIZE HELPERS (extracted 2026-10-18) ══════════════════════════════
+// BMI was written out FOUR times (calcEnergyRequirement, calcPennState, the
+// Harris-Benedict branch, calcOutpatientEnergy) and adjusted body weight
+// TWICE, always identically, never as a function. Four copies of a clinical
+// formula is four places to fix if one is ever wrong, and no place to put a
+// test. The patient strip needs BMI as a first-class number anyway — the
+// department's own enteral flow starts with it — so it stops being a
+// by-product computed inside whoever happens to need it.
+//
+// Behaviour is deliberately UNCHANGED: these are the same expressions, moved.
+// render_test asserts calcBMI equals the inline form it replaced.
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  return weightKg / Math.pow(heightCm/100, 2);
+}
+
+// WHO bands, the cutoffs that were buried inside calcOutpatientEnergy.
+// FLOOR, not round, and only for DISPLAY. A BMI of 24.98 is normal, but
+// nsRound1 shows it as "25" — which is the overweight threshold, so the
+// number on screen contradicts the band printed beside it. Flooring can only
+// move a value DOWN, and the bands are defined by lower bounds (<18.5, <25,
+// <30), so a floored BMI is always still inside the band it was classified
+// into. Rounding is not: it can cross a boundary upward.
+// The unrounded value is what calcBmiBand sees; this is presentation only.
+function calcBmiDisplay(bmi) {
+  if (bmi === null || !isFinite(bmi)) return null;
+  return Math.floor(bmi * 10) / 10;
+}
+
+function calcBmiBand(bmi) {
+  if (bmi === null || !isFinite(bmi)) return null;
+  if (bmi < 18.5) return 'under';
+  if (bmi < 25)   return 'normal';
+  if (bmi < 30)   return 'over';
+  return 'obese';
+}
+
+// Adjusted body weight — IBW + 40% of the excess. Used when obesity would
+// otherwise inflate a weight-based estimate.
+function calcAdjBW(ibw, weight) {
+  if (!ibw || !weight) return null;
+  return ibw + 0.4 * (weight - ibw);
+}
+
 function calcHamwiIBW(gender, height) {
   if (!height) return null;
   const heightIn = height / 2.54;
@@ -6274,7 +6539,7 @@ function calcIretonJonesSpont({weight, age, obesity}) {
 // (BMI>30 AND age>60) → modified PSU 2010 obese variant.
 function calcPennState({gender, weight, height, age, tmax, ve}) {
   const mifflin = 10*weight + 6.25*height - 5*age + (gender==='male'?5:-161);
-  const bmi = weight / Math.pow(height/100, 2);
+  const bmi = calcBMI(weight, height);
   const obeseVariant = bmi > 30 && age > 60;
   const rmr = obeseVariant
     ? mifflin*0.71 + tmax*85 + ve*64 - 3085
@@ -6336,10 +6601,10 @@ function calcEnergyRun() {
   if (eq==='harrisbenedict') {
     const stressFactor = parseFloat(el('ce-stress').value) || 1.0;
     const forceAdjusted = CALC.ceAdjAuto ? null : CALC.ceAdjManual;
-    const bmi = weight / Math.pow(height/100, 2);
+    const bmi = calcBMI(weight, height);
     const useAdjusted = forceAdjusted===undefined || forceAdjusted===null ? bmi>=30 : forceAdjusted;
     let usedWeight = weight;
-    if (useAdjusted) { const ibw = calcHamwiIBW(CALC.ceGender, height); usedWeight = ibw + 0.4*(weight-ibw); }
+    if (useAdjusted) { const ibw = calcHamwiIBW(CALC.ceGender, height); usedWeight = calcAdjBW(ibw, weight); }
     energy = calcHarrisBenedict(CALC.ceGender, usedWeight, height, age) * stressFactor;
     eqNameKey = 'calc_eqname_hb';
     if (useAdjusted) extraNote = tf('calc_res_adjnote',{w:usedWeight.toFixed(1)});
@@ -7320,12 +7585,8 @@ function calcFrModularRun() {
 // (500 + 22·LBM) requires a manually-entered lean body mass (kg).
 function calcOutpatientEnergy({gender, weight, height, age, activityFactor, equation, lbm}) {
   if (!weight || !height || !age || !activityFactor) return null;
-  const bmi = weight / Math.pow(height/100, 2);
-  let bmiBand;
-  if (bmi < 18.5) bmiBand = 'under';
-  else if (bmi < 25) bmiBand = 'normal';
-  else if (bmi < 30) bmiBand = 'over';
-  else bmiBand = 'obese';
+  const bmi = calcBMI(weight, height);
+  const bmiBand = calcBmiBand(bmi);
   let bmr, tdee = null, needLbm = false;
   if (equation === 'harrisbenedict') {
     bmr = calcHarrisBenedict(gender, weight, height, age);
