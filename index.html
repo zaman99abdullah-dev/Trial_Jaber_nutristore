@@ -850,6 +850,25 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ws-dl-pct.high{color:var(--blue-t)}
 .ws-dl-empty{font-size:.8125rem;color:var(--text2);padding:10px 0}
 .ws-dl-foot{font-size:.6875rem;color:var(--text3b);line-height:1.5;margin-top:8px}
+/* Full nutrient panel (2026-10-18): extras as a compact two-column grid so
+   forty values stay readable on a phone; the editor's groups fold, because
+   it is an editor, not the worksheet. */
+.ws-xg-h{font-size:.6875rem;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px}
+.ws-xg-h:first-child{margin-top:8px}
+.ws-xgrid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:.8125rem}
+.ws-xgrid .ws-xl{color:var(--text2)}
+.ws-xgrid .ws-xv{font-weight:700;color:var(--text);text-align:end;white-space:nowrap}
+.ws-meta{margin-top:6px;padding:7px 10px;border-radius:var(--rs);background:var(--amber-bg);border:1px solid rgba(245,158,11,.35);color:var(--amber-t);font-size:.75rem;line-height:1.5}
+.nx-ed-group{border:1px solid var(--border2);border-radius:var(--rs);margin-top:10px;overflow:hidden}
+.nx-ed-h{display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 12px;background:var(--surface2);color:var(--text);font-size:.8125rem;font-weight:700;text-align:start;min-height:44px}
+.nx-ed-h small{color:var(--text3b);font-weight:600}
+.nx-ed-body{display:none;padding:10px 12px;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.nx-ed-group.open .nx-ed-body{display:grid}
+.nx-ed-body .field{margin-bottom:0}
+.nx-ed-body .nx-wide{grid-column:1/-1}
+.nx-ed-body label{font-size:.625rem}
+/* Units keep their case: the label style uppercases, and "MG" reads as magnesium. */
+.nx-u{text-transform:none;letter-spacing:0}
 .calc-tools-head{font-size:.75rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin:22px 4px 10px}
 /* Guidelines sheet */
 .gd-row{display:block;width:100%;text-align:start;padding:11px 12px;border-radius:var(--rs);border:1px solid var(--border2);
@@ -3435,6 +3454,30 @@ const T = {
   ws_guide_h_disagree:['Where ESPEN and ASPEN disagree','حيث يختلف ESPEN وASPEN'],
   ws_guide_h_basis:['Which body weight','أي وزن يُعتمد'],
   ws_guide_h_icu:['First days of critical illness','الأيام الأولى من المرض الحرج'],
+  // ── Full nutrient panel (2026-10-18): one label per NS_EXTRAS key ──
+  nxg_detail:['Carbohydrate & fat detail','تفاصيل الكربوهيدرات والدهون'], nxg_minerals:['Minerals','المعادن'],
+  nxg_trace:['Trace elements','العناصر النادرة'], nxg_vitamins:['Vitamins','الفيتامينات'], nxg_other:['Other','أخرى'],
+  nxg_props:['Product properties','خصائص المنتج'],
+  nx_sugars:['Sugars','السكريات'], nx_lactose:['Lactose','اللاكتوز'], nx_sat:['Saturated fat','الدهون المشبعة'],
+  nx_mufa:['Monounsaturated fat','الدهون الأحادية غير المشبعة'], nx_pufa:['Polyunsaturated fat','الدهون المتعددة غير المشبعة'],
+  nx_mct:['MCT','الدهون متوسطة السلسلة (MCT)'], nx_epa:['EPA','EPA'], nx_dha:['DHA','DHA'],
+  nx_la:['Linoleic acid','حمض اللينوليك'], nx_ala:['α-Linolenic acid','حمض ألفا لينولينيك'],
+  nx_fib_sol:['Soluble fibre','ألياف ذائبة'], nx_fib_insol:['Insoluble fibre','ألياف غير ذائبة'],
+  nx_mg:['Magnesium','المغنيسيوم'], nx_cl:['Chloride','الكلوريد'],
+  nx_fe:['Iron','الحديد'], nx_zn:['Zinc','الزنك'], nx_cu:['Copper','النحاس'], nx_mn:['Manganese','المنغنيز'],
+  nx_fl:['Fluoride','الفلوريد'], nx_se:['Selenium','السيلينيوم'], nx_io:['Iodine','اليود'],
+  nx_mo:['Molybdenum','الموليبدينوم'], nx_cr:['Chromium','الكروم'],
+  nx_vit_a:['Vitamin A','فيتامين A'], nx_vit_d:['Vitamin D','فيتامين D'], nx_vit_e:['Vitamin E','فيتامين E'],
+  nx_vit_k:['Vitamin K','فيتامين K'], nx_b1:['Thiamin (B1)','الثيامين (B1)'], nx_b2:['Riboflavin (B2)','الريبوفلافين (B2)'],
+  nx_niacin:['Niacin (B3)','النياسين (B3)'], nx_niacin_ne:['Niacin equivalents','مكافئات النياسين'],
+  nx_b5:['Pantothenic acid (B5)','حمض البانتوثينيك (B5)'], nx_b6:['Vitamin B6','فيتامين B6'],
+  nx_folate:['Folic acid','حمض الفوليك'], nx_b12:['Vitamin B12','فيتامين B12'], nx_biotin:['Biotin','البيوتين'],
+  nx_vit_c:['Vitamin C','فيتامين C'], nx_choline:['Choline','الكولين'], nx_inositol:['Inositol','الإينوسيتول'],
+  nx_carot:['Carotenoids','الكاروتينات'], nx_water:['Free water','الماء الحر'],
+  nx_osmolality:['Osmolality','الأسمولالية'], nx_osmolarity:['Osmolarity','الأسمولارية'],
+  nx_allergens:['Allergens','مسببات الحساسية'], nx_age:['Age limits','حدود العمر'],
+  nx_atleast:['{s} means at least this much — not stated by {n}.','{s} تعني «على الأقل» — غير مذكورة لدى {n}.'],
+  nx_filled:['{n} filled','{n} مُعبّأة'],
   ws_guide_one_basis:['One weight basis is applied to energy, protein and fluid. Tapping a row sets the basis that row uses.','يُطبَّق وزن واحد على الطاقة والبروتين والسوائل. الضغط على صف يحدّد الوزن الذي يستخدمه.'],
   calc_pt_title:['Patient','المريض'],
   calc_pt_next:['Next patient','المريض التالي'],
@@ -4603,7 +4646,11 @@ function reshapeProduct(r) {
       kcalMl: r.kcal_ml, kcal100: r.kcal_100, pro: r.pro, cho: r.cho, fat: r.fat,
       fiber: r.fiber, na: r.na, k: r.k, ca: r.ca, p: r.p,
       hydro: r.hydro, lacto: r.lacto, pack: r.pack, scoop: r.scoop, form: r.form,
-      emph, tubeFeed: !!r.tube_feed, dm: !!r.dm
+      emph, tubeFeed: !!r.tube_feed, dm: !!r.dm,
+      // Every nutrient beyond the ten core columns (NS_EXTRAS keys), text
+      // values per 100 mL/100 g. jsonb arrives as an object; anything else
+      // (an older view, a corrupt cache) degrades to "none stated".
+      extras: (r.extras && typeof r.extras === 'object' && !Array.isArray(r.extras)) ? r.extras : {}
     };
   }
   return o;
@@ -7186,7 +7233,8 @@ function getProductNutrition(p) {
         kcalMl: np.kcalMl, kcal100: np.kcal100, pro: np.pro, cho: np.cho, fat: np.fat,
         fiber: np.fiber, na: np.na, k: np.k, ca: np.ca, p: np.p, hydro: np.hydro, lacto: np.lacto,
         pack: np.pack, scoop: np.scoop, form: np.form, emph: np.emph || {},
-        tubeFeed: /tube\s*feed/i.test(np.note || ''), dm: /\bDM\b/.test(np.note || '')
+        tubeFeed: /tube\s*feed/i.test(np.note || ''), dm: /\bDM\b/.test(np.note || ''),
+        extras: {}
       };
     }
   }
@@ -7238,6 +7286,45 @@ const NS_NUTRIENTS = [
   { k:'k',     lbl:'ws_n_k',     unit:'mg', mmolDiv:39.10 },
   { k:'ca',    lbl:'ws_n_ca',    unit:'mg' }, { k:'p', lbl:'ws_n_p', unit:'mg' },
 ];
+
+// ── The full panel: every nutrient beyond the ten core columns ──────────
+// ONE catalogue for the database's product_nutrition.extras (20261018200000):
+// the key, its unit, and which group it is shown under. The server checks
+// only the SHAPE of extras, so a nutrient added later is a line here, not a
+// migration. Units are per 100 mL (liquids) / per 100 g (powders), as the
+// manufacturer prints them. `props` are properties of the product as made up
+// (osmolality depends on dilution; allergens and age limits are text): shown,
+// never scaled, never added together.
+// Left out on purpose: phosphate (the same phosphorus counted another way),
+// salt equivalent (derived from sodium), protein-source split.
+const NS_EXTRAS = [
+  { group:'detail', items:[
+    { k:'sugars', u:'g' }, { k:'lactose', u:'g' }, { k:'sat', u:'g' }, { k:'mufa', u:'g' }, { k:'pufa', u:'g' },
+    { k:'mct', u:'g' }, { k:'epa', u:'mg' }, { k:'dha', u:'mg' }, { k:'la', u:'mg' }, { k:'ala', u:'mg' },
+    { k:'fib_sol', u:'g' }, { k:'fib_insol', u:'g' } ] },
+  { group:'minerals', items:[ { k:'mg', u:'mg' }, { k:'cl', u:'mg' } ] },
+  { group:'trace', items:[
+    { k:'fe', u:'mg' }, { k:'zn', u:'mg' }, { k:'cu', u:'mg' }, { k:'mn', u:'mg' }, { k:'fl', u:'mg' },
+    { k:'se', u:'µg' }, { k:'io', u:'µg' }, { k:'mo', u:'µg' }, { k:'cr', u:'µg' } ] },
+  { group:'vitamins', items:[
+    { k:'vit_a', u:'µg RE' }, { k:'vit_d', u:'µg' }, { k:'vit_e', u:'mg α-TE' }, { k:'vit_k', u:'µg' },
+    { k:'b1', u:'mg' }, { k:'b2', u:'mg' }, { k:'niacin', u:'mg' }, { k:'niacin_ne', u:'mg NE' },
+    { k:'b5', u:'mg' }, { k:'b6', u:'mg' }, { k:'folate', u:'µg' }, { k:'b12', u:'µg' },
+    { k:'biotin', u:'µg' }, { k:'vit_c', u:'mg' } ] },
+  { group:'other', items:[ { k:'choline', u:'mg' }, { k:'inositol', u:'mg' }, { k:'carot', u:'mg' }, { k:'water', u:'mL' } ] },
+  { group:'props', props:true, items:[
+    { k:'osmolality', u:'mOsm/kg' }, { k:'osmolarity', u:'mOsm/L' }, { k:'allergens', text:true }, { k:'age', text:true } ] },
+];
+// The ones that scale with the amount given (everything but props).
+const NS_EXTRA_SCALED = NS_EXTRAS.filter(g => !g.props).flatMap(g => g.items.map(i => Object.assign({ group: g.group }, i)));
+// Micronutrients come in very different sizes (copper 0.23 mg, choline
+// 46 mg): whole numbers would turn 4.2 mg of thiamin into "4".
+function nsFmtSmart(x, unit) {
+  if (!x || x.kind === 'na') return null;
+  const v = x.v, a = Math.abs(v);
+  const num = a >= 10 ? String(Math.round(v)) : a >= 1 ? String(Math.round(v * 10) / 10) : String(Math.round(v * 100) / 100);
+  return nsValPrefix(x) + num + ' ' + unit;
+}
 
 function nsRound2(x) { return Math.round(x * 100) / 100; }
 
@@ -7298,7 +7385,7 @@ function nsPortion(n, spec) {
   if (!n) {
     NS_NUTRIENTS.forEach(d => { nutrients[d.k] = { kind:'na' }; });
     return { energy: spec.kcal != null ? { kind:'exact', v: spec.kcal } : { kind:'na' },
-             nutrients, ml: spec.ml != null ? spec.ml : null, g: null };
+             nutrients, extras: {}, ml: spec.ml != null ? spec.ml : null, g: null };
   }
   const form = nsFormOf(n).form;
   let factor = null, energy = { kind:'na' }, ml = null, g = null;
@@ -7322,7 +7409,15 @@ function nsPortion(n, spec) {
     const x = nsNutVal(n[d.k]);
     nutrients[d.k] = (factor === null || x.kind === 'na') ? { kind:'na' } : { kind: x.kind, v: x.v * factor };
   });
-  return { energy, nutrients, ml, g };
+  // Only the extras this product STATES; one it does not state is absent
+  // here and becomes "not stated" when summed with a product that does.
+  const extras = {}, ex = n.extras || {};
+  NS_EXTRA_SCALED.forEach(d => {
+    if (ex[d.k] === undefined || ex[d.k] === null || ex[d.k] === '') return;
+    const x = nsNutVal(ex[d.k]);
+    extras[d.k] = (factor === null || x.kind === 'na') ? { kind:'na' } : { kind: x.kind, v: x.v * factor };
+  });
+  return { energy, nutrients, extras, ml, g };
 }
 
 // Adding portions. The weakest shape wins: one "<" makes the total an upper
@@ -7348,6 +7443,13 @@ function nsSumPortions(items) {
   const out = { energy: nsSumVals(items.map(i => ({ val: i.portion.energy, from: i.from }))), nutrients: {} };
   NS_NUTRIENTS.forEach(d => {
     out.nutrients[d.k] = nsSumVals(items.map(i => ({ val: i.portion.nutrients[d.k], from: i.from })));
+  });
+  // Extras: every key ANY product states, in catalogue order. A product that
+  // does not state it counts as "not stated", never as zero.
+  out.extras = {};
+  NS_EXTRA_SCALED.forEach(d => {
+    if (!items.some(i => i.portion.extras && i.portion.extras[d.k])) return;
+    out.extras[d.k] = nsSumVals(items.map(i => ({ val: (i.portion.extras && i.portion.extras[d.k]) || { kind:'na' }, from: i.from })));
   });
   return out;
 }
@@ -7481,9 +7583,18 @@ function calcWsProductInfoHtml(p, n, ctx) {
       if (n.scoop) bits.push(escapeHtml(tf('ws_line_from', { s: String(n.scoop) })));
     }
     if (fo.guessed) warns.push(escapeHtml(tf('ws_form_guess', { f: t(fo.form === 'powder' ? 'ws_form_powder' : 'ws_form_liquid') })));
+    const ex = n.extras || {};
+    if (ex.osmolality) bits.push(`${escapeHtml(t('nx_osmolality'))} <span dir="ltr">${escapeHtml(String(ex.osmolality))} mOsm/kg</span>`);
+    else if (ex.osmolarity) bits.push(`${escapeHtml(t('nx_osmolarity'))} <span dir="ltr">${escapeHtml(String(ex.osmolarity))} mOsm/L</span>`);
   }
   bits.push(`<span style="color:${st.dot}">${escapeHtml(st.label)}</span>`);
   let html = bits.join(' · ');
+  // Allergens and age limits change the prescribing decision, so they sit on
+  // the product line itself, where the choice is made.
+  const exm = (n && n.extras) || {};
+  const meta = [exm.allergens ? `<b>${escapeHtml(t('nx_allergens'))}:</b> ${escapeHtml(String(exm.allergens))}` : '',
+                exm.age ? `<b>${escapeHtml(t('nx_age'))}:</b> ${escapeHtml(String(exm.age))}` : ''].filter(Boolean);
+  if (meta.length) html += `<div class="ws-meta">${meta.join('<br>')}</div>`;
   if (!n) html += `<div class="ws-warn">${escapeHtml(t(ctx === 'feed' ? 'ws_no_data' : 'ws_no_data_line'))}</div>`;
   warns.forEach(w => { html += `<div class="ws-warn">${w}</div>`; });
   return html;
@@ -7619,7 +7730,32 @@ function calcWsDeliveredHtml(sum, tgt, opts) {
     const b = d.k === 'pro' ? bar(x, tgt && tgt.protein, tgt && tgt.protein ? Math.round(tgt.protein) + ' g' : '') : '';
     html += row(t(d.lbl), txt, b, subsFor(x));
   });
-  return `<div class="ws-dl">${html}</div><div class="ws-dl-foot">${escapeHtml(t('ws_deliv_foot'))}${opts.opNote ? ' ' + escapeHtml(t('ws_ons_target_op')) : ''}</div>`;
+  // Free water beside the fluid target — the input for flush volumes.
+  const xs = sum.extras || {};
+  if (xs.water) {
+    html += row(t('nx_water'), nsFmtVal(xs.water, 'mL') || t('ws_not_stated'),
+      bar(xs.water, tgt && tgt.fluid, tgt && tgt.fluid ? Math.round(tgt.fluid) + ' mL' : ''), subsFor(xs.water));
+  }
+  // Everything else on the sheets, grouped, always shown.
+  let grid = '';
+  const missing = new Set();
+  let anyLt = false;
+  NS_EXTRAS.filter(g => !g.props).forEach(g => {
+    const cells = g.items.filter(d => d.k !== 'water' && xs[d.k]).map(d => {
+      const x = xs[d.k];
+      (x.missing || []).forEach(m => missing.add(m));
+      if (x.kind === 'lt') anyLt = true;
+      return `<span class="ws-xl">${escapeHtml(t('nx_' + d.k))}</span><span class="ws-xv" dir="ltr">${escapeHtml(nsFmtSmart(x, d.u) || t('ws_not_stated'))}</span>`;
+    });
+    if (cells.length) grid += `<div class="ws-xg-h">${escapeHtml(t('nxg_' + g.group))}</div><div class="ws-xgrid">${cells.join('')}</div>`;
+  });
+  if (grid) {
+    const notes = [];
+    if (missing.size) notes.push(tf('nx_atleast', { s: '<bdi dir="ltr">≥</bdi>', n: names([...missing]) }));
+    if (anyLt) notes.push(tf('ws_upper_bound', { s: '<bdi dir="ltr">&lt;</bdi>' }));
+    grid = `<div class="ws-dl" style="margin-top:8px;padding:2px 12px 10px">${grid}${notes.map(n => `<div class="ws-dl-sub" style="margin-top:8px">${n}</div>`).join('')}</div>`;
+  }
+  return `<div class="ws-dl">${html}</div>${grid}<div class="ws-dl-foot">${escapeHtml(t('ws_deliv_foot'))}${opts.opNote ? ' ' + escapeHtml(t('ws_ons_target_op')) : ''}</div>`;
 }
 
 // ── 8. Running the worksheet ──────────────────────────────────────────────
@@ -7781,7 +7917,7 @@ function calcWsRunFeed() {
   }
   adds.forEach(a => items.push(a));
   el('ws-feed-deliv').innerHTML = items.length
-    ? calcWsDeliveredHtml(nsSumPortions(items), { kcal: W.target.kcal, protein: W.target.protein }, { propofol: W.propofol })
+    ? calcWsDeliveredHtml(nsSumPortions(items), { kcal: W.target.kcal, protein: W.target.protein, fluid: W.target.fluid }, { propofol: W.propofol })
     : calcWsDeliveredHtml(null);
 }
 
@@ -7790,7 +7926,7 @@ function calcWsRunOns() {
   if (!box) return;
   const items = calcWsLinePortions('ons');
   const op = CALC.route === 'op';
-  const tgt = op ? CALC.opTarget : { kcal: CALC.ws.target.kcal, protein: CALC.ws.target.protein };
+  const tgt = op ? CALC.opTarget : { kcal: CALC.ws.target.kcal, protein: CALC.ws.target.protein, fluid: CALC.ws.target.fluid };
   box.innerHTML = items.length ? calcWsDeliveredHtml(nsSumPortions(items), tgt, { opNote: op }) : calcWsDeliveredHtml(null);
 }
 
@@ -8237,7 +8373,19 @@ function nsDetailBody(nut) {
         ${nsDetailRow('Lacto', nsDash(nut.lacto))}
         ${nsDetailRow(t('calc_detail_pack'), nsDash(nut.pack))}
         ${nsDetailRow(t('calc_detail_scoop'), nsDash(nut.scoop))}
-        ${nsDetailRow(t('calc_detail_note'), nsDash(noteLine))}`;
+        ${nsDetailRow(t('calc_detail_note'), nsDash(noteLine))}
+        ${nsExtrasDetailHtml(nut)}`;
+}
+// Every stated extra, by group, values verbatim (a "<20" stays "<20").
+function nsExtrasDetailHtml(nut) {
+  const ex = (nut && nut.extras) || {};
+  return NS_EXTRAS.map(g => {
+    const rows = g.items.filter(d => ex[d.k] !== undefined && ex[d.k] !== null && ex[d.k] !== '')
+      .map(d => nsDetailRow(escapeHtml(t('nx_' + d.k)) + (d.u ? ` <span style="color:var(--text3b)">(${escapeHtml(d.u)})</span>` : ''),
+                            d.text ? `<span style="font-size:.8125rem;font-weight:700;line-height:1.4">${escapeHtml(String(ex[d.k]))}</span>`
+                                   : escapeHtml(String(ex[d.k]))));
+    return rows.length ? `<div class="sheet-sub" style="margin:14px 0 2px">${escapeHtml(t('nxg_' + g.group))}</div>${rows.join('')}` : '';
+  }).join('');
 }
 // Read-only viewer — storage/dietitian, or anyone who isn't a supervisor.
 // `nut` is always non-null here (callers check first). The "Source" caption
@@ -8299,24 +8447,24 @@ function openNsEditForm(p, nut) {
         <div class="sheet-title">${escapeHtml(p.name)}</div>
         <div class="sheet-sub">${t('nut_edit_title')}</div>
         <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_kcalml')}</label><input type="text" inputmode="decimal" id="nut-kcalml" value="${v('kcalMl')}"></div>
-          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_kcal100')}</label><input type="text" inputmode="decimal" id="nut-kcal100" value="${v('kcal100')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_kcalml')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-kcalml" value="${v('kcalMl')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_kcal100')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-kcal100" value="${v('kcal100')}"></div>
         </div>
         <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_pro')}</label><input type="text" inputmode="decimal" id="nut-pro" value="${v('pro')}"></div>
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_cho')}</label><input type="text" inputmode="decimal" id="nut-cho" value="${v('cho')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_pro')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-pro" value="${v('pro')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_cho')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-cho" value="${v('cho')}"></div>
         </div>
         <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_fat')}</label><input type="text" inputmode="decimal" id="nut-fat" value="${v('fat')}"></div>
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_fiber')}</label><input type="text" inputmode="decimal" id="nut-fiber" value="${v('fiber')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_fat')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-fat" value="${v('fat')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_fiber')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-fiber" value="${v('fiber')}"></div>
         </div>
         <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_na')}</label><input type="text" inputmode="decimal" id="nut-na" value="${v('na')}"></div>
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_k')}</label><input type="text" inputmode="decimal" id="nut-k" value="${v('k')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_na')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-na" value="${v('na')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_k')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-k" value="${v('k')}"></div>
         </div>
         <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_ca')}</label><input type="text" inputmode="decimal" id="nut-ca" value="${v('ca')}"></div>
-          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_p')}</label><input type="text" inputmode="decimal" id="nut-p" value="${v('p')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_ca')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-ca" value="${v('ca')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('nut_lbl_p')}</label><input type="text" inputmode="decimal" dir="ltr" id="nut-p" value="${v('p')}"></div>
         </div>
         <div class="row2" style="margin-top:12px">
           <div class="field" style="margin-bottom:0">
@@ -8339,8 +8487,8 @@ function openNsEditForm(p, nut) {
           </div>
         </div>
         <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_pack')}</label><input type="text" id="nut-pack" value="${v('pack')}"></div>
-          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_scoop')}</label><input type="text" id="nut-scoop" value="${v('scoop')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_pack')}</label><input type="text" dir="ltr" id="nut-pack" value="${v('pack')}"></div>
+          <div class="field" style="margin-bottom:0"><label>${t('calc_detail_scoop')}</label><input type="text" dir="ltr" id="nut-scoop" value="${v('scoop')}"></div>
         </div>
         <div class="field" style="margin-top:12px">
           <label>${t('nut_lbl_form')}</label>
@@ -8349,6 +8497,7 @@ function openNsEditForm(p, nut) {
             <option value="Powder" ${formPowder?'selected':''}>${t('calc_form_powder')}</option>
           </select>
         </div>
+        ${nsExtrasEditorHtml(nut)}
         <div class="sheet-sub" style="margin-top:16px;margin-bottom:0">${t('nut_emph_title')}</div>
         ${NS_EMPH_ORDER.map(n => nsEmphSelectHtml(n, nut?.emph?.[n])).join('')}
         <div class="io-toggle-row" style="margin-top:16px;cursor:pointer" onclick="nsToggleSwitch('nut-tubefeed')">
@@ -8363,6 +8512,32 @@ function openNsEditForm(p, nut) {
         <button class="btn-submit" style="margin-top:8px;background:transparent;border:1px solid var(--border2);color:var(--text2)" onclick="closeNsDetail()">${t('btn_close')}</button>
       </div>
     </div>`;
+}
+// The full-panel inputs, one folding group per catalogue group. A group that
+// already holds values starts open, so nothing saved is out of sight.
+function nsExtrasEditorHtml(nut) {
+  const ex = (nut && nut.extras) || {};
+  return NS_EXTRAS.map(g => {
+    const filled = g.items.filter(d => ex[d.k]).length;
+    const fields = g.items.map(d => `<div class="field${d.text ? ' nx-wide' : ''}">
+        <label for="nx-${d.k}">${escapeHtml(t('nx_' + d.k))}${d.u ? ` <span class="nx-u">(${escapeHtml(d.u)})</span>` : ''}</label>
+        <input type="text" ${d.text ? 'dir="auto" ' : 'inputmode="decimal" dir="ltr" '}id="nx-${d.k}" value="${ex[d.k] != null ? escapeHtml(String(ex[d.k])) : ''}"></div>`).join('');
+    return `<div class="nx-ed-group${filled ? ' open' : ''}">
+      <button type="button" class="nx-ed-h" onclick="this.parentElement.classList.toggle('open')">${escapeHtml(t('nxg_' + g.group))}${filled ? ` <small>${escapeHtml(tf('nx_filled', { n: filled }))}</small>` : ''}</button>
+      <div class="nx-ed-body">${fields}</div></div>`;
+  }).join('');
+}
+// Reads every catalogue input; only filled ones are kept. The whole set is
+// sent every time (the server REPLACES extras on save), as a JSON STRING —
+// the gateway String()s objects into "[object Object]".
+function nsExtrasFromEditor() {
+  const out = {};
+  NS_EXTRAS.forEach(g => g.items.forEach(d => {
+    const n = el('nx-' + d.k);
+    const v = n ? String(n.value || '').trim() : '';
+    if (v) out[d.k] = v;
+  }));
+  return out;
 }
 // Row-level entry point (Ledger 29-31): resolves the inventory product's
 // live nutrition data (getProductNutrition — never touches NS_MATCH/
@@ -8414,6 +8589,7 @@ async function submitNutrition(productId) {
   Object.entries(emphRaw).forEach(([n,val]) => { if (val) emph[n] = val; });
   const tubeFeed = el('nut-tubefeed').classList.contains('on');
   const dm = el('nut-dm').classList.contains('on');
+  const extras = nsExtrasFromEditor();
 
   const btn = el('nut-save-btn'), lbl = el('nut-save-lbl');
   if (btn) btn.disabled = true;
@@ -8426,14 +8602,15 @@ async function submitNutrition(productId) {
       hydro:vals.hydro, lacto:vals.lacto, pack:vals.pack, scoop:vals.scoop, form:vals.form,
       emphKcal:emphRaw.Kcal, emphPro:emphRaw.Pro, emphCHO:emphRaw.CHO, emphFat:emphRaw.Fat,
       emphFiber:emphRaw.Fiber, emphMinerals:emphRaw.Minerals, emphNa:emphRaw.Na,
-      tubeFeed: tubeFeed ? 'true' : 'false', dm: dm ? 'true' : 'false'
+      tubeFeed: tubeFeed ? 'true' : 'false', dm: dm ? 'true' : 'false',
+      extras: JSON.stringify(extras)
     });
     if (r.success) {
       p.nutrition = {
         kcalMl:vals.kcalMl, kcal100:vals.kcal100, pro:vals.pro, cho:vals.cho, fat:vals.fat,
         fiber:vals.fiber, na:vals.na, k:vals.k, ca:vals.ca, p:vals.p,
         hydro:vals.hydro, lacto:vals.lacto, pack:vals.pack, scoop:vals.scoop, form:vals.form,
-        emph, tubeFeed, dm
+        emph, tubeFeed, dm, extras
       };
       // buildProdTagPills() only appends — clear the old pills first so the
       // rebuilt set doesn't duplicate onto the stale ones (Ledger 31).
