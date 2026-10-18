@@ -166,6 +166,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 }
 .staff-btn.ok{background:var(--green-bg);color:var(--green-t);border-color:rgba(34,197,94,.3)}
 .staff-btn.sv{background:var(--purple-bg);color:var(--purple-t);border-color:rgba(139,92,246,.3)}
+.staff-btn.dt{background:var(--blue-bg);color:var(--blue-t);border-color:rgba(63,169,220,.3)}
 .staff-btn.no{background:var(--red-bg);color:var(--red-t);border-color:rgba(239,68,68,.3)}
 .staff-btn:active{transform:scale(.97)}
 
@@ -2772,7 +2773,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
       </div>
       <div class="card">
         <div style="font-size:.75rem;color:var(--text2);margin-bottom:12px;line-height:1.5" data-i18n="staff_desc">
-          Staff sign up with their email, then you approve them here. Choose <strong style="color:var(--text)">Storage</strong> for the storage team or <strong style="color:var(--text)">Supervisor</strong> for people who can also approve accounts.
+          Staff sign up with their email, then you approve them here. Choose <strong style="color:var(--text)">Dietitian</strong> for dietitians, <strong style="color:var(--text)">Storage</strong> for the storage team, or <strong style="color:var(--text)">Supervisor</strong> for people who can also approve accounts.
         </div>
         <div id="staff-list"><div class="empty"><div class="spinner"></div></div></div>
       </div>
@@ -3210,10 +3211,10 @@ const T = {
   sv_loading:['Loading dashboard…','جارٍ تحميل اللوحة…'],
   // staff pane
   staff_title:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Staff Accounts','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> حسابات الموظفين'],
-  staff_desc:['Staff sign up with their email, then you approve them here. Choose <strong style="color:var(--text)">Storage</strong> for the storage team or <strong style="color:var(--text)">Supervisor</strong> for people who can also approve accounts.','يسجّل الموظفون ببريدهم الإلكتروني ثم تعتمدهم هنا. اختر <strong style="color:var(--text)">مخزن</strong> لفريق المخزن أو <strong style="color:var(--text)">مشرف</strong> لمن يمكنه أيضاً اعتماد الحسابات.'],
+  staff_desc:['Staff sign up with their email, then you approve them here. Choose <strong style="color:var(--text)">Dietitian</strong> for dietitians, <strong style="color:var(--text)">Storage</strong> for the storage team, or <strong style="color:var(--text)">Supervisor</strong> for people who can also approve accounts.','يسجّل الموظفون ببريدهم الإلكتروني ثم تعتمدهم هنا. اختر <strong style="color:var(--text)">أخصائي تغذية</strong> لأخصائيي التغذية، أو <strong style="color:var(--text)">مخزن</strong> لفريق المخزن، أو <strong style="color:var(--text)">مشرف</strong> لمن يمكنه أيضاً اعتماد الحسابات.'],
   stf_pending:['Pending','قيد الانتظار'], stf_approved:['Approved','معتمد'], stf_disabled:['Disabled','معطّل'], stf_rejected:['Rejected','مرفوض'],
   stf_storage:['Storage','مخزن'], stf_supervisor:['Supervisor','مشرف'], stf_reject:['✕ Reject','✕ رفض'],
-  stf_approve_as:['Approve as','اعتماد كـ'],
+  stf_approve_as:['Approve as','اعتماد كـ'], stf_dietitian:['Dietitian','أخصائي تغذية'],
   log_load_older:['Load older changes','تحميل تغييرات أقدم'],
   log_loading_older:['Loading…','جارٍ التحميل…'],
   log_undated:['Undated','بدون تاريخ'],
@@ -3225,7 +3226,7 @@ const T = {
   stf_role_saved:['Role updated','تم تحديث الدور'],
   stf_role_self_hint:['You cannot change your own role — ask another supervisor','لا يمكنك تغيير دورك بنفسك — اطلب من مشرف آخر'],
   stf_disable:['Disable','تعطيل'], stf_resetpw:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="15" r="4"/><path d="m10.5 11.5 8-8"/><path d="m15 7 2 2"/><path d="m18 4 2 2"/></svg> Reset PW','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="15" r="4"/><path d="m10.5 11.5 8-8"/><path d="m15 7 2 2"/><path d="m18 4 2 2"/></svg> إعادة تعيين'],
-  stf_en_st:['Enable · Storage','تفعيل · مخزن'], stf_en_sv:['Enable · Supervisor','تفعيل · مشرف'],
+  stf_en_st:['Enable · Storage','تفعيل · مخزن'], stf_en_sv:['Enable · Supervisor','تفعيل · مشرف'], stf_en_dt:['Enable · Dietitian','تفعيل · أخصائي تغذية'],
   stf_none:['No staff accounts yet','لا توجد حسابات موظفين بعد'],
   stf_caught_up:['All caught up','لا توجد طلبات معلقة'],
   // settings
@@ -8161,9 +8162,14 @@ function renderStaff() {
       // "✓ Storage / ✓ Supervisor" read as two ways of approving rather than a
       // choice of WHICH ROLE to approve into. One short prefix disambiguates
       // both buttons without making either wide enough to wrap on a phone.
+      // Dietitian (2026-10-18): approve_staff has accepted it since the closed
+      // system (SQL 51.3), but this row only ever offered Storage and
+      // Supervisor — so every dietitian had to be approved into the WRONG role
+      // and then switched, which is what colleagues reported.
       actions = `<span class="staff-approve-as">${escapeHtml(t('stf_approve_as'))}</span>
                  <button class="staff-btn ok" onclick="approveStaff('${esc}','storage')">${t('stf_storage')}</button>
                  <button class="staff-btn sv" onclick="approveStaff('${esc}','supervisor')">${t('stf_supervisor')}</button>
+                 <button class="staff-btn dt" onclick="approveStaff('${esc}','dietitian')">${t('stf_dietitian')}</button>
                  <button class="staff-btn no" onclick="setStaffStatus('${esc}','rejected')">${t('stf_reject')}</button>`;
     } else if (s.status==='approved') {
       // Role is now CHANGEABLE after approval, not fixed at approval time.
@@ -8195,7 +8201,8 @@ function renderStaff() {
                  <button class="staff-btn no" onclick="setStaffStatus('${esc}','disabled')">${t('stf_disable')}</button>`;
     } else {
       actions = `<button class="staff-btn ok" onclick="approveStaff('${esc}','storage')">${t('stf_en_st')}</button>
-                 <button class="staff-btn sv" onclick="approveStaff('${esc}','supervisor')">${t('stf_en_sv')}</button>`;
+                 <button class="staff-btn sv" onclick="approveStaff('${esc}','supervisor')">${t('stf_en_sv')}</button>
+                 <button class="staff-btn dt" onclick="approveStaff('${esc}','dietitian')">${t('stf_en_dt')}</button>`;
     }
     const last = s.lastLoginAt ? `${t('stf_last_in')} ${timeAgo(s.lastLoginAt)}` : '';
     return `<div class="staff-row">
