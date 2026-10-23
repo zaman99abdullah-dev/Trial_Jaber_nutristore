@@ -462,36 +462,12 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .batch-item.expired-batch{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.04)}
 .batch-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
 .batch-exp{font-size:.875rem;font-weight:600}
-/* Wraps because this row now carries four controls (qty, Save Qty, Fix,
-   Remove). Without wrapping it overflowed a 375px phone, which is the screen
-   this is actually used on. 8px gap = the minimum spacing between adjacent
-   touch targets. */
+/* Wraps because the qty box can be followed by "Why?" and two reason buttons.
+   Without wrapping that overflows a 375px phone, which is the screen this is
+   actually used on. 8px gap = the minimum spacing between adjacent touch
+   targets. */
 .batch-qty-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .batch-qty-input{width:88px;min-height:44px;padding:7px 10px;font-size:.875rem;text-align:center}
-.btn-save-qty{padding:7px 14px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--grad);color:#fff;flex-shrink:0}
-.btn-remove{padding:7px 12px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:var(--red-bg);color:var(--red-t);border:1px solid rgba(239,68,68,.25);flex-shrink:0}
-/* ── Batch correction ────────────────────────────────────────────────────────
-   THREE-STEP BUTTON HIERARCHY in this row, deliberately distinct so the two
-   write paths are never confused: "Save Qty" is the PRIMARY action (gradient,
-   records dispensing), "Remove" is DESTRUCTIVE (red), and "Fix" is a QUIET
-   SECONDARY — bordered, no fill, accent-tinted icon. It must read as available
-   without competing with the primary, because choosing it by accident is
-   harmless while choosing Save Qty by accident skews the dispensing report.
-   Label contrast --text2 on --surface2 = 5.57:1 (AA). */
-.btn-fix{
-  min-height:44px;padding:7px 14px;border-radius:var(--rs);
-  font-size:.8rem;font-weight:700;
-  background:transparent;color:var(--text2);
-  border:1px solid var(--border2);
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  flex-shrink:0;transition:background .15s ease,border-color .15s ease,color .15s ease;
-}
-.btn-fix:hover{background:var(--surface2);border-color:var(--accent);color:var(--text)}
-.btn-fix:active{background:var(--border2)}
-.btn-fix .qa-icon{color:var(--accent)}
-/* Match the 44px target on the two pre-existing buttons too, rather than
-   leaving one compliant control among three that are not. */
-.btn-save-qty,.btn-remove{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
 
 /* The panel is a CAUTION surface, not a neutral one: the amber edge carries
    the same meaning as the note inside it, so the warning survives even if the
@@ -510,8 +486,39 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
    first was) borrows the Remove button's meaning and implies data loss. */
 .btn-quiet{min-height:44px;padding:7px 16px;border-radius:var(--rs);font-size:.8rem;font-weight:700;background:transparent;color:var(--text2);border:1px solid var(--border2);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .btn-quiet:hover{background:var(--surface2);color:var(--text)}
-@media (prefers-reduced-motion:reduce){ .btn-fix{transition:none} }
 .btn-remove:hover{background:rgba(239,68,68,.15)}
+/* ── Batch reasons (2026-10-22) ──────────────────────────────────────────────
+   One total for the product, and on every batch a quantity box that shows its
+   reason buttons ONLY once the number changes. One tap saves with the reason,
+   so the dispensing/correction confusion of the old Save Qty + Fix pair cannot
+   happen: the buttons offered depend on the direction of the change. Colours
+   carry the meaning: amber = stock left (dispensed), green = stock arrived,
+   blue = a record fix. */
+.batch-total{background:var(--blue-bg);border:1px solid rgba(63,169,220,.25);border-radius:var(--rs);padding:12px 14px;margin-bottom:10px}
+.batch-total-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.batch-total-lbl{font-size:.8125rem;color:var(--blue-t)}
+.batch-total-num{font-size:1.375rem;font-weight:800;color:var(--text)}
+.batch-total-sub{font-size:.75rem;color:var(--text2);margin-top:2px}
+.batch-total.changed{background:var(--amber-bg);border-color:rgba(245,158,11,.3)}
+.batch-total.changed .batch-total-lbl{color:var(--amber-t)}
+.batch-date-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;background:transparent;color:var(--text);font-size:.875rem;font-weight:600;border-radius:var(--rs)}
+.batch-date-btn .qa-icon{color:var(--text3b)}
+.batch-date-btn:hover{color:var(--accent)}
+.btn-trash{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--rs);background:transparent;color:var(--red-t);border:1px solid transparent;flex-shrink:0}
+.btn-trash:hover{background:var(--red-bg);border-color:rgba(239,68,68,.25)}
+/* Two lines per batch on a phone: [date ........ trash] then [qty units .. days-left].
+   The reasons, when they appear, take a line of their own under the qty. */
+.batch-header.bh-reasons{flex-wrap:nowrap;margin-bottom:6px}
+.bh-reasons .batch-date-btn{flex:1;min-width:0;text-align:start;justify-content:flex-start}
+.batch-qty-row .urg-badge{margin-inline-start:auto}
+.batch-reasons{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-basis:100%}
+.batch-reasons:empty{display:none}
+.batch-why{font-size:.75rem;color:var(--text2)}
+.btn-reason{min-height:44px;padding:7px 14px;border-radius:var(--rs);font-size:.8rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid transparent}
+.btn-reason.disp{background:var(--amber-bg);color:var(--amber-t);border-color:rgba(245,158,11,.35)}
+.btn-reason.recv{background:var(--green-bg);color:var(--green-t);border-color:rgba(34,197,94,.35)}
+.btn-reason.fix{background:var(--blue-bg);color:var(--blue-t);border-color:rgba(63,169,220,.35)}
+.btn-reason[disabled]{opacity:.55}
 .add-batch-form{background:rgba(63,169,220,.05);border:1px dashed rgba(63,169,220,.25);border-radius:var(--rs);padding:14px;margin-top:12px}
 .add-batch-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 
@@ -3102,13 +3109,28 @@ const T = {
   qa_ll_on:['Flag Lifeline','تحديد كصنف حيوي'],
   qa_ll_off:['Unflag Lifeline','إلغاء الصنف الحيوي'],
   qa_coming_pins:['Turns automatic status off for this product','يوقف الحالة التلقائية لهذا المنتج'],
-  btn_save_qty:['Save Qty','حفظ الكمية'],
-  btn_fix:['Fix','تصحيح'],
-  correct_aria:['Correct this batch record','تصحيح سجل هذه الدفعة'],
-  correct_note:['Correcting a mistake — this does NOT record stock as dispensed. Use “Save Qty” when stock was actually used.','تصحيح خطأ إدخال — لا يُسجَّل كصرف للمخزون. استخدم «حفظ الكمية» عند صرف المخزون فعلياً.'],
+  bt_in_store:['Total in store','الإجمالي في المخزن'],
+  bt_new_total:['New total','الإجمالي الجديد'],
+  bt_fewer:['{n} fewer than saved','{n} أقل من المحفوظ'],
+  bt_more:['{n} more than saved','{n} أكثر من المحفوظ'],
+  bt_incl_expired:['Includes {n} expired','يشمل {n} منتهية الصلاحية'],
+  b_expires:['Expires','ينتهي'],
+  b_why:['Why?','السبب؟'],
+  br_dispensed:['Dispensed ({n})','صُرف ({n})'],
+  br_received:['Received ({n})','استُلم ({n})'],
+  br_mistake:['Mistake','خطأ إدخال'],
+  bd_aria:['Change expiry date','تغيير تاريخ الانتهاء'],
+  bd_save:['Save date','حفظ التاريخ'],
+  bd_note:['A date change is saved as a correction, not as dispensing.','يُحفظ تغيير التاريخ كتصحيح، وليس كصرف.'],
+  t_saved_dispensed:['Saved · {n} dispensed','تم الحفظ · صُرف {n}'],
+  t_saved_received:['Saved · {n} received','تم الحفظ · استُلم {n}'],
+  rm_aria:['Remove batch','إزالة الدفعة'],
+  rm_title:['Remove batch expiring {d}?','إزالة الدفعة التي تنتهي في {d}؟'],
+  rm_sub:['Why is this batch being removed? This cannot be undone.','لماذا تُزال هذه الدفعة؟ لا يمكن التراجع عن ذلك.'],
+  rm_expired:['Expired','منتهية الصلاحية'],
+  rm_damaged:['Damaged or lost','تالفة أو مفقودة'],
+  rm_mistake:['Entered by mistake','أُدخلت بالخطأ'],
   correct_lbl_expiry:['Expiry date','تاريخ الانتهاء'],
-  correct_lbl_qty:['Units','الوحدات'],
-  correct_save:['Save correction','حفظ التصحيح'],
   correct_cancel:['Cancel','إلغاء'],
   t_batch_fixed:['Batch corrected','تم تصحيح الدفعة'],
   t_need_expiry:['Enter an expiry date','أدخل تاريخ الانتهاء'],
@@ -3761,7 +3783,7 @@ const T = {
   t_signin_first:['Please sign in first','يرجى تسجيل الدخول أولاً'],
   t_status_saved:['Status saved','تم حفظ الحالة'], t_failed:['Failed: ','فشل: '],
   t_batch_added:['Batch added — form ready for next batch','أُضيفت الدفعة — النموذج جاهز للتالية'],
-  t_batch_removed:['Batch removed','تمت إزالة الدفعة'], t_qty_saved:['Qty saved','تم حفظ الكمية'],
+  t_batch_removed:['Batch removed','تمت إزالة الدفعة'],
   t_draft:['Draft restored','استُعيدت المسودة'], t_copied:['Copied','تم النسخ'],
   t_pw_changed:['Password changed','تم تغيير كلمة المرور'],
   t_sel_product:['Select a product','اختر منتجاً'], t_sel_status:['Select a status','اختر حالة'],
@@ -5135,6 +5157,16 @@ async function api(params, _retried) {
   if (data && data.error) {
     if (AUTH_ERR_CODES[data.error]) { handleAuthError(data.error); throw new Error(AUTH_ERR_CODES[data.error]); }
     throw new Error(data.error);
+  }
+  // The gateway itself ALWAYS answers 200 (errors as {error}), so a non-2xx
+  // here came from the Supabase platform in front of it — a function booting,
+  // a worker limit, a timeout — with its own body shape ({code,message} or
+  // {msg}) and no `error` key. Before this check that body was handed to the
+  // reshaper as if it were data, and the screen showed
+  // "(rows || []).map is not a function" (seen on staging 2026-10-23, right
+  // after it woke from an auto-pause). Fail as a plain, retryable error.
+  if (!res.ok) {
+    throw new Error('The server is busy or restarting (' + res.status + '). Please try again in a moment.');
   }
   // Translate raw database columns back into the shape the UI expects. Applied
   // HERE, at the single choke point every caller already goes through, so no
@@ -9768,61 +9800,131 @@ async function loadBatches(productId) {
   }
 }
 
+// ── Batch list (2026-10-22: one total, one-tap reasons) ─────────────────────
+// Staff type the new number on a batch and tap WHY it changed. The buttons are
+// chosen by the direction of the change, so the wrong write path is never on
+// offer:
+//   lower  -> Dispensed (update_batch_quantity: records dispensing)
+//             Mistake   (correct_batch: a record fix, no dispensing)
+//   higher -> Received  (receive_into_batch: stock arrived, no dispensing)
+//             Mistake   (correct_batch)
+// This replaced Save Qty + Fix, which staff confused: Save Qty silently
+// recorded every difference as dispensing, including typo fixes.
+//
+// Batches at 0 units are not shown. They are empty shelves, not stock, and
+// listing them invited "Remove" (counted as waste) to tidy them away. Their
+// history is untouched and stays in the Changes tab.
+function batchesShown() {
+  return (S.suBatches || []).filter(b => (Number(b.quantity) || 0) > 0);
+}
+
+// The quantity currently TYPED for a batch, or null when the box is blank or
+// not a whole number >= 0 (a half-typed value must not offer a save).
+function batchTypedQty(b) {
+  const inp = el('bq-' + b.batchId);
+  if (!inp) return b.quantity;
+  const raw = String(inp.value == null ? '' : inp.value).trim();
+  if (!/^\d+$/.test(raw)) return null;
+  return parseInt(raw, 10);
+}
+
+function batchTotalHtml() {
+  const shown = batchesShown();
+  const saved = shown.reduce((s, b) => s + (Number(b.quantity) || 0), 0);
+  const typed = shown.reduce((s, b) => { const q = batchTypedQty(b); return s + (q === null ? b.quantity : q); }, 0);
+  const expired = shown.filter(b => b.expired).reduce((s, b) => s + (Number(b.quantity) || 0), 0);
+  const diff = typed - saved;
+  const sub = diff < 0 ? tf('bt_fewer', {n: -diff})
+            : diff > 0 ? tf('bt_more', {n: diff})
+            : (expired > 0 ? tf('bt_incl_expired', {n: expired}) : '');
+  // dir="ltr" on the number is load-bearing: in Arabic the page is RTL and
+  // "408 → 392" would otherwise display as "392 → 408" — stock going DOWN
+  // shown as stock going UP.
+  return `<div class="batch-total-row">
+      <span class="batch-total-lbl">${t(diff === 0 ? 'bt_in_store' : 'bt_new_total')}</span>
+      <span class="batch-total-num" dir="ltr">${diff === 0 ? saved : saved + ' → ' + typed}</span>
+    </div>${sub ? `<div class="batch-total-sub">${sub}</div>` : ''}`;
+}
+
+function refreshBatchTotal() {
+  const box = el('batch-total');
+  if (!box) return;
+  const shown = batchesShown();
+  const changed = shown.some(b => { const q = batchTypedQty(b); return q !== null && q !== b.quantity; });
+  box.className = 'batch-total' + (changed ? ' changed' : '');
+  box.innerHTML = batchTotalHtml();
+}
+
+// The reason buttons for one batch, given what is typed. Empty when nothing
+// changed — no buttons is the resting state.
+function batchReasonsHtml(b, typed) {
+  if (typed === null || typed === b.quantity) return '';
+  const enc = encodeForJsAttr(b.batchId);
+  const diff = typed - b.quantity;
+  const mistake = `<button class="btn-reason fix" onclick="saveBatchReason('${enc}','mistake')">${t('br_mistake')}</button>`;
+  if (diff < 0) {
+    return `<span class="batch-why">${t('b_why')}</span>
+      <button class="btn-reason disp" onclick="saveBatchReason('${enc}','dispensed')">${tf('br_dispensed', {n: -diff})}</button>${mistake}`;
+  }
+  // Nothing new arrives already expired, and receive_into_batch refuses it,
+  // so an expired batch only offers the record fix.
+  const recv = b.expired ? '' :
+    `<button class="btn-reason recv" onclick="saveBatchReason('${enc}','received')">${tf('br_received', {n: diff})}</button>`;
+  return `<span class="batch-why">${t('b_why')}</span>${recv}${mistake}`;
+}
+
+function onBatchQtyInput(batchIdEnc) {
+  const batchId = decodeURIComponent(batchIdEnc);
+  const b = (S.suBatches || []).find(x => x.batchId === batchId);
+  if (!b) return;
+  const box = el('br-' + batchId);
+  if (box) box.innerHTML = batchReasonsHtml(b, batchTypedQty(b));
+  refreshBatchTotal();
+}
+
 function renderBatches() {
-  if (!S.suBatches.length) {
+  const shown = batchesShown();
+  if (!shown.length) {
     el('batch-list').innerHTML='<div class="empty" style="padding:20px"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><p style="font-size:.875rem">'+t('no_batches')+'</p></div>';
     return;
   }
-  el('batch-list').innerHTML=S.suBatches.map(b=>{
+  const rows = shown.map(b=>{
     const u = batchUrgency(b);
     const urg = u.urg;
     const daysLbl = !u.known ? t('exp_unknown')
       : (b.expired ? tf('expired_ago',{n:Math.abs(u.n)}) : tf('days_left',{n:u.n}));
     const expClass = b.expired ? 'expired-batch' : '';
     // Ledger 17: batchId/expiryDate are embedded inside an onclick JS-string
-    // argument, not HTML text — escapeHtml() doesn't protect that context
-    // (HTML-encoding a quote doesn't stop a JS-string breakout). Encode with
-    // encodeURIComponent, matching the same pattern already used for staff
-    // email (see approveStaff/setStaffStatus/resetStaffPw); the receiving
-    // functions decodeURIComponent it back immediately.
+    // argument, not HTML text — escapeHtml() doesn't protect that context.
+    // Encode with encodeURIComponent; the receivers decode immediately.
     const batchIdEnc = encodeForJsAttr(b.batchId);
     const expDateEnc = encodeForJsAttr(b.expiryDate||'');
     return `<div class="batch-item ${expClass}">
-      <div class="batch-header">
-        <div class="batch-exp">${CAL_ICON} Expires: ${escapeHtml(b.expiryDate||'—')}</div>
-        <span class="urg-badge ${urg}">${daysLbl}</span>
+      <div class="batch-header bh-reasons">
+        <button class="batch-date-btn" id="bf-${b.batchId}" aria-expanded="false" aria-controls="bd-${b.batchId}" aria-label="${t('bd_aria')}" onclick="toggleBatchDate('${batchIdEnc}')">${CAL_ICON} ${t('b_expires')}: ${escapeHtml(b.expiryDate||'—')}</button>
+        <button class="btn-trash" aria-label="${t('rm_aria')}" onclick="submitRemoveBatch('${batchIdEnc}','${expDateEnc}')">${TRASH_ICON}</button>
       </div>
-      <div class="batch-qty-row">
-        <input type="number" class="batch-qty-input" id="bq-${b.batchId}" value="${b.quantity}" min="0">
-        <span style="font-size:.8125rem;color:var(--text2)">${t('units')}</span>
-        <button class="btn-save-qty" onclick="submitUpdateBatch('${batchIdEnc}')">${t('btn_save_qty')}</button>
-        <button class="btn-fix" id="bf-${b.batchId}" aria-expanded="false" aria-controls="be-${b.batchId}" onclick="toggleBatchEdit('${batchIdEnc}')"><svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>${t('btn_fix')}</button>
-        <button class="btn-remove" onclick="submitRemoveBatch('${batchIdEnc}','${expDateEnc}')">Remove</button>
-      </div>
-      <!-- Correction panel. Kept visually and functionally SEPARATE from
-           "Save Qty": that button records DISPENSING (stock leaving the
-           shelf), this one records a data-entry FIX. They write to different
-           places — see correct_batch()'s header. The note below spells the
-           difference out for staff, because picking the wrong one silently
-           skews the dispensing report. -->
-      <div class="batch-edit hidden" id="be-${b.batchId}" role="group" aria-label="${t('correct_aria')}">
-        <div class="batch-edit-note" role="note">${t('correct_note')}</div>
+      <div class="batch-edit hidden" id="bd-${b.batchId}" role="group" aria-label="${t('bd_aria')}">
+        <div class="batch-edit-note" role="note">${t('bd_note')}</div>
         <div class="batch-edit-row">
           <label for="be-date-${b.batchId}">${t('correct_lbl_expiry')}</label>
           <input type="date" id="be-date-${b.batchId}" value="${escapeHtml(b.expiryDate||'')}">
         </div>
-        <div class="batch-edit-row">
-          <label for="be-qty-${b.batchId}">${t('correct_lbl_qty')}</label>
-          <input type="number" id="be-qty-${b.batchId}" min="0" value="${b.quantity}">
-        </div>
         <div class="batch-edit-actions">
-          <button class="btn-save-qty" onclick="submitCorrectBatch('${batchIdEnc}')">${t('correct_save')}</button>
-          <button class="btn-quiet" onclick="toggleBatchEdit('${batchIdEnc}')">${t('correct_cancel')}</button>
+          <button class="btn-reason fix" onclick="submitBatchDate('${batchIdEnc}')">${t('bd_save')}</button>
+          <button class="btn-quiet" onclick="toggleBatchDate('${batchIdEnc}')">${t('correct_cancel')}</button>
         </div>
+      </div>
+      <div class="batch-qty-row">
+        <input type="number" class="batch-qty-input" id="bq-${b.batchId}" value="${b.quantity}" min="0" inputmode="numeric" oninput="onBatchQtyInput('${batchIdEnc}')">
+        <span style="font-size:.8125rem;color:var(--text2)">${t('units')}</span>
+        <span class="urg-badge ${urg}">${daysLbl}</span>
+        <span class="batch-reasons" id="br-${b.batchId}" role="group" aria-label="${t('b_why')}"></span>
       </div>
       ${b.lastUpdatedBy?`<div style="font-size:.75rem;color:var(--text3);margin-top:6px">Last updated by ${escapeHtml(b.lastUpdatedBy)}</div>`:''}
     </div>`;
   }).join('');
+  el('batch-list').innerHTML = `<div class="batch-total" id="batch-total" aria-live="polite">${batchTotalHtml()}</div>` + rows;
 }
 
 function toggleAddBatchForm() {
@@ -9904,94 +10006,107 @@ async function submitAddBatch() {
   finally{btn.disabled=false;lbl.textContent=t('add_batch');}
 }
 
-// ── Batch CORRECTION (2026-09-09, requested) ────────────────────────────────
-// Fixing a mistyped expiry date or quantity used to mean removing the batch and
-// adding a new one, which threw away the batch's identity and its history.
+// ── Saving a batch change WITH ITS REASON (2026-10-22) ──────────────────────
+// Three server paths, deliberately kept separate — never merge them:
+//   dispensed -> updateBatch       update_batch_quantity: writes a
+//                                  dispensing_events row (stock left the shelf)
+//   received  -> receiveIntoBatch  receive_into_batch: ADDS units, writes no
+//                                  dispensing row (stock arrived, same expiry)
+//   mistake   -> correctBatch      correct_batch: the record was wrong, writes
+//                                  no dispensing row
+// Sending an increase through updateBatch would record NEGATIVE dispensing;
+// sending a typo fix through it would record dispensing that never happened.
 //
-// This is deliberately NOT submitUpdateBatch. That path calls
-// update_batch_quantity, which models DISPENSING and writes a dispensing_events
-// row for every decrease — so "fixing" a typo of 1000 to 100 there would record
-// 900 units as dispensed and quietly inflate the dispensing report, the monthly
-// comparison and the waste metric. correctBatch writes no dispensing row.
-function toggleBatchEdit(batchIdEnc) {
-  const batchId = decodeURIComponent(batchIdEnc);
-  const panel = el('be-' + batchId);
-  if (!panel) return;
-  const opening = panel.classList.contains('hidden');
-  panel.classList.toggle('hidden');
-  // Keep the trigger's state in the accessibility tree, not just visually.
-  const trigger = el('bf-' + batchId);
-  if (trigger) trigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
-  if (opening) {
-    // Re-seed from current server truth every time it opens, so an abandoned
-    // edit never leaves stale numbers sitting in the form.
-    const b = S.suBatches.find(x => x.batchId === batchId);
-    if (b) {
-      const d = el('be-date-' + batchId), q = el('be-qty-' + batchId);
-      if (d) d.value = b.expiryDate || '';
-      if (q) q.value = b.quantity;
-    }
-  }
-}
-async function submitCorrectBatch(batchIdEnc) {
+// receiveIntoBatch takes the INCREMENT, so a double tap would add the units
+// twice. S.batchBusy blocks any second save until the first has finished.
+async function saveBatchReason(batchIdEnc, kind) {
   const batchId = decodeURIComponent(batchIdEnc);
   const by = currentActorName();
   if (!by) { toast(t('t_signin_first'),'warn'); toggleMode(); return; }
-  const b = S.suBatches.find(x => x.batchId === batchId);
+  if (S.batchBusy) return;
+  const b = (S.suBatches || []).find(x => x.batchId === batchId);
   if (!b) return;
+  const typed = batchTypedQty(b);
+  if (typed === null) { toast(t('t_need_qty'),'err'); return; }
+  const diff = typed - b.quantity;
+  if (diff === 0) { toast(t('t_no_change'),'warn'); return; }
 
-  const newDate = el('be-date-' + batchId)?.value || '';
-  const qtyRaw  = parseInt(el('be-qty-' + batchId)?.value);
-  const newQty  = Number.isFinite(qtyRaw) && qtyRaw >= 0 ? qtyRaw : null;
-
-  if (!newDate) { toast(t('t_need_expiry'),'err'); return; }
-  if (newQty === null) { toast(t('t_need_qty'),'err'); return; }
-
-  // Send ONLY what actually changed. NULL means "leave alone" server-side, so
-  // an unchanged field must not be sent at all — that is what stops this form
-  // from overwriting a value the user never touched.
-  const params = { action:'correctBatch', batchId: batchUuid(batchId), updatedBy: encodeURIComponent(by) };
-  if (newDate !== (b.expiryDate || '')) params.expiryDate = newDate;
-  if (newQty !== b.quantity)            params.quantity   = newQty;
-
-  if (params.expiryDate === undefined && params.quantity === undefined) {
-    toast(t('t_no_change'),'warn'); return;
-  }
-  try {
-    await api(params);
-    toast(t('t_batch_fixed'),'ok');
-    toggleBatchEdit(batchIdEnc);
-    await loadBatches(S.suProduct.id);
-    await resyncSuCardFromServer(); // a corrected expiry/qty can flip the status
-  } catch(e) { toast(t('t_failed')+e.message,'err'); }
-}
-
-async function submitUpdateBatch(batchIdEnc) {
-  const batchId = decodeURIComponent(batchIdEnc);
-  const by=currentActorName();
-  if (!by) {toast(t('t_signin_first'),'warn');toggleMode();return;}
-  const newQty=parseInt(el('bq-'+batchId).value)||0;
-
-  const b = S.suBatches.find(x=>x.batchId===batchId);
-  const p = S.products.find(x=>x.id===S.suProduct.id);
-  if (b && (b.quantity - newQty) > 0 && !b.expired && b.daysLeft !== null && b.daysLeft <= S.settings.outpatientGuardDays && !p?.inpatientOnly) {
-    const proceed = confirm(tf('guard_confirm',{n:b.daysLeft}));
-    if (!proceed) return;
+  // Each path calls api with its object literal written INLINE, on purpose:
+  // check_frontend_contract.py and smoke_test.py find call sites by that exact
+  // shape, and an object built first and passed by name is invisible to both —
+  // its parameters would never be checked against the gateway.
+  let send, done;
+  if (kind === 'dispensed') {
+    if (diff > 0) return;
+    const p = S.products.find(x => x.id === S.suProduct.id);
+    if (!b.expired && b.daysLeft !== null && b.daysLeft <= S.settings.outpatientGuardDays && !p?.inpatientOnly) {
+      if (!confirm(tf('guard_confirm',{n:b.daysLeft}))) return;
+    }
+    send = () => api({action:'updateBatch', batchId:batchUuid(batchId), quantity:typed, updatedBy:encodeURIComponent(by)});
+    done = tf('t_saved_dispensed', {n: -diff});
+  } else if (kind === 'received') {
+    if (diff < 0 || b.expired) return;
+    send = () => api({action:'receiveIntoBatch', batchId:batchUuid(batchId), quantity:diff, updatedBy:encodeURIComponent(by)});
+    done = tf('t_saved_received', {n: diff});
+  } else if (kind === 'mistake') {
+    send = () => api({action:'correctBatch', batchId:batchUuid(batchId), quantity:typed, updatedBy:encodeURIComponent(by)});
+    done = t('t_batch_fixed');
+  } else {
+    return;
   }
 
+  S.batchBusy = true;
+  const box = el('br-' + batchId);
+  if (box) box.querySelectorAll?.('button').forEach(x => { x.disabled = true; });
   try {
-    await api({action:'updateBatch',batchId:batchUuid(batchId),quantity:newQty,updatedBy:encodeURIComponent(by)});
-    // Compute the dispensed count LOCALLY. update_batch_quantity returns a raw
-    // `batches` row, which has no `dispensed` key (the legacy Apps Script
-    // endpoint synthesised one), so reading d.dispensed was always undefined
-    // and the "· N units" half of this toast never appeared — on the single
-    // most frequent storage action. `b` is the pre-edit row loaded from the
-    // server, so previous-minus-new is the same subtraction the RPC performs.
-    const dispensed = b ? b.quantity - newQty : 0;
-    toast(`${t('t_qty_saved')}${dispensed>0?' · '+dispensed+' '+t('units'):''}`,'ok');
+    await send();
+    toast(done,'ok');
     await loadBatches(S.suProduct.id);
     await resyncSuCardFromServer();
-  } catch(e){toast(t('t_failed')+e.message,'err');}
+  } catch(e) {
+    toast(t('t_failed')+e.message,'err');
+    if (box) box.querySelectorAll?.('button').forEach(x => { x.disabled = false; });
+  } finally {
+    S.batchBusy = false;
+  }
+}
+
+// Expiry date: tap the date to change it. Always a correction — a date cannot
+// be dispensed or received.
+function toggleBatchDate(batchIdEnc) {
+  const batchId = decodeURIComponent(batchIdEnc);
+  const panel = el('bd-' + batchId);
+  if (!panel) return;
+  const opening = panel.classList.contains('hidden');
+  panel.classList.toggle('hidden');
+  const trigger = el('bf-' + batchId);
+  if (trigger) trigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  if (opening) {
+    // Re-seed from server truth every time it opens, so an abandoned edit
+    // never leaves a stale date sitting in the field.
+    const b = (S.suBatches || []).find(x => x.batchId === batchId);
+    const d = el('be-date-' + batchId);
+    if (b && d) d.value = b.expiryDate || '';
+  }
+}
+
+async function submitBatchDate(batchIdEnc) {
+  const batchId = decodeURIComponent(batchIdEnc);
+  const by = currentActorName();
+  if (!by) { toast(t('t_signin_first'),'warn'); toggleMode(); return; }
+  const b = (S.suBatches || []).find(x => x.batchId === batchId);
+  if (!b) return;
+  const newDate = el('be-date-' + batchId)?.value || '';
+  if (!newDate) { toast(t('t_need_expiry'),'err'); return; }
+  if (newDate === (b.expiryDate || '')) { toast(t('t_no_change'),'warn'); return; }
+  try {
+    // expiryDate ONLY: correct_batch treats a missing quantity as "leave it",
+    // so a date fix can never overwrite the stock count.
+    await api({action:'correctBatch', batchId:batchUuid(batchId), expiryDate:newDate, updatedBy:encodeURIComponent(by)});
+    toast(t('t_batch_fixed'),'ok');
+    await loadBatches(S.suProduct.id);
+    await resyncSuCardFromServer(); // a corrected expiry can flip the status
+  } catch(e) { toast(t('t_failed')+e.message,'err'); }
 }
 
 function submitRemoveBatch(batchIdEnc,expDateEnc) {
@@ -9999,17 +10114,22 @@ function submitRemoveBatch(batchIdEnc,expDateEnc) {
   // handlers below (still a JS-string context); expDate is decoded here only
   // to render as HTML TEXT (a different context — escapeHtml is the correct
   // protection there, not encodeURIComponent). See Ledger 17.
+  //
+  // 'mistake' replaced 'other' (2026-10-22). remove_batch stores the reason
+  // structured and waste_metric leaves 'mistake' out: a batch entered by
+  // mistake never existed, so removing it is not waste.
   const expDate = decodeURIComponent(expDateEnc);
+  const opt = (reason, icon, key) => `<div class="qa-option" role="button" tabindex="0" onclick="confirmRemoveBatch('${batchIdEnc}','${reason}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${icon} ${t(key)}</div>`;
   el('qa-sheet').innerHTML = `
     <div class="sheet-backdrop" onclick="if(event.target===this) closeQuickActions()">
       <div class="sheet-panel">
         <div class="sheet-handle"></div>
-        <div class="sheet-title">Remove batch expiring ${escapeHtml(expDate)}?</div>
-        <div class="sheet-sub">Why is this batch being removed? This cannot be undone.</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="confirmRemoveBatch('${batchIdEnc}','expired')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m14 14 4 4"/><path d="m18 14-4 4"/></svg> Expired</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="confirmRemoveBatch('${batchIdEnc}','damaged')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86Z"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Damaged</div>
-        <div class="qa-option" role="button" tabindex="0" onclick="confirmRemoveBatch('${batchIdEnc}','other')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"><svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> Other</div>
-        <button class="btn-submit" style="margin-top:12px" onclick="closeQuickActions()">Cancel</button>
+        <div class="sheet-title">${tf('rm_title',{d:escapeHtml(expDate)})}</div>
+        <div class="sheet-sub">${t('rm_sub')}</div>
+        ${opt('expired','<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m14 14 4 4"/><path d="m18 14-4 4"/></svg>','rm_expired')}
+        ${opt('damaged','<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86Z"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>','rm_damaged')}
+        ${opt('mistake','<svg class="qa-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>','rm_mistake')}
+        <button class="btn-submit" style="margin-top:12px" onclick="closeQuickActions()">${t('correct_cancel')}</button>
       </div>
     </div>`;
 }
