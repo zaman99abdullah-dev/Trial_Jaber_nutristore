@@ -973,7 +973,8 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .count-current-lbl{font-size:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 .count-input{font-size:3rem;font-weight:800;text-align:center;width:160px;background:var(--surface2);border:2px solid var(--border2);border-radius:var(--r);padding:12px;color:var(--text)}
 .count-input:focus{border-color:var(--accent)}
-.count-actions{display:flex;gap:10px;width:100%;max-width:340px;margin-top:28px}
+.count-actions{display:flex;flex-wrap:wrap;gap:10px;width:100%;max-width:340px;margin-top:28px}
+.count-expired-row{margin-top:16px;padding:10px 12px;border:1px solid var(--red-t);border-radius:var(--rs);text-align:start}
 .count-close{position:absolute;top:20px;right:20px;width:36px;height:36px;border-radius:50%;background:var(--surface2);color:var(--text2);font-size:1.1rem}
 .count-summary-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
 .count-summary-row:last-child{border-bottom:none}
@@ -3130,6 +3131,38 @@ const T = {
   rm_expired:['Expired','منتهية الصلاحية'],
   rm_damaged:['Damaged or lost','تالفة أو مفقودة'],
   rm_mistake:['Entered by mistake','أُدخلت بالخطأ'],
+  wc_in_date:['In-date units on the shelf','الوحدات السارية على الرف'],
+  wc_batch:['Batch','الدفعة'],
+  wc_auto:['Auto ({n} batches)','تلقائي ({n} دفعات)'],
+  wc_expired_warn:['Expired {d} · {n} units','منتهية {d} · {n} وحدة'],
+  wc_expired_how:['Not counted. Clear it with the bin in Update & Batches.','لا تُحسب. أزلها بزر الحذف في التحديث والدفعات.'],
+  wc_skip:['Skip','تخطي'],
+  wc_next:['Next →','التالي ←'],
+  wc_more:['{n} more than recorded — why?','{n} أكثر من المسجل — السبب؟'],
+  wc_less:['{n} fewer than recorded — why?','{n} أقل من المسجل — السبب؟'],
+  wc_where:['Where do the {n} received units go?','أين تذهب الوحدات المستلمة ({n})؟'],
+  wc_into:['Add to batch exp {d} ({n} units)','أضف إلى دفعة تنتهي {d} ({n} وحدة)'],
+  wc_new_batch:['New batch','دفعة جديدة'],
+  wc_new_expiry:['Expiry date of the new batch','تاريخ انتهاء الدفعة الجديدة'],
+  wc_save_new:['Save as new batch','حفظ كدفعة جديدة'],
+  wc_back:['Back','رجوع'],
+  wc_need_future:['Enter an expiry date from today onwards','أدخل تاريخ انتهاء من اليوم فصاعداً'],
+  wc_r_into:['received into exp {d}','استُلم إلى دفعة {d}'],
+  wc_r_new:['received · new batch exp {d}','استُلم · دفعة جديدة {d}'],
+  wc_complete:['Count complete','اكتمل الجرد'],
+  wc_summary:['{c} changed · {n} units dispensed','{c} تغيّرت · صُرف {n} وحدة'],
+  wc_none:['No changes recorded','لا توجد تغييرات'],
+  wc_r_dispensed:['dispensed','صُرف'],
+  wc_r_received:['received','استُلم'],
+  wc_r_mistake:['count fix','تصحيح'],
+  wc_r_damaged:['damaged or lost','تالفة أو مفقودة'],
+  wc_still_row:['expired {d} — {n} on shelf','منتهية {d} — {n} على الرف'],
+  wc_discard:['Discard','تجاهل'],
+  wc_submit:['Submit count','إرسال الجرد'],
+  wc_done:['Count submitted — {n} product(s) updated','تم إرسال الجرد — تحديث {n} منتج'],
+  wc_failed:['{ok} saved · failed: {names} — check them in Update & Batches','حُفظ {ok} · فشل: {names} — راجعها في التحديث والدفعات'],
+  wc_short:['couldn’t fully apply: {names}','تعذّر التطبيق بالكامل: {names}'],
+  wc_still_toast:['{n} expired batch(es) to clear in Update & Batches','{n} دفعة منتهية للإزالة في التحديث والدفعات'],
   correct_lbl_expiry:['Expiry date','تاريخ الانتهاء'],
   correct_cancel:['Cancel','إلغاء'],
   t_batch_fixed:['Batch corrected','تم تصحيح الدفعة'],
@@ -4281,6 +4314,7 @@ const S = {
   // count keeps the choices already made.
   countBatchChoice: {},
   countChanges: {},
+  countBusy: false,
   srcProduct: null,
   pdProduct: null,   // Products Admin Part 3 (delete) — own picker, decoupled from srcProduct
   pdImpact:  null,   // last getProductDeleteImpact response for pdProduct
@@ -10181,6 +10215,22 @@ function countBatchLabel(b) {
 function countValidBatches(productId) {
   return (S.countBatches[productId]||[]).filter(b=>!b.expired);   // already FEFO-sorted
 }
+// Expired batches still holding units. They are NOT part of the number typed on
+// the card (that is in-date stock only) and the count NEVER removes them: each
+// one is shown as a warning, on the card and on the summary, and clearing it is
+// done by hand with the bin on Update & Batches (owner's decision 2026-10-23).
+function countExpiredBatches(productId) {
+  return (S.countBatches[productId]||[]).filter(b=>b.expired && b.quantity>0);
+}
+function countExpiredHtml(productId) {
+  return countExpiredBatches(productId).map(b => {
+    const d = countShortDate(b.expiryDate);
+    return `<div class="count-expired-row">
+      <div style="font-size:.875rem;font-weight:700;color:var(--red-t)">⚠ ${tf('wc_expired_warn',{d:`<span dir="ltr">${escapeHtml(d)}</span>`, n:`<span dir="ltr">${b.quantity}</span>`})}</div>
+      <div style="font-size:.8125rem;color:var(--text2);margin-top:2px">${t('wc_expired_how')}</div>
+    </div>`;
+  }).join('');
+}
 function countPickBatch(productId, val) {
   if (val) S.countBatchChoice[productId] = val;
   else delete S.countBatchChoice[productId];
@@ -10188,7 +10238,8 @@ function countPickBatch(productId, val) {
 }
 
 // Work out exactly which batches absorb a count difference.
-// delta > 0 => stock went DOWN (dispensed). delta < 0 => went UP (correction).
+// delta > 0 => stock went DOWN (dispensed). delta < 0 => went UP (received, or
+// a count fix — the counter picks which on the card; see submitCount).
 // Returns {moves:[{b,newQty}], leftover} — leftover > 0 means the difference
 // exceeded everything on hand, which must be REPORTED, never silently clamped.
 function allocateCount(productId, delta) {
@@ -10245,8 +10296,10 @@ async function startWeeklyCount() {
     // must keep it STABLE across a session: the draft-resume check below
     // compares saved ids to fresh ids POSITIONALLY, so an order that changes
     // mid-count silently discards the counter's unfinished work.
+    // A product with ONLY expired stock is still on the list: its card asks
+    // nothing but the expired-batch question.
     S.countProducts = S.products
-      .filter(p=>byProduct[p.id] && byProduct[p.id].some(b=>!b.expired))
+      .filter(p=>byProduct[p.id] && byProduct[p.id].some(b=>!b.expired || b.quantity>0))
       .map(p=>{
         const live = S.products.find(x=>x.id===p.id);
         const total = live?.batchSummary?.totalValid ?? byProduct[p.id].filter(b=>!b.expired).reduce((s,b)=>s+b.quantity,0);
@@ -10295,40 +10348,112 @@ function countBatchPickerHtml(productId) {
     `<option value="${escapeHtml(b.batchUuid)}"${b.batchUuid===chosen?' selected':''}>${escapeHtml(countBatchLabel(b))}</option>`
   ).join('');
   return `
-    <div class="count-current-lbl" style="margin-top:14px">Dispensed from</div>
+    <div class="count-current-lbl" style="margin-top:14px">${t('wc_batch')}</div>
     <select id="count-batch" onchange="countPickBatch('${escapeHtml(productId)}', this.value)"
             style="width:100%;margin-top:4px">
-      <option value=""${chosen?'':' selected'}>Auto — earliest expiry first (${valid.length} batches)</option>
+      <option value=""${chosen?'':' selected'}>${tf('wc_auto',{n:valid.length})}</option>
       ${opts}
     </select>`;
+}
+
+// The buttons under the number follow its direction, like Update & Batches:
+// same -> Next; lower -> Dispensed (N) / Damaged or lost / Mistake; higher ->
+// Received (N) / Mistake. An increase through updateBatch would record NEGATIVE
+// dispensing, and a loss through it would record dispensing that never
+// happened (owner's decisions 2026-10-23). Re-rendered on every keystroke,
+// without touching the input, so focus and the keyboard stay put.
+function countActionsHtml() {
+  const p = S.countProducts[S.countIdx];
+  const typed = parseInt(el('count-input')?.value);
+  const diff = countValidBatches(p.id).length && !isNaN(typed) && typed >= 0 ? typed - p.total : 0;
+  const skip = `<button class="btn-toggle" style="flex:1" onclick="countSkip()">${t('wc_skip')}</button>`;
+  if (!diff) return `${skip}<button class="btn-submit" style="flex:1;margin-top:0" onclick="countNext()">${t('wc_next')}</button>`;
+  const n = Math.abs(diff);
+  if (diff > 0) return `<div style="width:100%;font-size:.8125rem;color:var(--text2);margin-bottom:6px">${tf('wc_more',{n:`<span dir="ltr">${n}</span>`})}</div>
+    <button class="btn-submit" style="flex:1;margin-top:0" onclick="countAskWhere()">${tf('br_received',{n})}</button>
+    <button class="btn-toggle" style="flex:1" onclick="countNext('mistake')">${t('br_mistake')}</button>`;
+  return `<div style="width:100%;font-size:.8125rem;color:var(--text2);margin-bottom:6px">${tf('wc_less',{n:`<span dir="ltr">${n}</span>`})}</div>
+    <button class="btn-submit" style="flex:1 1 100%;margin-top:0" onclick="countNext('dispensed')">${tf('br_dispensed',{n})}</button>
+    <button class="btn-toggle" style="flex:1" onclick="countNext('damaged')">${t('rm_damaged')}</button>
+    <button class="btn-toggle" style="flex:1" onclick="countNext('mistake')">${t('br_mistake')}</button>`;
+}
+function countTyped() {
+  const box = el('count-actions');
+  if (box) box.innerHTML = countActionsHtml();
+}
+
+// Received -> WHERE did the units go? Into one of the batches already on the
+// shelf (same expiry date: receiveIntoBatch), or a NEW batch with its own
+// expiry date (addBatch). Owner's request 2026-10-23. Every valid batch is
+// offered, even when there is only one, because a delivery with a new date
+// is exactly the case a single existing batch cannot hold.
+function countAskWhere() {
+  const p = S.countProducts[S.countIdx];
+  const typed = parseInt(el('count-input')?.value);
+  if (isNaN(typed) || typed <= p.total) { countTyped(); return; }
+  const n = typed - p.total;
+  const box = el('count-actions');
+  if (!box) return;
+  const into = countValidBatches(p.id).slice().reverse().map(b => {
+    const u = encodeURIComponent(b.batchUuid);
+    return `<button class="btn-toggle" style="flex:1 1 100%" onclick="countNext('received', decodeURIComponent('${u}'))">${tf('wc_into',{d:`<span dir="ltr">${escapeHtml(countShortDate(b.expiryDate))}</span>`, n:`<span dir="ltr">${b.quantity}</span>`})}</button>`;
+  }).join('');
+  box.innerHTML = `<div style="width:100%;font-size:.8125rem;color:var(--text2);margin-bottom:6px">${tf('wc_where',{n:`<span dir="ltr">${n}</span>`})}</div>
+    ${into}
+    <div style="flex:1 1 100%;text-align:start;margin-top:4px">
+      <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px">${t('wc_new_expiry')}</div>
+      <input type="date" id="count-new-expiry" style="width:100%" dir="ltr">
+    </div>
+    <button class="btn-submit" style="flex:1;margin-top:0" onclick="countNext('received', '', el('count-new-expiry')?.value)">${t('wc_save_new')}</button>
+    <button class="btn-toggle" style="flex:1" onclick="countTyped()">${t('wc_back')}</button>`;
 }
 
 function renderCountCard() {
   if (S.countIdx >= S.countProducts.length) { renderCountSummary(); return; }
   const p = S.countProducts[S.countIdx];
+  const hasValid = countValidBatches(p.id).length > 0;
   el('count-overlay').innerHTML = `
     <button class="count-close" onclick="closeCount()">✕</button>
-    <div class="count-progress">${S.countIdx+1} / ${S.countProducts.length}</div>
+    <div class="count-progress" dir="ltr">${S.countIdx+1} / ${S.countProducts.length}</div>
     <div class="count-progress-bar"><div class="count-progress-fill" style="width:${Math.round((S.countIdx)/S.countProducts.length*100)}%"></div></div>
     <div class="count-card">
-      <div class="count-cat">${p.cat}</div>
-      <div class="count-name">${p.name}</div>
-      <div class="count-current-lbl">Recorded units</div>
-      <input type="number" class="count-input" id="count-input" min="0" value="${p.total}" inputmode="numeric">
-      ${countBatchPickerHtml(p.id)}
-      <div class="count-actions">
-        <button class="btn-toggle" style="flex:1" onclick="countSkip()">Skip</button>
-        <button class="btn-submit" style="flex:1;margin-top:0" onclick="countNext()">Next →</button>
-      </div>
+      <div class="count-cat">${escapeHtml(p.cat)}</div>
+      <div class="count-name">${escapeHtml(p.name)}</div>
+      ${hasValid ? `
+      <div class="count-current-lbl">${t('wc_in_date')}</div>
+      <input type="number" class="count-input" id="count-input" min="0" value="${p.total}" inputmode="numeric" dir="ltr" oninput="countTyped()">
+      ${countBatchPickerHtml(p.id)}` : ''}
+      <div id="count-expired" style="width:100%;max-width:400px">${countExpiredHtml(p.id)}</div>
+      <div class="count-actions" id="count-actions"></div>
     </div>`;
+  el('count-actions').innerHTML = countActionsHtml();
   setTimeout(()=>el('count-input')?.focus(), 50);
 }
 
-function countNext() {
+// reason: lower -> 'dispensed' | 'damaged' | 'mistake'; higher -> 'received' | 'mistake'.
+// For 'received', exactly one of intoBatch (an existing batchUuid) or
+// newExpiry (YYYY-MM-DD, today or later) says where the units went.
+function countNext(reason, intoBatch, newExpiry) {
   const p = S.countProducts[S.countIdx];
-  const newTotal = parseInt(el('count-input').value);
-  if (!isNaN(newTotal) && newTotal !== p.total) {
-    S.countChanges[p.id] = { name:p.name, oldTotal:p.total, newTotal, delta:p.total-newTotal };
+  const newTotal = parseInt(el('count-input')?.value);
+  if (!isNaN(newTotal) && newTotal >= 0 && newTotal !== p.total) {
+    // Every change must come with a reason that fits its direction; the
+    // buttons guarantee it, this guards a stale tap (the number was retyped
+    // the other way after the buttons were drawn).
+    const fits = newTotal < p.total ? ['dispensed','damaged','mistake'] : ['received','mistake'];
+    if (!fits.includes(reason)) { countTyped(); return; }
+    const kind = reason;
+    const change = { name:p.name, oldTotal:p.total, newTotal, delta:p.total-newTotal, reason:kind };
+    if (kind === 'received') {
+      if (intoBatch) {
+        if (!countValidBatches(p.id).some(b => b.batchUuid === intoBatch)) { countTyped(); return; }
+        change.intoBatch = intoBatch;
+      } else {
+        if (!newExpiry || newExpiry < localISODate(new Date())) { toast(t('wc_need_future'),'warn'); return; }
+        change.newExpiry = newExpiry;
+      }
+    }
+    S.countChanges[p.id] = change;
   } else {
     delete S.countChanges[p.id];
   }
@@ -10336,29 +10461,62 @@ function countNext() {
   saveCountDraft();
   renderCountCard();
 }
+// Skip means "not counted": drop a number already recorded for this card.
 function countSkip() {
+  const p = S.countProducts[S.countIdx];
+  if (p) delete S.countChanges[p.id];
   S.countIdx++;
   saveCountDraft();
   renderCountCard();
 }
 
+function countExpiredAll() {
+  const out = [];
+  S.countProducts.forEach(p => countExpiredBatches(p.id).forEach(b => out.push({ p, b })));
+  return out;
+}
+function countShortDate(iso) {
+  return new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function countReasonLabel(productId, c, reasonKey) {
+  if (c.reason === 'received' && c.newExpiry)
+    return tf('wc_r_new', {d:`<span dir="ltr">${escapeHtml(countShortDate(c.newExpiry))}</span>`});
+  if (c.reason === 'received' && c.intoBatch) {
+    const b = countValidBatches(productId).find(x => x.batchUuid === c.intoBatch);
+    if (b) return tf('wc_r_into', {d:`<span dir="ltr">${escapeHtml(countShortDate(b.expiryDate))}</span>`});
+  }
+  return t(reasonKey[c.reason] || 'wc_r_dispensed');
+}
+
 function renderCountSummary() {
   const changes = Object.entries(S.countChanges);
-  const dispensed = changes.reduce((s,[,c])=>s + Math.max(0,c.delta), 0);
-  const rows = changes.length ? changes.map(([id,c])=>`
+  const still = countExpiredAll();
+  // A change with no reason can only come from a draft saved by an older build,
+  // where every drop was dispensing.
+  const dispensed = changes.reduce((s,[,c])=>s + ((c.reason||'dispensed')==='dispensed' ? Math.max(0,c.delta) : 0), 0);
+  const reasonKey = { dispensed:'wc_r_dispensed', received:'wc_r_received', mistake:'wc_r_mistake', damaged:'wc_r_damaged' };
+  const row = (name, right, color) => `
     <div class="count-summary-row">
-      <span>${c.name}</span>
-      <span style="font-weight:700;color:${c.delta>0?'var(--red-t)':'var(--green-t)'}">${c.oldTotal} → ${c.newTotal}</span>
-    </div>`).join('') : '<div class="empty" style="padding:20px"><p>No changes recorded</p></div>';
+      <span>${escapeHtml(name)}</span>
+      <span style="font-weight:700;color:${color}">${right}</span>
+    </div>`;
+  const rows = [
+    ...changes.map(([id,c]) => row(c.name,
+      `<span dir="ltr">${c.oldTotal} → ${c.newTotal}</span> · ${countReasonLabel(id, c, reasonKey)}`,
+      c.delta>0?'var(--red-t)':'var(--green-t)')),
+    ...still.map(({p,b}) => row(p.name, '⚠ ' + tf('wc_still_row',{d:`<span dir="ltr">${countShortDate(b.expiryDate)}</span>`, n:`<span dir="ltr">${b.quantity}</span>`}), 'var(--red-t)')),
+  ];
+  const n = changes.length;
   el('count-overlay').innerHTML = `
     <button class="count-close" onclick="closeCount()">✕</button>
     <div class="count-card" style="justify-content:flex-start;padding-top:40px">
-      <div class="count-name" style="font-size:1.5rem">Count Complete</div>
-      <div style="font-size:.9375rem;color:var(--text2);margin-bottom:20px">${changes.length} changed · ${dispensed} units dispensed this week</div>
-      <div style="width:100%;max-width:400px;text-align:left;max-height:40vh;overflow-y:auto">${rows}</div>
+      <div class="count-name" style="font-size:1.5rem">${t('wc_complete')}</div>
+      <div style="font-size:.9375rem;color:var(--text2);margin-bottom:20px">${tf('wc_summary',{c:n, n:dispensed})}</div>
+      <div style="width:100%;max-width:400px;text-align:start;max-height:40vh;overflow-y:auto">${rows.length ? rows.join('') : `<div class="empty" style="padding:20px"><p>${t('wc_none')}</p></div>`}</div>
       <div class="count-actions">
-        <button class="btn-toggle" style="flex:1" onclick="discardCount()">Discard</button>
-        <button class="btn-submit" style="flex:1;margin-top:0" onclick="submitCount()" ${!changes.length?'disabled':''}>Submit Count</button>
+        <button class="btn-toggle" style="flex:1" onclick="discardCount()">${t('wc_discard')}</button>
+        <button class="btn-submit" id="count-submit" style="flex:1;margin-top:0" onclick="submitCount()" ${!n?'disabled':''}>${t('wc_submit')}</button>
       </div>
     </div>`;
 }
@@ -10368,35 +10526,81 @@ function discardCount() {
   closeCount();
 }
 
+// Each change goes down the SAME server path the Update & Batches buttons use
+// (see saveBatchReason) — never merge them:
+//   dispensed -> updateBatch      (new total; writes the dispensing row)
+//   received  -> receiveIntoBatch (the INCREMENT; no dispensing row)
+//   mistake   -> correctBatch     (new total; no dispensing row)
+//   damaged   -> writeOffFromBatch (units LOST; no dispensing row; waste)
+// Expired batches are never touched here — cleared by hand with the bin.
+// receiveIntoBatch and writeOffFromBatch take increments, so a second Submit
+// tap would apply them twice: S.countBusy.
 async function submitCount() {
+  if (S.countBusy) return;
   const name = getStorageName();
   if (!name) return;
-  const entries = Object.entries(S.countChanges);
-  let ok=0, fail=0;
-  const short = [];
-  for (const [productId, c] of entries) {
-    // Spread across batches instead of forcing the whole difference onto one.
-    // The old code did `Math.max(0, target.quantity - c.delta)` against a single
-    // batch, so counting 70 dispensed out of a 40-unit earliest batch drove it
-    // to 0 and SILENTLY DISCARDED the other 30 — the count reported success
-    // while the system still disagreed with what was physically counted.
-    const { moves, leftover } = allocateCount(productId, c.delta);
-    if (!moves.length) { fail++; continue; }
-    let productOk = true;
-    for (const m of moves) {
-      try {
-        await api({action:'updateBatch', batchId:m.b.batchUuid, quantity:m.newQty, updatedBy:encodeURIComponent(name)});
-      } catch(e) { productOk = false; }
+  S.countBusy = true;
+  const sb = el('count-submit'); if (sb) sb.disabled = true;
+  const by = encodeURIComponent(name);
+  let ok=0;
+  const short = [], failed = [];
+  try {
+    for (const [productId, c] of Object.entries(S.countChanges)) {
+      // Spread across batches instead of forcing the whole difference onto one.
+      // The old code did `Math.max(0, target.quantity - c.delta)` against a single
+      // batch, so counting 70 dispensed out of a 40-unit earliest batch drove it
+      // to 0 and SILENTLY DISCARDED the other 30 — the count reported success
+      // while the system still disagreed with what was physically counted.
+      // Received units go exactly where the counter said: a new batch, or the
+      // batch they picked. (A draft from an older build has neither and falls
+      // through to allocateCount's latest-expiring batch.)
+      if (c.reason === 'received' && c.newExpiry) {
+        try {
+          await api({action:'addBatch', productId:productUuid(productId), expiryDate:c.newExpiry, quantity:-c.delta, addedBy:by});
+          ok++;
+        } catch(e) { failed.push(c.name); }
+        continue;
+      }
+      if (c.reason === 'received' && c.intoBatch) {
+        const b = countValidBatches(productId).find(x => x.batchUuid === c.intoBatch);
+        if (!b) { failed.push(c.name); continue; }
+        try {
+          await api({action:'receiveIntoBatch', batchId:b.batchUuid, quantity:-c.delta, updatedBy:by});
+          ok++;
+        } catch(e) { failed.push(c.name); }
+        continue;
+      }
+      const { moves, leftover } = allocateCount(productId, c.delta);
+      if (!moves.length) { failed.push(c.name); continue; }
+      let productOk = true;
+      for (const m of moves) {
+        try {
+          if (c.reason === 'received') {
+            await api({action:'receiveIntoBatch', batchId:m.b.batchUuid, quantity:m.newQty - m.b.quantity, updatedBy:by});
+          } else if (c.reason === 'mistake') {
+            await api({action:'correctBatch', batchId:m.b.batchUuid, quantity:m.newQty, updatedBy:by});
+          } else if (c.reason === 'damaged') {
+            await api({action:'writeOffFromBatch', batchId:m.b.batchUuid, quantity:m.b.quantity - m.newQty, updatedBy:by});
+          } else {
+            await api({action:'updateBatch', batchId:m.b.batchUuid, quantity:m.newQty, updatedBy:by});
+          }
+        } catch(e) { productOk = false; }
+      }
+      if (!productOk) { failed.push(c.name); continue; }
+      ok++;
+      // Never swallow an unabsorbed remainder: the whole point of a count is that
+      // the system ends up agreeing with the shelf.
+      if (leftover > 0) short.push(`${c.name} (${leftover})`);
     }
-    if (!productOk) { fail++; continue; }
-    ok++;
-    // Never swallow an unabsorbed remainder: the whole point of a count is that
-    // the system ends up agreeing with the shelf.
-    if (leftover > 0) short.push(`${c.name} (${leftover} more than on hand)`);
-  }
-  let msg = fail===0 ? `Count submitted — ${ok} product(s) updated` : `${ok} saved, ${fail} failed`;
-  if (short.length) msg += ` · couldn't fully apply: ${short.join(', ')}`;
-  toast(msg, (fail===0 && !short.length) ? 'ok' : 'warn');
+  } finally { S.countBusy = false; }
+  const stillN = countExpiredAll().length;
+  // Failures are NAMED, not counted: the draft is cleared below (the batches
+  // have moved, so re-running it would apply the difference twice), and staff
+  // need to know exactly which products to check by hand.
+  let msg = failed.length ? tf('wc_failed',{ok, names:failed.join(', ')}) : tf('wc_done',{n:ok});
+  if (short.length) msg += ' · ' + tf('wc_short',{names:short.join(', ')});
+  if (stillN) msg += ' · ' + tf('wc_still_toast',{n:stillN});
+  toast(msg, (!failed.length && !short.length) ? 'ok' : 'warn');
   clearCountDraft();
   closeCount();
   try {
@@ -11120,8 +11324,10 @@ async function exportWasteCSV() {
     }
     const rows = [['Date','Product','Reason','Units','Removed By']];
     const re = /^Batch removed \((expired|damaged|other)\): (\d+) units$/;
+    // Part of a batch written off as damaged or lost (20261023120000).
+    const reWo = /^Units written off \((damaged)\): (\d+) units/;
     S.logs.forEach(l=>{
-      const m = (l.note||'').match(re);
+      const m = (l.note||'').match(re) || (l.note||'').match(reWo);
       if (!m) return;
       const d2 = l.timestamp ? new Date(l.timestamp) : null;
       rows.push([d2?d2.toISOString().slice(0,10):'', l.productName, m[1], m[2], l.updatedBy||'']);
