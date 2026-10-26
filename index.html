@@ -844,6 +844,11 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ws-dl{border:1px solid var(--border2);border-radius:var(--rs);background:var(--surface2);padding:2px 12px}
 .ws-dl-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:8px 0;align-items:baseline}
 .ws-dl-row+.ws-dl-row{border-top:1px solid var(--border)}
+.ws-stock{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 6px}
+.ws-part{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:.8125rem}
+.ws-part+.ws-part{border-top:1px solid var(--border)}
+.ws-part:last-child{font-weight:700}
+.ws-part-n small{color:var(--text2);font-weight:400}
 .ws-dl-lbl{font-size:.8125rem;color:var(--text2)}
 .ws-dl-val{font-size:.9375rem;font-weight:800;color:var(--text);text-align:end;white-space:nowrap}
 .ws-dl-sub{grid-column:1/-1;font-size:.6875rem;color:var(--text3b);line-height:1.4}
@@ -3457,7 +3462,9 @@ const T = {
   ws_refeed_high:['BMI {b}: high refeeding risk (NICE CG32). Start at no more than 10 kcal/kg/day (≤ {k} kcal) and build up over 4–7 days.','مؤشر كتلة الجسم {b}: خطر مرتفع لمتلازمة إعادة التغذية (NICE CG32). ابدأ بما لا يزيد على 10 سعرات/كغ/يوم ({k} سعرة كحد أقصى) وزد تدريجياً خلال 4–7 أيام.'],
   ws_refeed_extreme:['BMI {b}: extreme refeeding risk (NICE CG32). Start at 5 kcal/kg/day ({k} kcal) with cardiac monitoring.','مؤشر كتلة الجسم {b}: خطر شديد لمتلازمة إعادة التغذية (NICE CG32). ابدأ بـ 5 سعرات/كغ/يوم ({k} سعرة) مع مراقبة القلب.'],
   ws_feed_product:['Formula','التركيبة'], ws_pick_none:['Choose a product…','اختر منتجاً…'],
-  ws_grp_data:['With nutrition data','بها بيانات غذائية'], ws_grp_nodata:['No nutrition data yet','لا توجد بيانات غذائية بعد'],
+  ws_grp_in:['In stock','متوفر'], ws_grp_low:['Low stock','مخزون منخفض'], ws_grp_coming:['Coming soon','قادم قريباً'],
+  ws_grp_out:['Not available','غير متوفر'], ws_grp_unset:['Stock not set','المخزون غير محدد'],
+  ws_no_data_tag:['no nutrition data','لا توجد بيانات غذائية'], ws_units_n:['{n} units','{n} وحدة'],
   ws_form_liquid:['Liquid','سائل'], ws_form_powder:['Powder','مسحوق'],
   ws_form_guess:['Form not recorded — treated as {f}.','الشكل غير مسجّل — عومل كـ{f}.'],
   ws_no_data:['No nutrition data for this product yet — a supervisor can add it in Products Admin. Only energy can be worked out, from the density you enter.','لا توجد بيانات غذائية لهذا المنتج بعد — يمكن للمشرف إضافتها من إدارة المنتجات. يمكن حساب الطاقة فقط، من الكثافة التي تدخلها.'],
@@ -3471,7 +3478,9 @@ const T = {
   ws_feed_need_density:['Enter the density to work out the rate.','أدخل الكثافة لحساب المعدل.'],
   ws_feed_energy:['Energy from the feed','الطاقة من التغذية'],
   ws_feed_energy_expl:['{t} target','الهدف {t}'], ws_feed_minus_pf:['− {p} propofol','− بروبوفول {p}'],
-  ws_feed_add_unknown:['(energy of {n} not stated, so not subtracted)','(طاقة {n} غير مذكورة، فلم تُطرح)'], ws_feed_minus_add:['− {a} from additions','− {a} من الإضافات'],
+  ws_parts_total:['Total','الإجمالي'], ws_parts_ns:['energy not stated','الطاقة غير مذكورة'],
+  ws_not_counted:['Not counted yet: {n} — enter servings and the size of one serving.','غير محسوب بعد: {n} — أدخل عدد الحصص وحجم الحصة الواحدة.'],
+  ws_line_need_size:['No serving size on record for this product — type it in, or it is not counted.','لا يوجد حجم حصة مسجل لهذا المنتج — أدخله، وإلا فلن يُحسب.'],
   ws_feed_volume:['Volume per day','الحجم اليومي'], ws_feed_rate_calc:['Calculated rate','المعدل المحسوب'],
   ws_feed_rate_rx:['Prescribed rate (mL/hr)','المعدل الموصوف (مل/ساعة)'],
   ws_feed_rate_note:['Rounded to a whole mL/hr. Change it to what you prescribe — the table below follows it.','مقرّب لأقرب مل/ساعة. غيّره إلى ما تصفه — يتبعه الجدول أدناه.'],
@@ -3531,6 +3540,8 @@ const T = {
   nx_carot:['Carotenoids','الكاروتينات'], nx_water:['Free water','الماء الحر'],
   nx_osmolality:['Osmolality','الأسمولالية'], nx_osmolarity:['Osmolarity','الأسمولارية'],
   nx_allergens:['Allergens','مسببات الحساسية'], nx_age:['Age limits','حدود العمر'],
+  nx_review:['To be reviewed','بحاجة إلى مراجعة'],
+  ws_review_warn:['Nutrition data not reviewed yet: {s}','البيانات الغذائية لم تُراجع بعد: {s}'],
   nx_atleast:['{s} means at least this much — not stated by {n}.','{s} تعني «على الأقل» — غير مذكورة لدى {n}.'],
   nx_filled:['{n} filled','{n} مُعبّأة'],
   ws_guide_one_basis:['One weight basis is applied to energy, protein and fluid. Tapping a row sets the basis that row uses.','يُطبَّق وزن واحد على الطاقة والبروتين والسوائل. الضغط على صف يحدّد الوزن الذي يستخدمه.'],
@@ -7379,7 +7390,11 @@ const NS_EXTRAS = [
     { k:'biotin', u:'µg' }, { k:'vit_c', u:'mg' } ] },
   { group:'other', items:[ { k:'choline', u:'mg' }, { k:'inositol', u:'mg' }, { k:'carot', u:'mg' }, { k:'water', u:'mL' } ] },
   { group:'props', props:true, items:[
-    { k:'osmolality', u:'mOsm/kg' }, { k:'osmolarity', u:'mOsm/L' }, { k:'allergens', text:true }, { k:'age', text:true } ] },
+    { k:'osmolality', u:'mOsm/kg' }, { k:'osmolarity', u:'mOsm/L' }, { k:'allergens', text:true }, { k:'age', text:true },
+    // A "to be reviewed" mark on data entered before anyone checked it against
+    // the label (owner 2026-10-26). Shown as a warning wherever the product is
+    // picked; a supervisor clears it by emptying this field in the editor.
+    { k:'review', text:true } ] },
 ];
 // The ones that scale with the amount given (everything but props).
 const NS_EXTRA_SCALED = NS_EXTRAS.filter(g => !g.props).flatMap(g => g.items.map(i => Object.assign({ group: g.group }, i)));
@@ -7604,32 +7619,49 @@ function calcWsProduct(id) { return id ? (S.products || []).find(p => p.id === i
 function calcWsLine(list, key) { return CALC.ws.lines[list].find(l => l.key === key) || null; }
 
 // ── 5. The product picker ─────────────────────────────────────────────────
-// Products with a nutrition panel first, then the rest — still selectable, so
-// a dietitian is never told a product does not exist when it is on the shelf.
-// Within each group: in stock first.
-const CALC_WS_STATUS_RANK = { available:0, low:1, coming:2, '':3, unavailable:4, unlisted:5 };
+// Grouped by STOCK, so what can actually be given is unmistakable (owner's
+// request 2026-10-26): In stock, Low stock, Coming soon, Not available, Stock
+// not set. Within a group, products with a nutrition panel come first; one
+// without is still offered (a dietitian is never told a product on the shelf
+// does not exist) and says so on its own line.
+const CALC_WS_STOCK_GROUPS = [
+  { key:'ws_grp_in',     st:['available'] },
+  { key:'ws_grp_low',    st:['low'] },
+  { key:'ws_grp_coming', st:['coming'] },
+  { key:'ws_grp_out',    st:['unavailable', 'unlisted'] },
+  { key:'ws_grp_unset',  st:[''] },
+];
+function calcWsStockGroup(p) {
+  const st = p.status || '';
+  const i = CALC_WS_STOCK_GROUPS.findIndex(g => g.st.indexOf(st) !== -1);
+  return i === -1 ? CALC_WS_STOCK_GROUPS.length - 1 : i;
+}
 function calcWsProductOptionsHtml(selectedId) {
-  const withData = [], noData = [];
-  (S.products || []).forEach(p => (getProductNutrition(p) ? withData : noData).push(p));
-  const rank = p => { const r = CALC_WS_STATUS_RANK[p.status || '']; return r === undefined ? 3 : r; };
-  const byStock = (a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name));
+  const groups = CALC_WS_STOCK_GROUPS.map(() => []);
+  (S.products || []).forEach(p => groups[calcWsStockGroup(p)].push(p));
+  const order = (a, b) => (getProductNutrition(a) ? 0 : 1) - (getProductNutrition(b) ? 0 : 1) || String(a.name).localeCompare(String(b.name));
   const opt = p => {
     const n = getProductNutrition(p);
     let d = '';
     if (n) {
       if (nsFormOf(n).form === 'powder') d = t('ws_form_powder');
       else { const dens = nsLiquidDensity(n); if (dens) d = nsRound2(dens.d) + ' kcal/mL'; }
-    }
-    const st = (STATUS_CFG[p.status || ''] || STATUS_CFG['']).label;
-    return `<option value="${escapeHtml(p.id)}"${p.id === selectedId ? ' selected' : ''}>${escapeHtml(p.name)}${d ? ' — ' + escapeHtml(d) : ''} · ${escapeHtml(st)}</option>`;
+    } else d = t('ws_no_data_tag');
+    return `<option value="${escapeHtml(p.id)}"${p.id === selectedId ? ' selected' : ''}>${escapeHtml(p.name)}${d ? ' — ' + escapeHtml(d) : ''}</option>`;
   };
   return `<option value="">${escapeHtml(t('ws_pick_none'))}</option>`
-    + (withData.length ? `<optgroup label="${escapeHtml(t('ws_grp_data'))}">${withData.sort(byStock).map(opt).join('')}</optgroup>` : '')
-    + (noData.length ? `<optgroup label="${escapeHtml(t('ws_grp_nodata'))}">${noData.sort(byStock).map(opt).join('')}</optgroup>` : '');
+    + groups.map((g, i) => g.length ? `<optgroup label="${escapeHtml(t(CALC_WS_STOCK_GROUPS[i].key))}">${g.sort(order).map(opt).join('')}</optgroup>` : '').join('');
+}
+// The badge under a picked product: the SAME status pill and units pill the
+// product list uses (sbadge + units-pill), so stock reads the same everywhere.
+function calcWsStockBadge(p) {
+  const cfg = STATUS_CFG[p.status || ''] || STATUS_CFG[''];
+  const units = p.batchSummary && p.batchSummary.totalValid != null ? p.batchSummary.totalValid : null;
+  return `<div class="ws-stock"><span class="sbadge ${cfg.cls}">${escapeHtml(cfg.label)}</span>`
+    + (units !== null ? `<span class="units-pill">${PACKAGE_ICON} <span dir="ltr">${escapeHtml(tf('ws_units_n', { n: units }))}</span></span>` : '') + `</div>`;
 }
 // Form, energy, pack, stock — and any problem with the product's own data.
 function calcWsProductInfoHtml(p, n, ctx) {
-  const st = STATUS_CFG[p.status || ''] || STATUS_CFG[''];
   const bits = [], warns = [];
   if (n) {
     const fo = nsFormOf(n);
@@ -7653,8 +7685,7 @@ function calcWsProductInfoHtml(p, n, ctx) {
     if (ex.osmolality) bits.push(`${escapeHtml(t('nx_osmolality'))} <span dir="ltr">${escapeHtml(String(ex.osmolality))} mOsm/kg</span>`);
     else if (ex.osmolarity) bits.push(`${escapeHtml(t('nx_osmolarity'))} <span dir="ltr">${escapeHtml(String(ex.osmolarity))} mOsm/L</span>`);
   }
-  bits.push(`<span style="color:${st.dot}">${escapeHtml(st.label)}</span>`);
-  let html = bits.join(' · ');
+  let html = calcWsStockBadge(p) + (bits.length ? `<div>${bits.join(' · ')}</div>` : '');
   // Allergens and age limits change the prescribing decision, so they sit on
   // the product line itself, where the choice is made.
   const exm = (n && n.extras) || {};
@@ -7662,6 +7693,7 @@ function calcWsProductInfoHtml(p, n, ctx) {
                 exm.age ? `<b>${escapeHtml(t('nx_age'))}:</b> ${escapeHtml(String(exm.age))}` : ''].filter(Boolean);
   if (meta.length) html += `<div class="ws-meta">${meta.join('<br>')}</div>`;
   if (!n) html += `<div class="ws-warn">${escapeHtml(t(ctx === 'feed' ? 'ws_no_data' : 'ws_no_data_line'))}</div>`;
+  if (exm.review) html += `<div class="ws-warn">${ALERT_TRI_ICON} ${escapeHtml(tf('ws_review_warn', { s: String(exm.review) }))}</div>`;
   warns.forEach(w => { html += `<div class="ws-warn">${w}</div>`; });
   return html;
 }
@@ -7694,7 +7726,8 @@ function calcWsLineHtml(list, l) {
   const p = l.id ? calcWsProduct(l.id) : null, n = p ? getProductNutrition(p) : null;
   const powder = !!(n && nsFormOf(n).form === 'powder');
   const base = `ws-${list}-${l.key}`;
-  const info = l.id ? (p ? calcWsProductInfoHtml(p, n, 'line') : `<div class="ws-warn">${escapeHtml(t('ws_missing_product'))}</div>`) : '';
+  let info = l.id ? (p ? calcWsProductInfoHtml(p, n, 'line') : `<div class="ws-warn">${escapeHtml(t('ws_missing_product'))}</div>`) : '';
+  if (p && n && calcWsLineDefaultPer(n) === null && !l.perTouched) info += `<div class="ws-warn">${escapeHtml(t('ws_line_need_size'))}</div>`;
   return `<div class="ws-line" id="${base}">
     <div class="ws-line-top">
       <select id="${base}-prod" aria-label="${escapeHtml(t('ws_feed_product'))}" onchange="calcWsLinePick('${list}',${l.key},this.value)">${calcWsProductOptionsHtml(l.id)}</select>
@@ -7756,14 +7789,36 @@ function calcWsLinePortions(list) {
     const serv = parseFloat(l.serv), per = parseFloat(l.per);
     if (!(serv > 0) || !(per > 0)) return null;
     const amount = serv * per;
-    return { portion: nsPortion(n, nsFormOf(n).form === 'powder' ? { g: amount } : { ml: amount }), from: p.name };
+    const unit = nsFormOf(n).form === 'powder' ? 'g' : 'mL';
+    return { portion: nsPortion(n, unit === 'g' ? { g: amount } : { ml: amount }), from: p.name, amount: `${serv} × ${per} ${unit}` };
+  }).filter(Boolean);
+}
+// Lines with a product and a panel but no usable amount (most often: no pack
+// or scoop size on record, so "per serving" starts empty). They used to drop
+// out of the total without a word, which read as the total being wrong.
+function calcWsLineSkipped(list) {
+  return CALC.ws.lines[list].filter(l => l.id).map(l => {
+    const p = calcWsProduct(l.id);
+    if (!p || !getProductNutrition(p)) return null;
+    return (parseFloat(l.serv) > 0 && parseFloat(l.per) > 0) ? null : p.name;
   }).filter(Boolean);
 }
 
 // ── 7. The delivered table ────────────────────────────────────────────────
 function calcWsDeliveredHtml(sum, tgt, opts) {
   opts = opts || {};
-  if (!sum) return `<div class="ws-dl"><div class="ws-dl-empty">${escapeHtml(t('ws_deliv_empty'))}</div></div>`;
+  const skippedHtml = (opts.skipped && opts.skipped.length)
+    ? `<div class="ws-warn" style="margin-top:6px">${escapeHtml(tf('ws_not_counted', { n: opts.skipped.join(', ') }))}</div>` : '';
+  if (!sum) return `<div class="ws-dl"><div class="ws-dl-empty">${escapeHtml(t('ws_deliv_empty'))}</div></div>${skippedHtml}`;
+  // What makes up the total, one line per product, so a supplement added on
+  // top is visibly part of it. Only when there is more than one part.
+  let partsHtml = '';
+  if (opts.parts && opts.parts.length > 1) {
+    const pl = (name, amt, kcal) => `<div class="ws-part"><span class="ws-part-n">${name}${amt ? ` <small dir="ltr">${escapeHtml(amt)}</small>` : ''}</span><b dir="ltr">${escapeHtml(kcal)}</b></div>`;
+    partsHtml = `<div class="ws-dl ws-parts">${opts.parts.map((it, i) =>
+      pl((i ? '+ ' : '') + escapeHtml(it.from), it.amount, nsFmtVal(it.portion.energy, 'kcal') || t('ws_parts_ns'))).join('')}`
+      + pl('= ' + escapeHtml(t('ws_parts_total')), '', nsFmtVal(sum.energy, 'kcal') || t('ws_not_stated')) + `</div>`;
+  }
   const pf = opts.propofol || 0;
   const names = list => list.filter(Boolean).map(x => escapeHtml(x)).join(', ');
   const bar = (val, target, label) => {
@@ -7821,7 +7876,7 @@ function calcWsDeliveredHtml(sum, tgt, opts) {
     if (anyLt) notes.push(tf('ws_upper_bound', { s: '<bdi dir="ltr">&lt;</bdi>' }));
     grid = `<div class="ws-dl" style="margin-top:8px;padding:2px 12px 10px">${grid}${notes.map(n => `<div class="ws-dl-sub" style="margin-top:8px">${n}</div>`).join('')}</div>`;
   }
-  return `<div class="ws-dl">${html}</div>${grid}<div class="ws-dl-foot">${escapeHtml(t('ws_deliv_foot'))}${opts.opNote ? ' ' + escapeHtml(t('ws_ons_target_op')) : ''}</div>`;
+  return `${partsHtml}${skippedHtml}<div class="ws-dl"${partsHtml || skippedHtml ? ' style="margin-top:8px"' : ''}>${html}</div>${grid}<div class="ws-dl-foot">${escapeHtml(t('ws_deliv_foot'))}${opts.opNote ? ' ' + escapeHtml(t('ws_ons_target_op')) : ''}</div>`;
 }
 
 // ── 8. Running the worksheet ──────────────────────────────────────────────
@@ -7930,12 +7985,13 @@ function calcWsRunFeed() {
   }
   const d = !p ? null : (showDens ? calcNum('ws-feed-density') : dens.d);
 
-  // Additions first: their energy comes off what the feed has to supply.
+  // Additions go ON TOP of the feed: the feed is worked out from the target
+  // and propofol only, and the delivered total shows the additions above it
+  // (owner's decision 2026-10-26 — until then their energy was taken off the
+  // feed, so adding a supplement barely moved the total and read as a bug).
   const adds = calcWsLinePortions('add');
-  const addSum = adds.length ? nsSumPortions(adds) : null;
-  const addKcal = (addSum && addSum.energy.kind !== 'na') ? addSum.energy.v : 0;
   const tgt = W.target.kcal;
-  const feedKcal = tgt ? Math.max(0, tgt - W.propofol - addKcal) : null;
+  const feedKcal = tgt ? Math.max(0, tgt - W.propofol) : null;
   const hours = calcNum('ws-feed-hours');
   const r = (p && feedKcal && d) ? calcFeedingRate({ kcalTarget: feedKcal, density: d, hours }) : null;
 
@@ -7957,8 +8013,6 @@ function calcWsRunFeed() {
   else if (p && feedKcal !== null) {
     let expl = tf('ws_feed_energy_expl', { t: Math.round(tgt) });
     if (W.propofol) expl += ' ' + tf('ws_feed_minus_pf', { p: Math.round(W.propofol) });
-    if (addKcal) expl += ' ' + tf('ws_feed_minus_add', { a: Math.round(addKcal) });
-    if (addSum && addSum.energy.missing.length) expl += ' ' + tf('ws_feed_add_unknown', { n: addSum.energy.missing.join(', ') });
     out += kv(t('ws_feed_energy'), Math.round(feedKcal) + ' kcal', expl);
   }
   if (r) out += kv(t('ws_feed_rate_calc'), nsRound1(r.rate) + ' mL/hr', Math.round(r.volume) + ' mL ÷ ' + hours + ' h', true);
@@ -7979,21 +8033,23 @@ function calcWsRunFeed() {
     if (!n) portion = nsPortion(null, { kcal: vol * d, ml: vol });
     else if (isPowder) portion = nsPortion(n, { kcal: vol * d });
     else { portion = nsPortion(n, { ml: vol }); if (manual) portion.energy = { kind:'exact', v: vol * d }; }
-    items.push({ portion, from: p.name });
+    items.push({ portion, from: p.name, amount: `${nsRound1(rx)} mL/hr × ${hours} h` });
   }
   adds.forEach(a => items.push(a));
+  const skipped = calcWsLineSkipped('add');
   el('ws-feed-deliv').innerHTML = items.length
-    ? calcWsDeliveredHtml(nsSumPortions(items), { kcal: W.target.kcal, protein: W.target.protein, fluid: W.target.fluid }, { propofol: W.propofol })
-    : calcWsDeliveredHtml(null);
+    ? calcWsDeliveredHtml(nsSumPortions(items), { kcal: W.target.kcal, protein: W.target.protein, fluid: W.target.fluid }, { propofol: W.propofol, parts: items, skipped })
+    : calcWsDeliveredHtml(null, null, { skipped });
 }
 
 function calcWsRunOns() {
   const box = el('ws-ons-deliv');
   if (!box) return;
   const items = calcWsLinePortions('ons');
+  const skipped = calcWsLineSkipped('ons');
   const op = CALC.route === 'op';
   const tgt = op ? CALC.opTarget : { kcal: CALC.ws.target.kcal, protein: CALC.ws.target.protein, fluid: CALC.ws.target.fluid };
-  box.innerHTML = items.length ? calcWsDeliveredHtml(nsSumPortions(items), tgt, { opNote: op }) : calcWsDeliveredHtml(null);
+  box.innerHTML = items.length ? calcWsDeliveredHtml(nsSumPortions(items), tgt, { opNote: op, parts: items, skipped }) : calcWsDeliveredHtml(null, null, { skipped });
 }
 
 // ── 9. Inputs ─────────────────────────────────────────────────────────────
@@ -10226,7 +10282,7 @@ function countExpiredHtml(productId) {
   return countExpiredBatches(productId).map(b => {
     const d = countShortDate(b.expiryDate);
     return `<div class="count-expired-row">
-      <div style="font-size:.875rem;font-weight:700;color:var(--red-t)">⚠ ${tf('wc_expired_warn',{d:`<span dir="ltr">${escapeHtml(d)}</span>`, n:`<span dir="ltr">${b.quantity}</span>`})}</div>
+      <div style="font-size:.875rem;font-weight:700;color:var(--red-t)">${ALERT_TRI_ICON} ${tf('wc_expired_warn',{d:`<span dir="ltr">${escapeHtml(d)}</span>`, n:`<span dir="ltr">${b.quantity}</span>`})}</div>
       <div style="font-size:.8125rem;color:var(--text2);margin-top:2px">${t('wc_expired_how')}</div>
     </div>`;
   }).join('');
@@ -10505,7 +10561,7 @@ function renderCountSummary() {
     ...changes.map(([id,c]) => row(c.name,
       `<span dir="ltr">${c.oldTotal} → ${c.newTotal}</span> · ${countReasonLabel(id, c, reasonKey)}`,
       c.delta>0?'var(--red-t)':'var(--green-t)')),
-    ...still.map(({p,b}) => row(p.name, '⚠ ' + tf('wc_still_row',{d:`<span dir="ltr">${countShortDate(b.expiryDate)}</span>`, n:`<span dir="ltr">${b.quantity}</span>`}), 'var(--red-t)')),
+    ...still.map(({p,b}) => row(p.name, ALERT_TRI_ICON + ' ' + tf('wc_still_row',{d:`<span dir="ltr">${countShortDate(b.expiryDate)}</span>`, n:`<span dir="ltr">${b.quantity}</span>`}), 'var(--red-t)')),
   ];
   const n = changes.length;
   el('count-overlay').innerHTML = `
