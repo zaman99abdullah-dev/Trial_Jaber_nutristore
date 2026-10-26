@@ -845,6 +845,34 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ws-dl-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;padding:8px 0;align-items:baseline}
 .ws-dl-row+.ws-dl-row{border-top:1px solid var(--border)}
 .ws-stock{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 6px}
+.ws-cmp-keep{margin-top:10px;width:100%;min-height:44px}
+.ws-cmp-plans{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:6px 0 10px}
+.ws-cmp-plan{border:1px solid var(--border2);border-radius:var(--rs);background:var(--surface2);padding:8px 10px;font-size:.8125rem;min-width:0}
+.ws-cmp-plan.new{border-color:var(--accent)}
+.ws-cmp-pt{font-size:.6875rem;color:var(--text2);font-weight:700;margin-bottom:2px}
+.ws-cmp-plan.new .ws-cmp-pt{color:var(--accent)}
+.ws-cmp-pp{font-weight:700;overflow-wrap:anywhere}
+.ws-cmp-pp small{color:var(--text2);font-weight:400}
+.ws-cmp-t{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.8125rem;border:1px solid var(--border2);border-radius:var(--rs);background:var(--surface2)}
+.ws-cmp-t th{font-size:.6875rem;color:var(--text2);font-weight:700;text-align:end;padding:8px 8px 6px}
+.ws-cmp-t th:first-child{text-align:start;width:31%}
+.ws-cmp-t th:last-child{width:27%}
+.ws-cmp-t td.d{padding-inline:4px}
+.ws-cmp-t td{padding:7px 8px;border-top:1px solid var(--border);vertical-align:top}
+.ws-cmp-t td.l{color:var(--text2)}
+.ws-cmp-t td small{display:block;font-size:.6875rem;color:var(--text3b)}
+.ws-cmp-t td.l small{display:inline}
+.ws-cmp-t td.l small+small{display:block}
+.ws-cmp-t td.v{text-align:end;font-weight:700}
+.cmp-pill{display:inline-flex;align-items:center;gap:2px;padding:1px 6px;border-radius:100px;border:1px solid;font-weight:800;font-size:.75rem;white-space:nowrap}
+.cmp-pill.better{background:var(--green-bg);color:var(--green-t);border-color:var(--green)}
+.cmp-pill.worse{background:var(--amber-bg);color:var(--amber-t);border-color:var(--amber)}
+.cmp-pill.same{background:var(--grey-bg);color:var(--grey-t);border-color:var(--grey)}
+/* The arrow takes its pill's colour: its SHAPE is the direction. */
+.cmp-arrow{display:inline-flex}
+.ws-cmp-t .ns{font-weight:400;color:var(--text3b);font-size:.6875rem}
+.ws-cmp-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ws-cmp-acts .btn-toggle{flex:1;min-height:44px}
 .ws-part{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:.8125rem}
 .ws-part+.ws-part{border-top:1px solid var(--border)}
 .ws-part:last-child{font-weight:700}
@@ -1518,6 +1546,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <button type="button" class="ws-add-btn" onclick="calcWsAddLine('add')" data-i18n="ws_add_btn">+ Add modular or supplement</button>
         <div class="ws-tl" style="margin-top:16px" data-i18n="ws_deliv_title">Delivered per day</div>
         <div id="ws-feed-deliv"></div>
+        <div id="ws-feed-cmp"></div>
       </div>
 
       <!-- Oral (and Outpatient): oral nutritional supplements from the
@@ -1530,6 +1559,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         <button type="button" class="ws-add-btn" onclick="calcWsAddLine('ons')" data-i18n="ws_ons_add_btn">+ Add another supplement</button>
         <div class="ws-tl" style="margin-top:16px" data-i18n="ws_deliv_ons_title">Delivered per day from supplements</div>
         <div id="ws-ons-deliv"></div>
+        <div id="ws-ons-cmp"></div>
       </div>
 
       <!-- Divider between the worksheet and the occasional tools. Positioned
@@ -3493,6 +3523,16 @@ const T = {
   ws_line_from:['Product data: {s}','بيانات المنتج: {s}'], ws_line_remove:['Remove','إزالة'],
   ws_deliv_title:['Delivered per day','المُعطى يومياً'], ws_deliv_ons_title:['Delivered per day from supplements','المُعطى يومياً من المكمّلات'],
   ws_deliv_empty:['Choose a product to see what the patient receives.','اختر منتجاً لترى ما يحصل عليه المريض.'],
+  ws_cmp_keep:['Keep as old plan','احتفظ بها كخطة سابقة'], ws_cmp_title:['Compare plans','مقارنة الخطط'],
+  ws_cmp_old:['Old plan','الخطة السابقة'], ws_cmp_new:['New plan','الخطة الجديدة'],
+  ws_cmp_kept:['kept {t}','حُفظت {t}'], ws_cmp_now:['now','الآن'],
+  ws_cmp_nutrient:['Nutrient','العنصر'], ws_cmp_change:['Change','الفرق'], ws_cmp_target:['target {v}','الهدف {v}'], ws_cmp_old_target:['old target {v}','الهدف السابق {v}'],
+  ws_cmp_swap:['Swap','تبديل'], ws_cmp_clear:['Clear old plan','حذف الخطة السابقة'], ws_cmp_copy:['Copy','نسخ'],
+  ws_cmp_copied:['Comparison copied','تم نسخ المقارنة'], ws_cmp_copy_fail:['Could not copy. Select the text and copy it by hand.','تعذّر النسخ. حدّد النص وانسخه يدوياً.'],
+  ws_cmp_hint:['Kept on this device for this patient only. Next patient clears it.','محفوظة على هذا الجهاز لهذا المريض فقط. زر المريض التالي يحذفها.'],
+  ws_cmp_no_new:['Change the worksheet above to build the new plan.','غيّر ورقة العمل أعلاه لبناء الخطة الجديدة.'],
+  ws_cmp_key_target:['Green: closer to target · Amber: further from target.','الأخضر: أقرب إلى الهدف · الكهرماني: أبعد عن الهدف.'],
+  ws_cmp_heading:['Plan comparison (per day)','مقارنة الخطط (يومياً)'], ws_cmp_of:['of','من'], ws_cmp_kept_t:['Old plan kept','تم حفظ الخطة السابقة'],
   ws_n_energy:['Energy','الطاقة'], ws_n_pro:['Protein','البروتين'], ws_n_cho:['Carbohydrate','الكربوهيدرات'], ws_n_fat:['Fat','الدهون'],
   ws_n_fiber:['Fibre','الألياف'], ws_n_na:['Sodium','الصوديوم'], ws_n_k:['Potassium','البوتاسيوم'], ws_n_ca:['Calcium','الكالسيوم'], ws_n_p:['Phosphorus','الفوسفور'],
   ws_of_target:['{p} of {t} target','{p} من هدف {t}'],
@@ -7958,8 +7998,10 @@ function calcWsRun() {
       { b: calcBmiDisplay(bmi).toFixed(1), k: Math.round((extreme ? 5 : 10) * P.weight) });
   } else { rf.classList.add('hidden'); rf.textContent = ''; }
 
+  W.current = null;
   calcWsRunFeed();
   calcWsRunOns();
+  calcCmpRender();
   calcUpdateNetTarget();
 }
 
@@ -8037,6 +8079,7 @@ function calcWsRunFeed() {
   }
   adds.forEach(a => items.push(a));
   const skipped = calcWsLineSkipped('add');
+  if (CALC.route === 'enteral') calcCmpSetCurrent(items);
   el('ws-feed-deliv').innerHTML = items.length
     ? calcWsDeliveredHtml(nsSumPortions(items), { kcal: W.target.kcal, protein: W.target.protein, fluid: W.target.fluid }, { propofol: W.propofol, parts: items, skipped })
     : calcWsDeliveredHtml(null, null, { skipped });
@@ -8047,9 +8090,197 @@ function calcWsRunOns() {
   if (!box) return;
   const items = calcWsLinePortions('ons');
   const skipped = calcWsLineSkipped('ons');
+  if (CALC.route === 'oral' || CALC.route === 'op') calcCmpSetCurrent(items);
   const op = CALC.route === 'op';
   const tgt = op ? CALC.opTarget : { kcal: CALC.ws.target.kcal, protein: CALC.ws.target.protein, fluid: CALC.ws.target.fluid };
   box.innerHTML = items.length ? calcWsDeliveredHtml(nsSumPortions(items), tgt, { opNote: op, parts: items, skipped }) : calcWsDeliveredHtml(null, null, { skipped });
+}
+
+// ── 8b. Compare two plans for one patient (owner's request 2026-10-26) ────
+// "Keep as old plan" freezes the plan the worksheet is showing — its products,
+// amounts and full nutrient totals, AND the worksheet settings that made it, so
+// Swap can genuinely put it back. The comparison then follows the live
+// worksheet as the new plan. It lives in CALC.ws, so Next patient (which
+// replaces CALC.ws) clears it; nothing is sent to the server or saved.
+const CMP_UP_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>';
+const CMP_DOWN_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
+function calcCmpSetCurrent(items) {
+  const W = CALC.ws;
+  W.current = items.length ? {
+    parts: items.map(i => ({ from: i.from, amount: i.amount || '', energy: i.portion.energy })),
+    sum: nsSumPortions(items),
+    propofol: CALC.route === 'enteral' ? (W.propofol || 0) : 0,
+    // The targets this plan was built against travel WITH it: the patient's
+    // needs can change between the old plan and the new (owner 2026-10-27).
+    target: { kcal: calcCmpTarget('kcal'), protein: calcCmpTarget('protein'), fluid: calcCmpTarget('fluid') },
+  } : null;
+}
+function calcCmpState() {
+  const W = CALC.ws;
+  return {
+    route: CALC.route, feedId: W.feedId,
+    rate: el('ws-feed-rate') ? el('ws-feed-rate').value : '', rateTouched: W.rateTouched,
+    hours: el('ws-feed-hours') ? el('ws-feed-hours').value : '24',
+    density: el('ws-feed-density') ? el('ws-feed-density').value : '', densityTouched: W.densityTouched,
+    lines: JSON.parse(JSON.stringify(W.lines)), seq: W.seq,
+  };
+}
+function calcCmpRestore(st) {
+  const W = CALC.ws;
+  W.feedId = st.feedId; W.rateTouched = st.rateTouched; W.densityTouched = st.densityTouched;
+  W.lines = JSON.parse(JSON.stringify(st.lines)); W.seq = Math.max(W.seq, st.seq);
+  if (el('ws-feed-product')) el('ws-feed-product').value = st.feedId;
+  if (el('ws-feed-rate')) el('ws-feed-rate').value = st.rate;
+  if (el('ws-feed-hours')) el('ws-feed-hours').value = st.hours;
+  if (el('ws-feed-density')) el('ws-feed-density').value = st.density;
+  calcWsRenderLines('ons'); calcWsRenderLines('add');
+  if (CALC.route !== st.route) calcSetRoute(st.route); else calcWsRun();
+}
+function calcCmpKeep() {
+  const W = CALC.ws;
+  if (!W.current) return;
+  W.cmpOld = { plan: JSON.parse(JSON.stringify(W.current)), state: calcCmpState(),
+               at: new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) };
+  calcCmpRender();
+  toast(t('ws_cmp_kept_t'), 'ok');
+}
+function calcCmpClear() { CALC.ws.cmpOld = null; calcCmpRender(); }
+// The old plan goes back into the worksheet; what was on screen becomes old.
+function calcCmpSwap() {
+  const W = CALC.ws;
+  if (!W.cmpOld || !W.current) return;
+  const nowPlan = JSON.parse(JSON.stringify(W.current)), nowState = calcCmpState();
+  const back = W.cmpOld;
+  W.cmpOld = { plan: nowPlan, state: nowState, at: new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) };
+  calcCmpRestore(back.state);
+}
+
+// Every row both plans can be compared on: energy, the core nutrients, then
+// each extra EITHER plan states, in catalogue order.
+// Energy includes propofol on tube feeding, exactly as the delivered table's
+// percentage of target does.
+function calcCmpEnergy(plan) {
+  const e = plan.sum.energy;
+  return (plan.propofol && e.kind !== 'na') ? Object.assign({}, e, { v: e.v + plan.propofol }) : e;
+}
+function calcCmpRows(oldPlan, newPlan) {
+  const oldSum = oldPlan.sum, newSum = newPlan.sum;
+  const rows = [{ k:'energy', lbl: t('ws_n_energy'), unit:'kcal', o: calcCmpEnergy(oldPlan), n: calcCmpEnergy(newPlan), tgt:'kcal' }];
+  NS_NUTRIENTS.forEach(d => rows.push({ k:d.k, lbl: t(d.lbl), unit:d.unit, o: oldSum.nutrients[d.k], n: newSum.nutrients[d.k], tgt: d.k === 'pro' ? 'protein' : null }));
+  const ox = oldSum.extras || {}, nx = newSum.extras || {};
+  NS_EXTRA_SCALED.forEach(d => {
+    if (!ox[d.k] && !nx[d.k]) return;
+    rows.push({ k:d.k, lbl: t('nx_' + d.k), unit:d.u, o: ox[d.k] || { kind:'na' }, n: nx[d.k] || { kind:'na' }, tgt: d.k === 'water' ? 'fluid' : null, smart:true });
+  });
+  return rows;
+}
+function calcCmpFmt(x, unit, smart) {
+  if (!x || x.kind === 'na') return null;
+  return smart ? nsFmtSmart(x, '').trim() : nsFmtVal(x, unit).replace(new RegExp('\\s*' + unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), '');
+}
+// The change is only stated when BOTH sides are known; a lower bound on
+// either side makes it a "≈" (it is the difference of what is known).
+function calcCmpDiff(o, n, smart) {
+  if (!o || !n || o.kind === 'na' || n.kind === 'na') return null;
+  const d = n.v - o.v;
+  const a = Math.abs(d);
+  const num = smart ? (a >= 10 ? Math.round(a) : a >= 1 ? Math.round(a * 10) / 10 : Math.round(a * 100) / 100)
+                    : (a >= 100 ? Math.round(a) : Math.round(a * 10) / 10);
+  const approx = (o.kind !== 'exact' || n.kind !== 'exact') ? '≈ ' : '';
+  return { txt: approx + (d > 0 ? '+' : d < 0 ? '−' : '') + num, d };
+}
+function calcCmpTarget(key) {
+  const op = CALC.route === 'op';
+  const T = op ? (CALC.opTarget || {}) : (CALC.ws.target || {});
+  return T[key] || null;
+}
+function calcCmpRender() {
+  const W = CALC.ws;
+  const boxId = CALC.route === 'enteral' ? 'ws-feed-cmp' : (CALC.route === 'oral' || CALC.route === 'op') ? 'ws-ons-cmp' : null;
+  ['ws-feed-cmp', 'ws-ons-cmp'].forEach(id => { if (id !== boxId && el(id)) el(id).innerHTML = ''; });
+  const box = boxId ? el(boxId) : null;
+  if (!box) return;
+  if (!W.cmpOld) {
+    box.innerHTML = W.current ? `<button type="button" class="btn-toggle ws-cmp-keep" onclick="calcCmpKeep()">${t('ws_cmp_keep')}</button>` : '';
+    return;
+  }
+  const old = W.cmpOld.plan, cur = W.current;
+  const planCard = (cls, title, plan) => `<div class="ws-cmp-plan${cls}"><div class="ws-cmp-pt">${title}</div>${
+    plan ? plan.parts.map((x, i) => `<div class="ws-cmp-pp">${i ? '+ ' : ''}${escapeHtml(x.from)}${x.amount ? ` <small dir="ltr">${escapeHtml(x.amount)}</small>` : ''}</div>`).join('')
+         : `<div class="ws-cmp-pp" style="color:var(--text2)">${escapeHtml(t('ws_cmp_no_new'))}</div>`}</div>`;
+  let html = `<div class="ws-tl" style="margin-top:16px">${escapeHtml(t('ws_cmp_title'))}</div>
+    <div class="ws-cmp-plans">${planCard('', `${escapeHtml(t('ws_cmp_old'))} · <span dir="ltr">${escapeHtml(tf('ws_cmp_kept', { t: W.cmpOld.at }))}</span>`, old)}${planCard(' new', `${escapeHtml(t('ws_cmp_new'))} · ${escapeHtml(t('ws_cmp_now'))}`, cur)}</div>`;
+  if (cur) {
+    const body = calcCmpRows(old, cur).map(r => {
+      const ot = calcCmpFmt(r.o, r.unit, r.smart), nt = calcCmpFmt(r.n, r.unit, r.smart);
+      const diff = calcCmpDiff(r.o, r.n, r.smart);
+      // BOTH plans are judged against TODAY's target — the decision is about
+      // the patient as they are now (owner's choice 2026-10-27). The target the
+      // old plan was built for is shown for information only.
+      const tg = r.tgt ? (cur.target || {})[r.tgt] || null : null;
+      const tOld = r.tgt ? (old.target || {})[r.tgt] || null : null;
+      const pct = (x, tt) => (tt && x && x.kind !== 'na') ? Math.round(x.v / tt * 100) : null;
+      // Colour means ONE thing (owner's choice 2026-10-27, "meaning only"):
+      // closer to target (green) or further from it (amber), and only on rows
+      // that have a target. Direction is the arrow and the sign, never a
+      // colour — up is not "good" in nutrition (energy at 116%, sodium for a
+      // renal patient), and red/green alone fails colour-blind readers.
+      // Everything else, and any move under 2% of target, stays grey.
+      let cls = 'same';
+      if (tg && diff && diff.d !== 0) {
+        const before = Math.abs(r.o.v - tg), after = Math.abs(r.n.v - tg);
+        cls = Math.abs(before - after) < 0.02 * tg ? 'same' : after < before ? 'better' : 'worse';
+      }
+      const cell = (txt, p) => `<td class="v" dir="ltr">${txt !== null ? escapeHtml(txt) : `<span class="ns">${escapeHtml(t('ws_not_stated'))}</span>`}${p !== null ? `<small>${p}%</small>` : ''}</td>`;
+      const tLbl = !tg ? '' : `<small>${escapeHtml(tf('ws_cmp_target', { v: Math.round(tg) }))}</small>`
+        + ((tOld && Math.round(tOld) !== Math.round(tg)) ? `<small>${escapeHtml(tf('ws_cmp_old_target', { v: Math.round(tOld) }))}</small>` : '');
+      return `<tr><td class="l">${escapeHtml(r.lbl)} <small>${escapeHtml(r.unit)}</small>${tLbl}</td>`
+        + cell(ot, pct(r.o, tg)) + cell(nt, pct(r.n, tg))
+        + `<td class="v d" dir="ltr">${diff ? `<span class="cmp-pill ${cls}">${diff.d > 0 ? `<span class="cmp-arrow up">${CMP_UP_ICON}</span>` : diff.d < 0 ? `<span class="cmp-arrow down">${CMP_DOWN_ICON}</span>` : ''}${escapeHtml(diff.txt)}</span>` : '—'}</td></tr>`;
+    }).join('');
+    html += `<table class="ws-cmp-t"><thead><tr><th>${escapeHtml(t('ws_cmp_nutrient'))}</th><th>${escapeHtml(t('ws_cmp_old'))}</th><th>${escapeHtml(t('ws_cmp_new'))}</th><th>${escapeHtml(t('ws_cmp_change'))}</th></tr></thead><tbody>${body}</tbody></table>`;
+  }
+  html += `<div class="ws-cmp-acts">
+      ${cur ? `<button type="button" class="btn-toggle" onclick="calcCmpCopy()">${t('ws_cmp_copy')}</button>
+      <button type="button" class="btn-toggle" onclick="calcCmpSwap()">${t('ws_cmp_swap')}</button>` : ''}
+      <button type="button" class="btn-toggle" onclick="calcCmpClear()">${t('ws_cmp_clear')}</button>
+    </div><div class="ws-dl-foot">${cur ? escapeHtml(t('ws_cmp_key_target')) + '<br>' : ''}${escapeHtml(t('ws_cmp_hint'))}</div>`;
+  box.innerHTML = html;
+}
+// Plain text for the patient's notes. No patient name or identifier.
+function calcCmpText() {
+  const W = CALC.ws;
+  if (!W.cmpOld || !W.current) return '';
+  const plan = p => p.parts.map(x => x.from + (x.amount ? ' ' + x.amount : '')).join(' + ');
+  const lines = [t('ws_cmp_heading'), t('ws_cmp_old') + ': ' + plan(W.cmpOld.plan), t('ws_cmp_new') + ': ' + plan(W.current)];
+  calcCmpRows(W.cmpOld.plan, W.current).forEach(r => {
+    const ot = calcCmpFmt(r.o, r.unit, r.smart) || t('ws_not_stated'), nt = calcCmpFmt(r.n, r.unit, r.smart) || t('ws_not_stated');
+    const d = calcCmpDiff(r.o, r.n, r.smart);
+    const tg = r.tgt ? (W.current.target || {})[r.tgt] || null : null;
+    const tOld = r.tgt ? (W.cmpOld.plan.target || {})[r.tgt] || null : null;
+    let extra = d ? d.txt : '';
+    if (tg && r.o.kind !== 'na' && r.n.kind !== 'na') {
+      extra += `; ${Math.round(r.o.v / tg * 100)}% -> ${Math.round(r.n.v / tg * 100)}% ${t('ws_cmp_of')} ${Math.round(tg)}`;
+      if (tOld && Math.round(tOld) !== Math.round(tg)) extra += `; ${tf('ws_cmp_old_target', { v: Math.round(tOld) })}`;
+    }
+    lines.push(`${r.lbl} (${r.unit}): ${ot} -> ${nt}${extra ? ' (' + extra + ')' : ''}`);
+  });
+  return lines.join('\n');
+}
+async function calcCmpCopy() {
+  const txt = calcCmpText();
+  if (!txt) return;
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast(t('ws_cmp_copied'), 'ok');
+  } catch (e) {
+    // No clipboard permission (older browsers, some in-app views): a text box
+    // the user can select by hand, so the summary is never lost.
+    const box = el(CALC.route === 'enteral' ? 'ws-feed-cmp' : 'ws-ons-cmp');
+    if (box && box.innerHTML.indexOf('id="ws-cmp-text"') === -1)
+      box.innerHTML += `<textarea id="ws-cmp-text" readonly dir="auto" onfocus="this.select()" style="width:100%;min-height:140px;margin-top:8px">${escapeHtml(txt)}</textarea>`;
+    toast(t('ws_cmp_copy_fail'), 'warn');
+  }
 }
 
 // ── 9. Inputs ─────────────────────────────────────────────────────────────
