@@ -846,6 +846,30 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .ws-dl-row+.ws-dl-row{border-top:1px solid var(--border)}
 .ws-stock{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 6px}
 .ws-cmp-keep{margin-top:10px;width:100%;min-height:44px}
+.ws-lbl{font-size:.75rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.ws-pick-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:10px 14px;border-radius:var(--rs);background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);text-align:start}
+.ws-pick-btn.empty{color:var(--text2)}
+.ws-pick-btn:focus-visible,.ws-pick-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ws-pick-txt{display:flex;flex-direction:column;min-width:0}
+.ws-pick-name{font-weight:700;font-size:.9375rem;overflow-wrap:anywhere}
+.ws-pick-sub{font-size:.75rem;color:var(--text2);margin-top:2px}
+.ws-pick-panel{display:flex;flex-direction:column;overflow:hidden;max-height:86vh}
+.ws-pick-panel input[type=search]{margin:8px 0}
+.ws-pick-chips{display:flex;gap:6px;flex-wrap:wrap}
+.ws-pick-count{font-size:.75rem;color:var(--text2);margin:10px 0 4px}
+.ws-pick-list{overflow-y:auto;flex:1;min-height:120px;margin:0 -6px;padding:0 6px}
+.ws-pick-row{display:flex;flex-direction:column;gap:4px;width:100%;padding:12px 8px;border-bottom:1px solid var(--border);background:none;color:var(--text);text-align:start;border-radius:8px;cursor:pointer}
+.ws-pick-row .ptags{margin-top:2px}
+.ws-pick-row:hover{background:var(--surface2)}
+.ws-pick-row.sel{background:rgba(63,169,220,.12);box-shadow:inset 3px 0 0 var(--accent)}
+.ws-pick-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ws-pick-tags{display:flex;gap:4px;flex-wrap:wrap}
+.ws-pick-empty{padding:24px 8px;color:var(--text2);font-size:.875rem;text-align:center}
+.ws-pick-foot{display:flex;gap:8px;margin-top:12px}
+.ws-pick-foot .btn-toggle{flex:1;min-height:44px}
+.ws-hours{display:flex;gap:6px;flex-wrap:wrap}
+.ws-hours{flex-wrap:nowrap}
+.ws-hours .cpill{flex:1 1 0;min-width:0;min-height:44px;padding:6px 4px}
 .ws-cmp-plans{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:6px 0 10px}
 .ws-cmp-plan{border:1px solid var(--border2);border-radius:var(--rs);background:var(--surface2);padding:8px 10px;font-size:.8125rem;min-width:0}
 .ws-cmp-plan.new{border-color:var(--accent)}
@@ -1526,12 +1550,16 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           <span class="calc-num" id="calc-num-feed"></span><div class="card-title" data-i18n="ws_feed_title">Formula &amp; rate</div>
         </div>
         <div class="field">
-          <label for="ws-feed-product" data-i18n="ws_feed_product">Formula</label>
-          <select id="ws-feed-product" onchange="calcWsFeedPick(this.value)"><option value="" data-i18n="ws_pick_none">Choose a product…</option></select>
+          <div class="ws-lbl" data-i18n="ws_feed_product">Formula</div>
+          <div id="ws-feed-pick"></div>
           <div class="ws-info" id="ws-feed-info"></div>
         </div>
+        <div class="field">
+          <div class="ws-lbl" data-i18n="ws_hours">Hours / day</div>
+          <div class="ws-hours" id="ws-hours-chips" role="group"></div>
+          <input type="number" id="ws-feed-hours" class="hidden" min="1" max="24" value="24" aria-label="Hours / day" oninput="calcWsRun()" style="margin-top:8px">
+        </div>
         <div class="row2">
-          <div class="field" style="margin-bottom:0"><label for="ws-feed-hours" data-i18n="ws_hours">Hours / day</label><input type="number" id="ws-feed-hours" min="1" max="24" value="24" oninput="calcWsRun()"></div>
           <div class="field hidden" style="margin-bottom:0" id="ws-feed-density-field"><label for="ws-feed-density" id="ws-feed-density-lbl" data-i18n="ws_density_manual">Density (kcal/mL)</label><input type="number" id="ws-feed-density" min="0" step="0.05" oninput="CALC.ws.densityTouched=true;calcWsRun()"></div>
         </div>
         <div class="ws-feed-out" id="ws-feed-out"></div>
@@ -1541,9 +1569,9 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
           <div class="ws-sub" id="ws-feed-rate-note"></div>
         </div>
         <div class="ws-feed-out" id="ws-feed-vol"></div>
-        <div class="ws-tl" style="margin-top:16px" data-i18n="ws_add_title">Modulars and supplements given with the feed</div>
+        <div class="ws-tl" style="margin-top:16px" data-i18n="ws_add_title">Modulars given with the feed</div>
         <div id="ws-add-lines"></div>
-        <button type="button" class="ws-add-btn" onclick="calcWsAddLine('add')" data-i18n="ws_add_btn">+ Add modular or supplement</button>
+        <button type="button" class="ws-add-btn" onclick="calcWsAddLine('add')" data-i18n="ws_add_btn">+ Add modular</button>
         <div class="ws-tl" style="margin-top:16px" data-i18n="ws_deliv_title">Delivered per day</div>
         <div id="ws-feed-deliv"></div>
         <div id="ws-feed-cmp"></div>
@@ -1557,6 +1585,11 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
         </div>
         <div id="ws-ons-lines"></div>
         <button type="button" class="ws-add-btn" onclick="calcWsAddLine('ons')" data-i18n="ws_ons_add_btn">+ Add another supplement</button>
+        <!-- Modulars on their own (owner 2026-10-27): oral plans are most often
+             an ONS plus protein powders/liquids, Argiment, arginine… -->
+        <div class="ws-tl" style="margin-top:16px" data-i18n="ws_mod_title">Modulars</div>
+        <div id="ws-mod-lines"></div>
+        <button type="button" class="ws-add-btn" onclick="calcWsAddLine('mod')" data-i18n="ws_mod_add_btn">+ Add modular</button>
         <div class="ws-tl" style="margin-top:16px" data-i18n="ws_deliv_ons_title">Delivered per day from supplements</div>
         <div id="ws-ons-deliv"></div>
         <div id="ws-ons-cmp"></div>
@@ -3517,11 +3550,17 @@ const T = {
   ws_feed_rate_own:['Your prescribed rate is kept while this patient is open.','يُحتفظ بالمعدل الموصوف طوال فتح هذا المريض.'],
   ws_feed_rate_reset:['Use calculated','استخدم المحسوب'],
   ws_feed_packs:['≈ {n} × {p} mL packs/day','≈ {n} × عبوة {p} مل/يوم'], ws_feed_powder:['≈ {g} g powder/day','≈ {g} غ مسحوق/يوم'],
-  ws_add_title:['Modulars and supplements given with the feed','مكمّلات تُعطى مع التغذية'],
-  ws_add_btn:['+ Add modular or supplement','+ أضف مكمّلاً'], ws_ons_add_btn:['+ Add another supplement','+ أضف مكمّلاً آخر'],
+  ws_add_title:['Modulars given with the feed','المكمّلات المضافة مع التغذية'],
+  ws_add_btn:['+ Add modular','+ أضف مكمّلاً'], ws_ons_add_btn:['+ Add another supplement','+ أضف مكمّلاً آخر'],
+  ws_mod_title:['Modulars','المكمّلات المضافة'], ws_mod_add_btn:['+ Add modular','+ أضف مكمّلاً'],
+  ws_hours_other:['Other','أخرى'],
+  pk_title_feed:['Choose formula','اختر التركيبة'], pk_title_line:['Choose supplement','اختر المكمّل'], pk_title_mod:['Choose modular','اختر المكمّل المضاف'],
+  pk_search:['Search products','ابحث عن منتج'], pk_all:['All','الكل'], pk_in:['In stock','متوفر'], pk_low:['Low stock','مخزون منخفض'], pk_out:['Not available','غير متوفر'],
+  pk_mod:['Modulars','المكمّلات المضافة'], pk_none:['No product matches. Clear a filter or the search.','لا يوجد منتج مطابق. أزل فلتراً أو البحث.'],
+  pk_count:['{n} products','{n} منتج'], pk_count_1:['1 product','منتج واحد'], pk_cancel:['Cancel','إلغاء'], pk_clear:['Remove formula','إزالة التركيبة'], pk_clear_filters:['Clear filters','إزالة الفلاتر'],
   ws_line_serv:['Servings / day','حصص / يوم'], ws_line_per_ml:['mL per serving','مل لكل حصة'], ws_line_per_g:['g per serving','غ لكل حصة'],
   ws_line_from:['Product data: {s}','بيانات المنتج: {s}'], ws_line_remove:['Remove','إزالة'],
-  ws_deliv_title:['Delivered per day','المُعطى يومياً'], ws_deliv_ons_title:['Delivered per day from supplements','المُعطى يومياً من المكمّلات'],
+  ws_deliv_title:['Delivered per day','المُعطى يومياً'], ws_deliv_ons_title:['Delivered per day from supplements and modulars','المُعطى يومياً من المكمّلات'],
   ws_deliv_empty:['Choose a product to see what the patient receives.','اختر منتجاً لترى ما يحصل عليه المريض.'],
   ws_cmp_keep:['Keep as old plan','احتفظ بها كخطة سابقة'], ws_cmp_title:['Compare plans','مقارنة الخطط'],
   ws_cmp_old:['Old plan','الخطة السابقة'], ws_cmp_new:['New plan','الخطة الجديدة'],
@@ -5604,6 +5643,8 @@ function toggleTagChips(id, ev){
   if (ev) ev.stopPropagation();
   if (S.tagRowsOpen.has(id)) S.tagRowsOpen.delete(id); else S.tagRowsOpen.add(id);
   renderProducts();
+  // The calculator's product sheet shows the same chips; keep it in step.
+  if (typeof CALC !== 'undefined' && CALC.pick) calcPickRender();
 }
 // Read-only tag chips on a product row. Capped at TWO with a "+n" control that
 // expands that row in place. Was four, cut on 2026-09-12: on the phone the
@@ -7650,7 +7691,7 @@ function calcWsFresh() {
     tTouched: { e:false, p:false, f:false },   // a target the dietitian typed is never overwritten
     rateTouched: false, densityTouched: false,
     feedId: '',
-    lines: { ons: [{ key:1, id:'', serv:'', per:'', perTouched:false }], add: [] },
+    lines: { ons: [{ key:1, id:'', serv:'', per:'', perTouched:false }], add: [], mod: [] },
     seq: 1,
     kg: null, target: { kcal:null, protein:null, fluid:null }, propofol: 0,
   };
@@ -7676,21 +7717,159 @@ function calcWsStockGroup(p) {
   const i = CALC_WS_STOCK_GROUPS.findIndex(g => g.st.indexOf(st) !== -1);
   return i === -1 ? CALC_WS_STOCK_GROUPS.length - 1 : i;
 }
-function calcWsProductOptionsHtml(selectedId) {
-  const groups = CALC_WS_STOCK_GROUPS.map(() => []);
-  (S.products || []).forEach(p => groups[calcWsStockGroup(p)].push(p));
-  const order = (a, b) => (getProductNutrition(a) ? 0 : 1) - (getProductNutrition(b) ? 0 : 1) || String(a.name).localeCompare(String(b.name));
-  const opt = p => {
-    const n = getProductNutrition(p);
-    let d = '';
-    if (n) {
-      if (nsFormOf(n).form === 'powder') d = t('ws_form_powder');
-      else { const dens = nsLiquidDensity(n); if (dens) d = nsRound2(dens.d) + ' kcal/mL'; }
-    } else d = t('ws_no_data_tag');
-    return `<option value="${escapeHtml(p.id)}"${p.id === selectedId ? ' selected' : ''}>${escapeHtml(p.name)}${d ? ' — ' + escapeHtml(d) : ''}</option>`;
+// The product SHEET (owner 2026-10-27): the native dropdown showed every
+// product as one grey line with no colour, no tags and no search. Every
+// product in S.products is offered — the same list as the Products tab — and
+// the sheet is shared by the formula, the ONS lines and the modular lines.
+// Modular lines open filtered to the modular tags; "All" is one tap away.
+const CALC_MOD_TAGS = ['modular', 'protein supplement', 'supplements', 'thickener'];
+const CALC_PICK_STOCK = { all: null, in: ['available'], low: ['low'], out: ['unavailable', 'unlisted'] };
+function calcPickIsModular(p) { return (p.tags || []).some(x => CALC_MOD_TAGS.indexOf(x) !== -1); }
+function calcPickInfo(p) {
+  const n = getProductNutrition(p);
+  const bits = [];
+  if (n) {
+    if (nsFormOf(n).form === 'powder') {
+      bits.push(t('ws_form_powder'));
+      if (n.kcal100) bits.push(`${n.kcal100} kcal/100 g`);
+      if (n.scoop) bits.push(String(n.scoop));
+    } else {
+      const d = nsLiquidDensity(n); if (d) bits.push(nsRound2(d.d) + ' kcal/mL');
+      if (n.pack) bits.push(String(n.pack));
+    }
+  } else bits.push(t('ws_no_data_tag'));
+  const u = p.batchSummary && p.batchSummary.totalValid != null ? p.batchSummary.totalValid : null;
+  if (u !== null) bits.push(tf('ws_units_n', { n: u }));
+  return bits.join(' · ');
+}
+// Filtered and ordered: in stock first, then with nutrition data, then name.
+function calcPickProducts(f) {
+  f = f || CALC.pick || {};
+  const q = String(f.q || '').trim().toLowerCase();
+  const st = CALC_PICK_STOCK[f.stock || 'all'];
+  const tags = f.tags || new Set();
+  return (S.products || []).filter(p => {
+    if (st && st.indexOf(p.status || '') === -1) return false;
+    if (f.modOnly && !calcPickIsModular(p)) return false;
+    if (!productHasAllTags(p, tags)) return false;
+    if (q && (p.name + ' ' + (p.tags || []).join(' ')).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  }).sort((a, b) => calcWsStockGroup(a) - calcWsStockGroup(b)
+    || (getProductNutrition(a) ? 0 : 1) - (getProductNutrition(b) ? 0 : 1)
+    || String(a.name).localeCompare(String(b.name)));
+}
+// Tags are the Products tab's OWN chips (productTagsHtml): same order —
+// indication first, so RENAL leads on Fresubin Renal — same cap of two, same
+// "+n" that expands the row, same category rule. Never a copy, so the two
+// lists cannot drift (owner 2026-10-27). The row is a role=button div, not a
+// <button>, because the "+n" chip inside it is a button of its own.
+function calcPickRowHtml(p, selected) {
+  const cfg = STATUS_CFG[p.status || ''] || STATUS_CFG[''];
+  const pick = `calcPickChoose(decodeURIComponent('${encodeURIComponent(p.id)}'))`;
+  return `<div class="ws-pick-row${selected ? ' sel' : ''}" role="button" tabindex="0" onclick="${pick}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${pick}}">
+    <span class="ws-pick-top"><span class="ws-pick-name">${escapeHtml(p.name)}</span><span class="sbadge ${cfg.cls}">${escapeHtml(cfg.label)}</span></span>
+    <span class="ws-pick-sub"><span class="pi-cat">${escapeHtml(p.category || '')}</span> <span dir="auto">${escapeHtml(calcPickInfo(p))}</span></span>
+    ${productTagsHtml(p)}
+  </div>`;
+}
+// The control on the worksheet: the chosen product as a card, or a prompt.
+function calcWsPickTriggerHtml(id, onclickJs) {
+  const p = id ? calcWsProduct(id) : null;
+  if (!id) return `<button type="button" class="ws-pick-btn empty" onclick="${onclickJs}"><span>${escapeHtml(t('ws_pick_none'))}</span>${SEARCH_ICON}</button>`;
+  if (!p) return `<button type="button" class="ws-pick-btn" onclick="${onclickJs}"><span class="ws-pick-name">${escapeHtml(t('ws_missing_product'))}</span></button>`;
+  const cfg = STATUS_CFG[p.status || ''] || STATUS_CFG[''];
+  return `<button type="button" class="ws-pick-btn" onclick="${onclickJs}">
+    <span class="ws-pick-txt"><span class="ws-pick-name">${escapeHtml(p.name)}</span><span class="ws-pick-sub" dir="auto">${escapeHtml(calcPickInfo(p))}</span></span>
+    <span class="sbadge ${cfg.cls}">${escapeHtml(cfg.label)}</span></button>`;
+}
+// target: 'feed', or a line list ('ons' | 'add' | 'mod') with its key.
+function calcPickOpen(target, key) {
+  const mod = target === 'add' || target === 'mod';
+  const cur = target === 'feed' ? CALC.ws.feedId : ((calcWsLine(target, key) || {}).id || '');
+  CALC.pick = { target, key, q:'', stock:'all', tags: new Set(), modOnly: mod, selected: cur, tagsOpen: false };
+  const title = t(target === 'feed' ? 'pk_title_feed' : mod ? 'pk_title_mod' : 'pk_title_line');
+  el('qa-sheet').innerHTML = `
+    <div class="sheet-backdrop" onclick="if(event.target===this) calcPickClose()">
+      <div class="sheet-panel ws-pick-panel" role="dialog" aria-label="${escapeHtml(title)}">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">${escapeHtml(title)}</div>
+        <input type="search" id="pk-q" placeholder="${escapeHtml(t('pk_search'))}" aria-label="${escapeHtml(t('pk_search'))}" oninput="CALC.pick.q=this.value;calcPickRender()" autocomplete="off">
+        <div id="pk-filters"></div>
+        <div class="ws-pick-count" id="pk-count" aria-live="polite"></div>
+        <div class="ws-pick-list" id="pk-list"></div>
+        <div class="ws-pick-foot">
+          ${target === 'feed' && cur ? `<button type="button" class="btn-toggle" onclick="calcPickChoose('')">${escapeHtml(t('pk_clear'))}</button>` : ''}
+          <button type="button" class="btn-toggle" onclick="calcPickClose()">${escapeHtml(t('pk_cancel'))}</button>
+        </div>
+      </div>
+    </div>`;
+  calcPickRender();
+  setTimeout(() => el('pk-q')?.focus(), 60);
+}
+// Filters and list only — never the search box, so typing keeps focus.
+function calcPickRender() {
+  const P = CALC.pick;
+  if (!P) return;
+  const stockBtn = (k, lbl) => `<button type="button" class="cpill${P.stock === k ? ' on' : ''}" aria-pressed="${P.stock === k}" onclick="CALC.pick.stock='${k}';calcPickRender()">${escapeHtml(t(lbl))}</button>`;
+  // Tag pills: counted against everything else currently chosen; a pill that
+  // would give nothing is greyed out, not hidden, as on the Products tab.
+  const others = Object.assign({}, P, { tags: new Set() });
+  const base = calcPickProducts(others);
+  const vocab = (S.allTags || []).filter(x => base.some(p => (p.tags || []).indexOf(x) !== -1) || P.tags.has(x))
+    .sort((a, b) => tagChipRank(a) - tagChipRank(b) || a.localeCompare(b));
+  const tagBtn = x => {
+    const on = P.tags.has(x);
+    const n = calcPickProducts(Object.assign({}, P, { tags: new Set([...P.tags, x]) })).length;
+    return `<button type="button" class="tpill${on ? ' on' : ''}${!on && !n ? ' dead' : ''}" aria-pressed="${on}" ${!on && !n ? 'disabled' : ''} onclick="calcPickToggleTag(decodeURIComponent('${encodeURIComponent(x)}'))">${escapeHtml(tagLabel(x))}<span class="tpill-n">${n}</span></button>`;
   };
-  return `<option value="">${escapeHtml(t('ws_pick_none'))}</option>`
-    + groups.map((g, i) => g.length ? `<optgroup label="${escapeHtml(t(CALC_WS_STOCK_GROUPS[i].key))}">${g.sort(order).map(opt).join('')}</optgroup>` : '').join('');
+  const any = P.stock !== 'all' || P.tags.size || P.modOnly || P.q;
+  // Tags fold away, exactly like the Products tab (2026-09-12: 18 pills took
+  // 650px of an 812px phone). Folded, the SELECTED pills still show — a filter
+  // you cannot see is how a list quietly looks incomplete.
+  const shown = P.tagsOpen ? vocab : vocab.filter(x => P.tags.has(x));
+  const modPill = (P.target === 'add' || P.target === 'mod')
+    ? `<button type="button" class="tpill${P.modOnly ? ' on' : ''}" aria-pressed="${P.modOnly}" onclick="CALC.pick.modOnly=!CALC.pick.modOnly;calcPickRender()">${escapeHtml(t('pk_mod'))}</button>` : '';
+  el('pk-filters').innerHTML = `<div class="ws-pick-chips">${stockBtn('all','pk_all')}${stockBtn('in','pk_in')}${stockBtn('low','pk_low')}${stockBtn('out','pk_out')}</div>
+    ${vocab.length ? `<button type="button" class="tag-toggle${P.tags.size ? ' filtering' : ''}" style="margin-top:8px" aria-expanded="${P.tagsOpen}" onclick="CALC.pick.tagsOpen=!CALC.pick.tagsOpen;calcPickRender()">
+      <svg class="tag-toggle-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+      <span>${escapeHtml(t(P.tags.size ? 'tags_sel_lbl' : 'tags_filter_by'))}</span><span class="tag-toggle-n">${P.tags.size || vocab.length}</span>
+      <svg class="tag-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>` : ''}
+    <div class="tag-row">${modPill}${shown.map(tagBtn).join('')}</div>`;
+  const list = calcPickProducts(P);
+  el('pk-count').innerHTML = escapeHtml(list.length === 1 ? t('pk_count_1') : tf('pk_count', { n: list.length }))
+    + (any ? ` · <button type="button" class="ws-link" onclick="calcPickClearFilters()">${escapeHtml(t('pk_clear_filters'))}</button>` : '');
+  el('pk-list').innerHTML = list.length ? list.map(p => calcPickRowHtml(p, p.id === P.selected)).join('')
+    : `<div class="ws-pick-empty">${escapeHtml(t('pk_none'))}</div>`;
+}
+function calcPickToggleTag(x) { const s2 = CALC.pick.tags; s2.has(x) ? s2.delete(x) : s2.add(x); calcPickRender(); }
+function calcPickClearFilters() {
+  Object.assign(CALC.pick, { q:'', stock:'all', tags: new Set(), modOnly: false });
+  if (el('pk-q')) el('pk-q').value = '';
+  calcPickRender();
+}
+function calcPickClose() { CALC.pick = null; closeQuickActions(); }
+function calcPickChoose(id) {
+  const P = CALC.pick;
+  if (!P) return;
+  calcPickClose();
+  if (P.target === 'feed') calcWsFeedPick(id);
+  else calcWsLinePick(P.target, P.key, id);
+}
+// Hours: one tap for the usual regimens; "Other" opens the number box.
+const CALC_HOURS = [12, 16, 18, 20, 24];
+function calcWsRenderHours() {
+  const box = el('ws-hours-chips'), inp = el('ws-feed-hours');
+  if (!box || !inp) return;
+  const v = parseFloat(inp.value);
+  const other = CALC.ws.hoursOther || (isFinite(v) && CALC_HOURS.indexOf(v) === -1);
+  box.innerHTML = CALC_HOURS.map(h => `<button type="button" class="cpill${!other && v === h ? ' on' : ''}" aria-pressed="${!other && v === h}" onclick="calcWsSetHours(${h})" dir="ltr">${h}</button>`).join('')
+    + `<button type="button" class="cpill${other ? ' on' : ''}" aria-pressed="${!!other}" onclick="calcWsSetHours('other')">${escapeHtml(t('ws_hours_other'))}</button>`;
+  inp.classList.toggle('hidden', !other);
+}
+function calcWsSetHours(h) {
+  const inp = el('ws-feed-hours');
+  if (h === 'other') { CALC.ws.hoursOther = true; calcWsRun(); setTimeout(() => { inp?.focus(); inp?.select?.(); }, 30); return; }
+  CALC.ws.hoursOther = false; inp.value = String(h); calcWsRun();
 }
 // The badge under a picked product: the SAME status pill and units pill the
 // product list uses (sbadge + units-pill), so stock reads the same everywhere.
@@ -7725,7 +7904,7 @@ function calcWsProductInfoHtml(p, n, ctx) {
     if (ex.osmolality) bits.push(`${escapeHtml(t('nx_osmolality'))} <span dir="ltr">${escapeHtml(String(ex.osmolality))} mOsm/kg</span>`);
     else if (ex.osmolarity) bits.push(`${escapeHtml(t('nx_osmolarity'))} <span dir="ltr">${escapeHtml(String(ex.osmolarity))} mOsm/L</span>`);
   }
-  let html = calcWsStockBadge(p) + (bits.length ? `<div>${bits.join(' · ')}</div>` : '');
+  let html = bits.length ? `<div>${bits.join(' · ')}</div>` : '';
   // Allergens and age limits change the prescribing decision, so they sit on
   // the product line itself, where the choice is made.
   const exm = (n && n.extras) || {};
@@ -7741,12 +7920,9 @@ function calcWsProductInfoHtml(p, n, ctx) {
 // list itself is replaced (see calcWsProductsChanged). Selections are kept by
 // product code, which survives a reload.
 function calcWsRefreshPickers() {
-  const sel = el('ws-feed-product');
-  if (!sel) return;
+  if (!el('ws-feed-pick')) return;
   CALC.wsBuiltFrom = S.products;
-  sel.innerHTML = calcWsProductOptionsHtml(CALC.ws.feedId);
-  sel.value = CALC.ws.feedId;
-  calcWsRenderLines('ons'); calcWsRenderLines('add');
+  calcWsRenderLines('ons'); calcWsRenderLines('add'); calcWsRenderLines('mod');
   calcWsRun();
 }
 // Cheap enough to call from renderProducts(): it does nothing unless the
@@ -7770,7 +7946,7 @@ function calcWsLineHtml(list, l) {
   if (p && n && calcWsLineDefaultPer(n) === null && !l.perTouched) info += `<div class="ws-warn">${escapeHtml(t('ws_line_need_size'))}</div>`;
   return `<div class="ws-line" id="${base}">
     <div class="ws-line-top">
-      <select id="${base}-prod" aria-label="${escapeHtml(t('ws_feed_product'))}" onchange="calcWsLinePick('${list}',${l.key},this.value)">${calcWsProductOptionsHtml(l.id)}</select>
+      ${calcWsPickTriggerHtml(l.id, `calcPickOpen('${list}',${l.key})`)}
       <button type="button" class="ws-x" aria-label="${escapeHtml(t('ws_line_remove'))}" onclick="calcWsRemoveLine('${list}',${l.key})">✕</button>
     </div>
     ${p && n ? `<div class="row2">
@@ -7781,7 +7957,7 @@ function calcWsLineHtml(list, l) {
   </div>`;
 }
 function calcWsRenderLines(list) {
-  const box = el(list === 'ons' ? 'ws-ons-lines' : 'ws-add-lines');
+  const box = el({ ons:'ws-ons-lines', add:'ws-add-lines', mod:'ws-mod-lines' }[list]);
   if (!box) return;
   box.innerHTML = CALC.ws.lines[list].map(l => calcWsLineHtml(list, l)).join('');
 }
@@ -8011,6 +8187,8 @@ function calcWsRunFeed() {
   const p = calcWsProduct(W.feedId);
   const n = p ? getProductNutrition(p) : null;
   const isPowder = !!(n && nsFormOf(n).form === 'powder');
+  el('ws-feed-pick').innerHTML = calcWsPickTriggerHtml(W.feedId, `calcPickOpen('feed')`);
+  calcWsRenderHours();
   el('ws-feed-info').innerHTML = W.feedId
     ? (p ? calcWsProductInfoHtml(p, n, 'feed') : `<div class="ws-warn">${escapeHtml(t('ws_missing_product'))}</div>`)
     : '';
@@ -8088,8 +8266,8 @@ function calcWsRunFeed() {
 function calcWsRunOns() {
   const box = el('ws-ons-deliv');
   if (!box) return;
-  const items = calcWsLinePortions('ons');
-  const skipped = calcWsLineSkipped('ons');
+  const items = calcWsLinePortions('ons').concat(calcWsLinePortions('mod'));
+  const skipped = calcWsLineSkipped('ons').concat(calcWsLineSkipped('mod'));
   if (CALC.route === 'oral' || CALC.route === 'op') calcCmpSetCurrent(items);
   const op = CALC.route === 'op';
   const tgt = op ? CALC.opTarget : { kcal: CALC.ws.target.kcal, protein: CALC.ws.target.protein, fluid: CALC.ws.target.fluid };
@@ -8129,11 +8307,10 @@ function calcCmpRestore(st) {
   const W = CALC.ws;
   W.feedId = st.feedId; W.rateTouched = st.rateTouched; W.densityTouched = st.densityTouched;
   W.lines = JSON.parse(JSON.stringify(st.lines)); W.seq = Math.max(W.seq, st.seq);
-  if (el('ws-feed-product')) el('ws-feed-product').value = st.feedId;
   if (el('ws-feed-rate')) el('ws-feed-rate').value = st.rate;
   if (el('ws-feed-hours')) el('ws-feed-hours').value = st.hours;
   if (el('ws-feed-density')) el('ws-feed-density').value = st.density;
-  calcWsRenderLines('ons'); calcWsRenderLines('add');
+  calcWsRenderLines('ons'); calcWsRenderLines('add'); calcWsRenderLines('mod');
   if (CALC.route !== st.route) calcSetRoute(st.route); else calcWsRun();
 }
 function calcCmpKeep() {
@@ -8332,10 +8509,10 @@ function calcWsReset() {
   CALC.ws = calcWsFresh();
   const def = { 'ws-e-min':'25', 'ws-e-max':'30', 'ws-p-min':'1.2', 'ws-p-max':'1.5', 'ws-f-min':'25', 'ws-f-max':'35',
                 'ws-t-e':'', 'ws-t-p':'', 'ws-t-f':'', 'ws-pf-rate':'', 'ws-pf-hours':'24', 'ws-pf-dens':'1.1',
-                'ws-feed-product':'', 'ws-feed-hours':'24', 'ws-feed-density':'', 'ws-feed-rate':'',
+                'ws-feed-hours':'24', 'ws-feed-density':'', 'ws-feed-rate':'',
                 'ws-dry-sev':'0', 'dw-severity':'0' };
   Object.keys(def).forEach(id => { const n = el(id); if (n) n.value = def[id]; });
-  calcWsRenderLines('ons'); calcWsRenderLines('add');
+  calcWsRenderLines('ons'); calcWsRenderLines('add'); calcWsRenderLines('mod');
 }
 
 // ── 10. Guidelines sheet ──────────────────────────────────────────────────
