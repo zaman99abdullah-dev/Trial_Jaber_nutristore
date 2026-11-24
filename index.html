@@ -667,6 +667,16 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
 .alert-section-hdr span{font-size:.8125rem;font-weight:700}
 .alert-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface2);border-radius:var(--rs);margin-bottom:6px;gap:8px;flex-wrap:wrap}
 .alert-item:last-child{margin-bottom:0}
+/* Order Now answers */
+.oa-acts{display:flex;gap:8px;flex-basis:100%;margin-top:4px}
+.oa-btn{flex:1;min-height:44px;padding:8px 12px;border-radius:var(--rs);border:1.5px solid var(--border2);background:none;color:var(--text);font-size:.8125rem;font-weight:700;cursor:pointer}
+.oa-btn:disabled{opacity:.5;cursor:default}
+.oa-undo{flex:0 0 auto}
+.oa-open{display:inline-flex;align-items:center;gap:5px;margin-inline-start:auto}
+.oa-handled{margin-top:12px}
+.oa-handled>summary{cursor:pointer;font-size:.75rem;font-weight:700;color:var(--text2);padding:13px 0;line-height:18px}
+.ntab-count{position:absolute;top:2px;inset-inline-end:10px;min-width:18px;height:18px;padding:0 5px;border-radius:100px;background:#dc2626;color:#fff;font-size:.6875rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.ntab-count.hidden{display:none}
 .alert-name{font-size:.875rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .alert-meta{font-size:.75rem;color:var(--text2);flex-shrink:0}
 
@@ -1332,7 +1342,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
     <button class="ntab not-sv" onclick="goTab('screening')"      id="tab-screening"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg><span id="tab-screening-lbl">Screening</span></button>
     <button class="ntab s-only hidden" onclick="goTab('dispense')"    id="tab-dispense"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span id="tab-dispense-lbl">Rotate Now</span><span class="ntab-dot hidden" id="dispense-dot"></span></button>
     <button class="ntab s-only hidden" onclick="goTab('update')"      id="tab-update"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.986L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497Z"/><path d="m15 5 4 4"/></svg><span id="tab-update-lbl">Update &amp; Batches</span></button>
-    <button class="ntab sv-only hidden" onclick="goTab('supervisor')"  id="tab-supervisor"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span id="tab-supervisor-lbl">Supervisor</span></button>
+    <button class="ntab sv-only hidden" onclick="goTab('supervisor')"  id="tab-supervisor"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span id="tab-supervisor-lbl">Supervisor</span><span class="ntab-count hidden" id="oa-bell"></span></button>
     <button class="ntab sv-only hidden" onclick="goTab('staff')"       id="tab-staff"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span id="tab-staff-lbl">Staff</span><span class="ntab-dot hidden" id="staff-dot"></span></button>
     <button class="ntab sv-only hidden" onclick="goTab('source')"      id="tab-source"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg><span id="tab-source-lbl">Products Admin</span></button>
     <button class="ntab s-only hidden" onclick="goTab('settings')"    id="tab-settings"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span id="tab-settings-lbl">Settings</span></button>
@@ -2744,6 +2754,7 @@ label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-b
             <!-- Order Now (reorder intelligence) -->
             <div class="card" id="sv-reorder-card">
               <div class="card-title" data-i18n="sv_order">🛒 Order Now</div>
+              <div id="oa-open-count"></div>
               <div style="font-size:.75rem;color:var(--text2);margin-bottom:10px" id="sv-reorder-sub">Products projected to run out within the supplier lead time</div>
               <div id="sv-reorder-content"><div class="empty" style="padding:12px"><div class="spinner"></div></div></div>
             </div>
@@ -3418,6 +3429,19 @@ const T = {
   sv_exp_waste:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Waste Log — Recent (CSV)','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> سجل الهدر — الأحدث (CSV)'],
   sv_alerts:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> Expiry Alerts','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> تنبيهات الصلاحية'],
   sv_activity:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Staff Activity This Week','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> نشاط الموظفين هذا الأسبوع'],
+  oa_ordered:['Ordered','تم الطلب'], oa_not_needed:['Not needed','غير مطلوب'], oa_undo:['Undo','تراجع'],
+  oa_open:['{n} open','{n} مفتوح'], oa_all_handled:['All alerts handled','تمت معالجة جميع التنبيهات'],
+  oa_handled_h:['Handled ({n})','تمت المعالجة ({n})'], oa_by:['{w} · {d} · returns {r}','{w} · {d} · يعود {r}'],
+  oa_saved:['Saved','تم الحفظ'], oa_undone_t:['Alert reopened','أُعيد فتح التنبيه'],
+  oa_taken:['Another supervisor has already handled this','عالج مشرف آخر هذا التنبيه بالفعل'],
+  oa_gone:['This alert has changed. The list has been updated.','تغيّر هذا التنبيه. تم تحديث القائمة.'],
+  oa_auto:['Automatic','تلقائي'],
+  oa_log_handled:['Order Now alert: {c}','تنبيه الطلب: {c}'],
+  oa_log_undone:['Order Now alert: {c} undone','تنبيه الطلب: تم التراجع عن {c}'],
+  oa_log_ended:['Order Now alert: {c} ended, {r}','تنبيه الطلب: انتهى {c}، {r}'],
+  oa_end_stock_arrived:['new stock arrived','وصل مخزون جديد'], oa_end_ran_out:['stock ran out','نفد المخزون'],
+  oa_end_timed_out:['14 days passed','مرّ 14 يومًا'], oa_end_lifeline:['marked as lifeline','صُنّف كمنتج حيوي'],
+  oa_bell_aria:['{n} open Order Now alerts','{n} تنبيهات طلب مفتوحة'],
   sv_lowstock:['<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Low Stock Products','<svg class="calc-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> منتجات منخفضة المخزون'],
   sv_send:['<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> Send Report Now','<svg class="qa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> إرسال التقرير الآن'],
   sv_loading:['Loading dashboard…','جارٍ تحميل اللوحة…'],
@@ -4533,6 +4557,7 @@ async function finishBoot(offline) {
   el('app').style.display = 'flex';
   setInterval(renderLastSynced, 30000);
   setupPullToRefresh();
+  if (!offline) oaRefreshBell();
   if (offline) setOfflineBanner(true);
   else setTimeout(()=>el('prod-search')?.focus(), 200);
 }
@@ -4975,7 +5000,8 @@ const RESHAPE = {
       const isProductStatus = r.entity === 'product';
       o.oldStatus = (isProductStatus && ov) ? ov.status : undefined;
       o.newStatus = (isProductStatus && nv) ? nv.status : undefined;
-      if (r.entity === 'product') {
+      // An Order Now answer is about a product: entity_id is the product's id.
+      if (r.entity === 'product' || r.entity === 'order_alert') {
         const prod = PRODUCT_BY_UUID[r.entity_id];
         // Never a bare blank: an unresolved uuid degrades to a visible marker,
         // not silence that reads as "no product". Note PRODUCT_BY_UUID is now
@@ -5049,6 +5075,13 @@ const RESHAPE = {
     const fix = (arr) => Array.isArray(arr) ? arr.map(it => ({ ...it, id: it.product_code })) : arr;
     return { ...data, orderNow: fix(data.orderNow), comingUp: fix(data.comingUp), lifelineAtRisk: fix(data.lifelineAtRisk) };
   },
+  // order_alerts_handled(): what supervisors have already answered, keyed by the
+  // product's uuid (the key reorder items carry as product_id).
+  getOrderAlerts(rows) {
+    const by = {};
+    (Array.isArray(rows) ? rows : []).forEach(a => { by[a.product_id] = a; });
+    return { by };
+  },
   // Sweep finding (not in the original B2/B4 list): monthly_comparison() only
   // ever returns {thisMonth,lastMonth} (0011_views_reports.sql) — unlike its
   // sibling waste_metric(), it never computes change/direction server-side.
@@ -5098,7 +5131,7 @@ const RESHAPE = {
     const out = { ...d };
     if (out.statusCount) {
       const sc = out.statusCount;
-      out.statusCount = { ...sc, total: (sc.available||0)+(sc.low||0)+(sc.coming||0)+(sc.unavailable||0)+(sc.empty||0) };
+      out.statusCount = { ...sc, total: (sc.available||0)+(sc.low||0)+(sc.coming||0)+(sc.unavailable||0)+(sc.unlisted||0)+(sc.empty||0) };
     }
     const fixAlert = (arr) => Array.isArray(arr) ? arr.map(b => ({
       ...b, name: b.product_name, date: b.expiry_date, qty: b.quantity, days: b.days_remaining
@@ -11420,7 +11453,7 @@ function renderLogs() {
       <div class="log-body">
         <div class="log-name">${escapeHtml(logTitle(l))}</div>
         ${body}
-        <div class="log-meta">${ds}${l.updatedBy?' · '+escapeHtml(l.updatedBy):''}${l.note?' · '+escapeHtml(l.note):''}</div>
+        <div class="log-meta">${ds}${l.updatedBy?' · '+escapeHtml(l.updatedBy):(l.entity==='order_alert'?' · '+escapeHtml(t('oa_auto')):'')}${l.note&&l.entity!=='order_alert'?' · '+escapeHtml(l.note):''}</div>
       </div>
     </div>`;
   };
@@ -11483,7 +11516,7 @@ const LOG_FIELD_LBL = {
 // audit_logs.entity_id for a BATCH row is the batch's id, not the product's, so
 // there is genuinely nothing to resolve a product name from — say "Batch"
 // rather than printing "(batch)" where a product name belongs.
-const LOG_ENTITY_LBL = { batch:'Batch', settings:'Settings', staff:'Staff account', product:'Product' };
+const LOG_ENTITY_LBL = { batch:'Batch', settings:'Settings', staff:'Staff account', product:'Product', order_alert:'Order Now' };
 
 function logTitle(l) {
   if (l.productName && !/^\(.*\)$/.test(l.productName)) return l.productName;
@@ -11495,10 +11528,20 @@ function logVal(v) {
   if (v === false) return 'off';
   return String(v);
 }
+// One plain sentence per Order Now event. `ended` is always the system's doing
+// (actor NULL), so the row says what ended it instead of naming a person.
+function orderAlertLogText(l) {
+  const ch = v => t(v === 'not_needed' ? 'oa_not_needed' : 'oa_ordered');
+  const ov = l.oldValue || {}, nv = l.newValue || {};
+  if (l.action === 'undone') return tf('oa_log_undone', { c: ch(ov.choice) });
+  if (l.action === 'ended')  return tf('oa_log_ended', { c: ch(ov.choice), r: t('oa_end_' + nv.reason) });
+  return tf('oa_log_handled', { c: ch(nv.choice || l.action) });
+}
 // Build "Quantity 40 → 28 · Expiry 2027-01-31" from the audit row's own
 // old_value/new_value objects, so every action type reads as something a person
 // can act on rather than a pair of empty status badges.
 function logChangeHtml(l) {
+  if (l.entity === 'order_alert') return `<div class="log-change" style="font-size:.75rem"><b>${escapeHtml(orderAlertLogText(l))}</b></div>`;
   const ov = l.oldValue && typeof l.oldValue === 'object' ? l.oldValue : {};
   const nv = l.newValue && typeof l.newValue === 'object' ? l.newValue : {};
   const keys = Array.from(new Set([...Object.keys(ov), ...Object.keys(nv)]))
@@ -11545,7 +11588,8 @@ async function loadSupervisorData() {
       api({action:'getMostNeeded'}),
       api({action:'getWasteMetric'}),
       api({action:'getDispensingTrend'}),
-      api({action:'getReorderData'})
+      api({action:'getReorderData'}),
+      oaLoad()
     ]);
     renderMonthlyComparison(results[0].status==='fulfilled' ? results[0].value : null);
     renderMostNeeded(results[1].status==='fulfilled' ? results[1].value : null);
@@ -11643,7 +11687,7 @@ function fmtShortDate(iso) {
   return isNaN(d) ? iso : d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
 }
 
-function reorderRowHTML(it, leadTimeDays, showReason) {
+function reorderRowHTML(it, leadTimeDays, showReason, acts) {
   // Urgency from the order-by estimate when the backend provides it;
   // fall back to the old days-of-stock tiers on an older backend.
   let wosCls;
@@ -11671,8 +11715,79 @@ function reorderRowHTML(it, leadTimeDays, showReason) {
     <div class="alert-name" style="flex-basis:100%">${it.lifeline?`<span class="ll-badge sm">${ALERT_TRI_ICON}</span> `:''}${escapeHtml(it.name)}</div>
     <div class="alert-meta" style="flex:1">${PACKAGE_ICON} ${it.units} units · ${it.avgWeekly}/wk</div>
     <span class="urg-badge ${wosCls}">${wosLbl}</span>
-    ${orderLine}${qtyLine}${reason}
+    ${orderLine}${qtyLine}${reason}${acts || ''}
   </div>`;
+}
+
+// ── Order Now answers (2026-11-25) ────────────────────────────────────────
+// One tap, "Ordered" or "Not needed", shared by every supervisor and recorded
+// in Changes. The Order Now list itself is never shortened by the server: it
+// still says what needs ordering, and this only splits it into open / handled.
+// The Lifeline card and the order export always show everything.
+const BELL_ICON = '<svg class="qa-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+function oaFor(it) { return (S.orderAlerts && S.orderAlerts[it.product_id]) || null; }
+function oaSplit(d) {
+  const open = [], handled = [];
+  ((d && d.orderNow) || []).forEach(it => (oaFor(it) ? handled : open).push(it));
+  return { open, handled };
+}
+function oaRenderCounts(d) {
+  const n = S.isSupervisor && S.orderAlerts ? oaSplit(d).open.length : 0;
+  const bell = el('oa-bell');
+  if (bell) {
+    bell.textContent = n > 99 ? '99+' : String(n);
+    bell.classList.toggle('hidden', !n);
+    bell.setAttribute('aria-label', tf('oa_bell_aria', { n }));
+  }
+  const c = el('oa-open-count');
+  if (c) c.innerHTML = S.orderAlerts ? `<span class="urg-badge ${n ? 'urg-critical' : 'urg-medium'}" style="gap:5px;margin-bottom:8px">${BELL_ICON} ${escapeHtml(tf('oa_open', { n }))}</span>` : '';
+}
+function oaActsHtml(it) {
+  const b = (c) => `<button type="button" class="oa-btn" ${S.oaBusy ? 'disabled' : ''} onclick="oaHandle('${escapeHtml(it.product_id)}','${c}')">${escapeHtml(t('oa_' + c))}</button>`;
+  return `<div class="oa-acts">${b('ordered')}${it.lifeline ? '' : b('not_needed')}</div>`;
+}
+function oaHandledHtml(it) {
+  const a = oaFor(it);
+  const day = v => { const d = new Date(v); return isFinite(d) ? d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) : ''; };
+  const at = new Date(a.handled_at);
+  const when = isFinite(at) ? day(at) + ' ' + at.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) : '';
+  return `<div class="oa-acts" style="align-items:center"><span style="flex:1;font-size:.75rem;color:var(--text2)"><b>${escapeHtml(t('oa_' + a.choice))}</b><br>${escapeHtml(tf('oa_by', { w: actorName(a.handled_by) || '—', d: when, r: day(a.returns_on) }))}</span><button type="button" class="oa-btn oa-undo" ${S.oaBusy ? 'disabled' : ''} onclick="oaUndo('${escapeHtml(it.product_id)}')">${escapeHtml(t('oa_undo'))}</button></div>`;
+}
+async function oaLoad() {
+  // Failure-tolerant like the other optional boot calls: a gateway without this
+  // action must leave Order Now working, just without the buttons.
+  try { S.orderAlerts = (await api({ action:'getOrderAlerts' })).by; }
+  catch (e) { S.orderAlerts = null; }
+}
+// Both lists again from the server: another supervisor may have answered too.
+async function oaReload() {
+  const d = await api({ action:'getReorderData' });
+  await oaLoad();
+  renderReorder(d);
+}
+async function oaSend(params, okMsg) {
+  if (S.oaBusy) return;
+  S.oaBusy = true;
+  if (S.svReorder) renderReorder(S.svReorder);
+  try {
+    await api(params);
+    toast(okMsg, 'ok');
+  } catch (e) {
+    const m = String(e.message || '');
+    if (/ALREADY_HANDLED/.test(m)) toast(t('oa_taken'), 'warn');
+    else if (/NOT_IN_ORDER_NOW|ALERT_NOT_HANDLED|LIFELINE_ALERT/.test(m)) toast(t('oa_gone'), 'warn');
+    else toast(t('t_failed') + m, 'err');
+  }
+  S.oaBusy = false;
+  try { await oaReload(); } catch (e) { if (S.svReorder) renderReorder(S.svReorder); }
+}
+function oaHandle(id, choice) { return oaSend({ action:'handleOrderAlert', productId:id, choice }, t('oa_saved')); }
+function oaUndo(id) { return oaSend({ action:'undoOrderAlert', productId:id }, t('oa_undone_t')); }
+// The count on the Supervisor tab, without opening it.
+async function oaRefreshBell() {
+  if (!S.isSupervisor) { oaRenderCounts(null); return; }
+  try { const d = await api({ action:'getReorderData' }); await oaLoad(); S.svReorder = d; oaRenderCounts(d); }
+  catch (e) { /* a count is never worth an error */ }
 }
 
 function renderReorder(d) {
@@ -11694,10 +11809,20 @@ function renderReorder(d) {
   const exportBtn = (d.orderNow.length || comingUp)
     ? `<button class="export-btn" style="width:100%;margin-top:10px" onclick="exportOrderCSV()"><span>${CART_ICON} Export Order List (CSV)</span><span class="arr">↓</span></button>`
     : '';
-  box.innerHTML = (d.orderNow.length
-    ? d.orderNow.map(it=>reorderRowHTML(it, d.leadTimeDays, true)).join('')
+  // S.orderAlerts is null when the backend has no order alerts yet (or the call
+  // failed): the list then looks exactly as it did before, with no buttons.
+  const { open, handled } = oaSplit(d);
+  const on = !!S.orderAlerts;
+  const handledHtml = handled.length
+    ? `<details class="oa-handled"${S.oaHandledOpen ? ' open' : ''} ontoggle="S.oaHandledOpen=this.open"><summary>${escapeHtml(tf('oa_handled_h', { n: handled.length }))}</summary>`
+      + handled.map(it=>reorderRowHTML(it, d.leadTimeDays, true, oaHandledHtml(it))).join('') + '</details>'
+    : '';
+  oaRenderCounts(d);
+  box.innerHTML = (open.length
+    ? open.map(it=>reorderRowHTML(it, d.leadTimeDays, true, on ? oaActsHtml(it) : '')).join('')
+    : handled.length ? `<div class="empty" style="padding:12px"><p style="font-size:.8125rem">${escapeHtml(t('oa_all_handled'))}</p></div>`
     : '<div class="empty" style="padding:16px"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 9 10.5 15 8 12.5"/></svg></div><p style="font-size:.875rem">Nothing needs ordering right now</p></div>')
-    + comingUp + exportBtn;
+    + handledHtml + comingUp + exportBtn;
   lbox.innerHTML = d.lifelineAtRisk.length
     ? d.lifelineAtRisk.map(it=>reorderRowHTML(it, d.leadTimeDays, false)).join('')
     : '<div class="empty" style="padding:16px"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 9 10.5 15 8 12.5"/></svg></div><p style="font-size:.875rem">All lifeline products are safe</p></div>';
@@ -11707,13 +11832,14 @@ function exportOrderCSV() {
   const d = S.svReorder;
   const hasComing = d && Array.isArray(d.comingUp) && d.comingUp.length;
   if (!d || ((!d.orderNow || !d.orderNow.length) && !hasComing)) { toast('Nothing to export','warn'); return; }
-  const rows = [['ID','Product','Category','Lifeline','Status','Units Left','Avg Weekly Use','Weeks of Stock','Order By','Suggested Units','Units/Package','Suggested Packages','Section','Reason']];
+  const rows = [['ID','Product','Category','Lifeline','Status','Units Left','Avg Weekly Use','Weeks of Stock','Order By','Suggested Units','Units/Package','Suggested Packages','Section','Reason','Handled']];
   const push = (it, section) => rows.push([
     it.id, it.name, it.category, it.lifeline?'Yes':'No', STATUS_CFG[it.status||''].label,
     it.units, it.avgWeekly, it.weeksOfStock==null?'':it.weeksOfStock,
     it.orderByDate||'', it.suggestedUnits!=null?it.suggestedUnits:'',
     it.unitsPerPackage!=null?it.unitsPerPackage:'', it.suggestedPackages!=null?it.suggestedPackages:'',
-    section, REORDER_REASON_LBL[it.reason]||''
+    section, REORDER_REASON_LBL[it.reason]||'',
+    section==='Order now' && oaFor(it) ? (oaFor(it).choice==='ordered'?'Ordered':'Not needed') : ''
   ]);
   (d.orderNow||[]).forEach(it=>push(it,'Order now'));
   (d.comingUp||[]).forEach(it=>push(it,'Coming up'));
@@ -12036,6 +12162,7 @@ function renderSupervisorDashboard(d) {
     {label:'Low Stock', value: sc.low||0, color:'#f59e0b'},
     {label:'Coming Soon', value: sc.coming||0, color:'#3fa9dc'},
     {label:'Unavailable', value: sc.unavailable||0, color:'#ef4444'},
+    {label:'Unlisted', value: sc.unlisted||0, color:'#d946ef'},
     {label:'Not Set', value: sc.empty||0, color:'#475569'},
   ];
   el('sv-donut-row').innerHTML = `
